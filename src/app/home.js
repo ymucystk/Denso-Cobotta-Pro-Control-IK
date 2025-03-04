@@ -36,6 +36,9 @@ export default function Home() {
   const [j6_rotate,set_j6_rotate] = React.useState(0)
   const [j7_rotate,set_j7_rotate] = React.useState(0) //指用
 
+  const [rotate, set_rotate] = React.useState([0,0,0,0,0,0])  //出力用
+  const [input_rotate, set_input_rotate] = React.useState([0,0,0,0,0,0])  //入力用
+
   const [j1_object,set_j1_object] = React.useState()
   const [j2_object,set_j2_object] = React.useState()
   const [j3_object,set_j3_object] = React.useState()
@@ -157,38 +160,104 @@ export default function Home() {
   React.useEffect(() => {
     if (j1_object !== undefined) {
       j1_object.quaternion.setFromAxisAngle(y_vec_base,toRadian(j1_rotate))
+      set_rotate((org)=>{
+        org[0] = round(j1_rotate,3)
+        return org
+      })
     }
   }, [j1_rotate])
 
   React.useEffect(() => {
     if (j2_object !== undefined) {
       j2_object.quaternion.setFromAxisAngle(x_vec_base,toRadian(j2_rotate))
+      set_rotate((org)=>{
+        org[1] = round(j2_rotate,3)
+        return org
+      })
     }
   }, [j2_rotate])
 
   React.useEffect(() => {
     if (j3_object !== undefined) {
       j3_object.quaternion.setFromAxisAngle(x_vec_base,toRadian(j3_rotate))
+      set_rotate((org)=>{
+        org[2] = round(j3_rotate,3)
+        return org
+      })
     }
   }, [j3_rotate])
 
   React.useEffect(() => {
     if (j4_object !== undefined) {
       j4_object.quaternion.setFromAxisAngle(y_vec_base,toRadian(j4_rotate))
+      set_rotate((org)=>{
+        org[3] = round(j4_rotate,3)
+        return org
+      })
     }
   }, [j4_rotate])
 
   React.useEffect(() => {
     if (j5_object !== undefined) {
       j5_object.quaternion.setFromAxisAngle(x_vec_base,toRadian(j5_rotate))
+      set_rotate((org)=>{
+        org[4] = round(normalize180(j5_rotate+90),3)
+        return org
+      })
     }
   }, [j5_rotate])
 
   React.useEffect(() => {
     if (j6_object !== undefined) {
       j6_object.quaternion.setFromAxisAngle(z_vec_base,toRadian(j6_rotate))
+      set_rotate((org)=>{
+        org[5] = round(j6_rotate,3)
+        return org
+      })
     }
   }, [j6_rotate])
+
+  React.useEffect(() => {
+    if (j1_object !== undefined) {
+      const rotate_value = round(normalize180(input_rotate[0]))
+      set_j1_rotate(rotate_value)
+    }
+  }, [input_rotate[0]])
+
+  React.useEffect(() => {
+    if (j2_object !== undefined) {
+      const rotate_value = round(normalize180(input_rotate[1]))
+      set_j2_rotate(rotate_value)
+    }
+  }, [input_rotate[1]])
+
+  React.useEffect(() => {
+    if (j3_object !== undefined) {
+      const rotate_value = round(normalize180(input_rotate[2]))
+      set_j3_rotate(rotate_value)
+    }
+  }, [input_rotate[2]])
+
+  React.useEffect(() => {
+    if (j4_object !== undefined) {
+      const rotate_value = round(normalize180(input_rotate[3]))
+      set_j4_rotate(rotate_value)
+    }
+  }, [input_rotate[3]])
+
+  React.useEffect(() => {
+    if (j5_object !== undefined) {
+      const rotate_value = round(normalize180(input_rotate[4]-90))
+      set_j5_rotate(rotate_value)
+    }
+  }, [input_rotate[4]])
+
+  React.useEffect(() => {
+    if (j6_object !== undefined) {
+      const rotate_value = round(normalize180(input_rotate[5]))
+      set_j6_rotate(rotate_value)
+    }
+  }, [input_rotate[5]])
 
   const get_j5_quaternion = (rot_x=wrist_rot_x,rot_y=wrist_rot_y,rot_z=wrist_rot_z)=>{
     return new THREE.Quaternion().setFromEuler(
