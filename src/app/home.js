@@ -285,20 +285,20 @@ export default function Home() {
     const q_conjugate = new THREE.Quaternion(q.x, q.y, q.z, q.w).conjugate()
     const q_vector = new THREE.Quaternion(v.x, v.y, v.z, 0)
     const result = q_original.multiply(q_vector).multiply(q_conjugate)
-    return new THREE.Vector3(round(result.x),round(result.y),round(result.z))
+    return new THREE.Vector3((result.x),(result.y),(result.z))
   }
 
   const quaternionToAngle = (q)=>{
     const wk_angle = 2 * Math.acos(round(q.w))
     if(wk_angle === 0){
-      return {angle:round(toAngle(wk_angle)),axis:new THREE.Vector3(0,0,0)}
+      return {angle:(toAngle(wk_angle)),axis:new THREE.Vector3(0,0,0)}
     }
-    const angle = round(toAngle(wk_angle))
+    const angle = (toAngle(wk_angle))
     const sinHalfAngle = Math.sqrt(1 - q.w * q.w)
     if (sinHalfAngle > 0) {
-      const axisX = round(q.x / sinHalfAngle)
-      const axisY = round(q.y / sinHalfAngle)
-      const axisZ = round(q.z / sinHalfAngle)
+      const axisX = (q.x / sinHalfAngle)
+      const axisY = (q.y / sinHalfAngle)
+      const axisZ = (q.z / sinHalfAngle)
       return {angle,axis:new THREE.Vector3(axisX,axisY,axisZ)}
     }else{
       return {angle,axis:new THREE.Vector3(0,0,0)}
@@ -314,9 +314,9 @@ export default function Home() {
   const direction_angle = (vec)=>{
     const dir_sign1 = vec.x < 0 ? -1 : 1
     const xz_vector = new THREE.Vector3(vec.x,0,vec.z).normalize()
-    const direction = round(toAngle(Math.acos(xz_vector.dot(z_vec_base))))*dir_sign1
+    const direction = (toAngle(Math.acos(xz_vector.dot(z_vec_base))))*dir_sign1
     const y_vector = new THREE.Vector3(vec.x,vec.y,vec.z).normalize()
-    const angle = round(toAngle(Math.acos(y_vector.dot(y_vec_base))))
+    const angle = (toAngle(Math.acos(y_vector.dot(y_vec_base))))
     return {direction,angle}
   }
 
@@ -329,9 +329,9 @@ export default function Home() {
   }
 
   const degree3 = (side_a, side_b, side_c)=>{
-    const angle_A = round(toAngle(Math.acos((side_b ** 2 + side_c ** 2 - side_a ** 2) / (2 * side_b * side_c))))
-    const angle_B = round(toAngle(Math.acos((side_a ** 2 + side_c ** 2 - side_b ** 2) / (2 * side_a * side_c))))
-    const angle_C = round(toAngle(Math.acos((side_a ** 2 + side_b ** 2 - side_c ** 2) / (2 * side_a * side_b))))
+    const angle_A = (toAngle(Math.acos((side_b ** 2 + side_c ** 2 - side_a ** 2) / (2 * side_b * side_c))))
+    const angle_B = (toAngle(Math.acos((side_a ** 2 + side_c ** 2 - side_b ** 2) / (2 * side_a * side_c))))
+    const angle_C = (toAngle(Math.acos((side_a ** 2 + side_b ** 2 - side_c ** 2) / (2 * side_a * side_b))))
     return {angle_A,angle_B,angle_C}
   }
 
@@ -456,8 +456,8 @@ export default function Home() {
     const p15_pos_wk = pos_sub(p16_pos,p15_16_offset_pos)
     const p15_pos = new THREE.Vector3(p15_pos_wk.x,p15_pos_wk.y,p15_pos_wk.z)
 
-    const syahen_t15 = round(distance({x:0,y:joint_pos.j2.y,z:0},p15_pos))
-    const takasa_t15 = round(p15_pos.y - joint_pos.j2.y)
+    const syahen_t15 = (distance({x:0,y:joint_pos.j2.y,z:0},p15_pos))
+    const takasa_t15 = (p15_pos.y - joint_pos.j2.y)
     const {k:angle_t15} = calc_side_4(syahen_t15,takasa_t15)
     const result_t15 = get_J2_J3_rotate(angle_t15,joint_pos.j3.y,joint_pos.j4.y,syahen_t15)
     if(result_t15.dsp_message){
@@ -469,7 +469,7 @@ export default function Home() {
 
     const dir_sign_t15 = p15_pos.x < 0 ? -1 : 1
     const xz_vector_t15 = new THREE.Vector3(p15_pos.x,0,p15_pos.z).normalize()
-    const direction_t15 = round(toAngle(z_vec_base.angleTo(xz_vector_t15)))
+    const direction_t15 = (toAngle(z_vec_base.angleTo(xz_vector_t15)))
     if(isNaN(direction_t15)){
       dsp_message = "direction_t15 指定可能範囲外！"
       return {j1_rotate,j2_rotate:wk_j2_rotate,j3_rotate:wk_j3_rotate,j4_rotate,j5_rotate,j6_rotate,dsp_message}
@@ -493,19 +493,19 @@ export default function Home() {
     const p14_offset_pos = quaternionToRotation(baseq,{x:0,y:joint_pos.j4.y,z:0})
     const p13_pos = pos_sub(p15_pos,p14_offset_pos)
 
-    const distance_13_16 = round(distance(p13_pos,p16_pos))
+    const distance_13_16 = (distance(p13_pos,p16_pos))
     const result_angle1 = degree3(joint_pos.j4.y,p15_16_len,distance_13_16)
     if(isNaN(result_angle1.angle_C)){
       dsp_message = "result_angle1.angle_C 指定可能範囲外！"
       return {j1_rotate:wk_j1_rotate,j2_rotate:wk_j2_rotate,j3_rotate:wk_j3_rotate,
         j4_rotate,j5_rotate,j6_rotate,dsp_message}
     }
-    const wk_j5_rotate = normalize180(round(180 - result_angle1.angle_C - 90))
+    const wk_j5_rotate = normalize180((180 - result_angle1.angle_C - 90))
 
-    const result_p16_zero_offset = calc_side_1(p15_16_len,normalize180(round(180 - result_angle1.angle_C)))
+    const result_p16_zero_offset = calc_side_1(p15_16_len,normalize180((180 - result_angle1.angle_C)))
     const p16_zero_offset_pos = quaternionToRotation(baseq,{x:0,y:result_p16_zero_offset.a,z:result_p16_zero_offset.b})
     const p16_zero_pos = pos_add(p15_pos,p16_zero_offset_pos)
-    const distance_16_16 = Math.min(round(distance(p16_zero_pos,p16_pos)),result_p16_zero_offset.b*2)
+    const distance_16_16 = Math.min((distance(p16_zero_pos,p16_pos)),result_p16_zero_offset.b*2)
     const result_angle2 = degree3(result_p16_zero_offset.b,result_p16_zero_offset.b,distance_16_16)
     if(isNaN(result_angle2.angle_C)){
       dsp_message = "result_angle2.angle_C 指定可能範囲外！"
@@ -513,7 +513,7 @@ export default function Home() {
         j4_rotate,j5_rotate:wk_j5_rotate,j6_rotate,dsp_message}
     }
     const direction_offset = normalize180(wrist_direction - wk_j1_rotate)
-    const wk_j4_rotate = normalize180(round(result_angle2.angle_C * (direction_offset<0?-1:1)))
+    const wk_j4_rotate = normalize180((result_angle2.angle_C * (direction_offset<0?-1:1)))
 
     baseq.multiply(
       new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j4_rotate))
@@ -549,8 +549,8 @@ export default function Home() {
       if(isNaN(angle_B)) angle_B = 0
       if(isNaN(angle_C)) angle_C = 0
 
-      const angle_j2 = normalize180(round(angle_base - angle_B))
-      const angle_j3 = normalize180(round(angle_C === 0 ? 0 : 180 - angle_C))
+      const angle_j2 = normalize180((angle_base - angle_B))
+      const angle_j3 = normalize180((angle_C === 0 ? 0 : 180 - angle_C))
       if(isNaN(angle_j2)){
         console.log("angle_j2 指定可能範囲外！")
         dsp_message = "angle_j2 指定可能範囲外！"
@@ -606,30 +606,30 @@ export default function Home() {
   }
 
   const getpos = (position)=>{
-    const wkpos = {x:round(position.x),y:round(position.y),z:round(position.z)}
+    const wkpos = {x:(position.x),y:(position.y),z:(position.z)}
     return wkpos
   }
 
   const distance = (s_pos, t_pos)=>{
-    return round(Math.sqrt((t_pos.x - s_pos.x) ** 2 + (t_pos.y - s_pos.y) ** 2 + (t_pos.z - s_pos.z) ** 2))
+    return (Math.sqrt((t_pos.x - s_pos.x) ** 2 + (t_pos.y - s_pos.y) ** 2 + (t_pos.z - s_pos.z) ** 2))
   }
 
   const calc_side_1 = (syahen, kakudo)=>{
-    const teihen = round(Math.abs(kakudo)===90  ? 0:(syahen * Math.cos(toRadian(kakudo))))
-    const takasa = round(Math.abs(kakudo)===180 ? 0:(syahen * Math.sin(toRadian(kakudo))))
+    const teihen = (Math.abs(kakudo)===90  ? 0:(syahen * Math.cos(toRadian(kakudo))))
+    const takasa = (Math.abs(kakudo)===180 ? 0:(syahen * Math.sin(toRadian(kakudo))))
     return {a:teihen, b:takasa}
   }
 
   const calc_side_2 = (teihen, takasa)=>{
-    const syahen = round(Math.sqrt(teihen ** 2 + takasa ** 2))
-    const kakudo = round(toAngle(Math.atan2(teihen, takasa)))
+    const syahen = (Math.sqrt(teihen ** 2 + takasa ** 2))
+    const kakudo = (toAngle(Math.atan2(teihen, takasa)))
     return {s:syahen, k:kakudo}
   }
 
   const calc_side_4 = (syahen, teihen)=>{
     const wk_rad = Math.acos(teihen / syahen)
-    const takasa = round(teihen * Math.tan(wk_rad))
-    const kakudo = round(toAngle(wk_rad))
+    const takasa = (teihen * Math.tan(wk_rad))
+    const kakudo = (toAngle(wk_rad))
     return {k:kakudo, t:takasa}
   }
 
@@ -814,7 +814,7 @@ export default function Home() {
       </a-scene>
       <Controller {...controllerProps}/>
       <div className="footer" >
-        <div>{`wrist_degree:{direction:${wrist_degree.direction},angle:${wrist_degree.angle}}  ${dsp_message}`}</div>
+        <div>{`wrist_degree:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}  ${dsp_message}`}</div>
       </div>
     </>
     );
