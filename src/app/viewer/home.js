@@ -2,11 +2,12 @@
 import 'aframe'
 import * as React from 'react'
 import * as THREE from 'three'
-import Controller from './controller.js'
+import Controller from '../controller.js'
 
-import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT } from '../lib/MetaworkMQTT'
+// こちらは Viewer 専用
 
-const MQTT_REQUEST_TOPIC = "mgr/request";
+import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT } from '../../lib/MetaworkMQTT.js'
+
 const MQTT_DEVICE_TOPIC = "dev/"+idtopic;
 const MQTT_CTRL_TOPIC =        "control/"+idtopic; // 自分のIDに制御を送信
 //const MQTT_ROBOT_STATE_TOPIC = "robot/";
@@ -74,9 +75,10 @@ export default function Home() {
   const [trigger_on,set_trigger_on] = React.useState(false)
   const [start_pos,set_start_pos] = React.useState(new THREE.Vector3())
   const [save_target,set_save_target] = React.useState()
-//  const [vr_mode,set_vr_mode] = React.useState(false)
-  const vrModeRef = React.useRef(false); // vr_mode はref のほうが使いやすい
+  const [vr_mode,set_vr_mode] = React.useState(false)
+//  const vrModeRef = React.useRef(false); // vr_mode はref のほうが使いやすい
   const robotIDRef = React.useRef("none");
+
 
   const [test_pos,set_test_pos] = React.useState({x:0,y:0,z:0})
 
@@ -106,7 +108,7 @@ export default function Home() {
   const [p14_maxlen,set_p14_maxlen] = React.useState(0)
  
   React.useEffect(() => {
-    if(rendered && vrModeRef.current && trigger_on){
+    if(rendered && vr_mode && trigger_on){
       const move_pos = pos_sub(start_pos,controller_object.position)
       move_pos.x = move_pos.x/5
       move_pos.y = move_pos.y/5
@@ -126,7 +128,7 @@ export default function Home() {
   },[controller_object.position.x,controller_object.position.y,controller_object.position.z])
 
   React.useEffect(() => {
-    if(rendered && vrModeRef.current && trigger_on){
+    if(rendered && vr_mode && trigger_on){
       const wk_mtx = new THREE.Matrix4().makeRotationFromEuler(controller_object.rotation)
       .multiply(
         new THREE.Matrix4().makeRotationFromEuler(
@@ -303,16 +305,22 @@ export default function Home() {
       ]);
       //        MQTT_CTRL_TOPIC  // MQTT Version5 なので、 noLocal が効くはず
 
-      //自分向けメッセージサブスクライブ処理
+      //サブスクライブ時の処理
       window.mqttClient.on('message', (topic, message) => {
-        if (topic === MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
-          let data = JSON.parse(message.toString())
+        if (topic == MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
           console.log(" MQTT Device Topic: ", message.toString());
-          if (data.devId === "none") {
-            console.log("Can't find robot!")
-          }else{
+            // ここでは Viewer の設定を実施！
+          let data = JSON.parse(message.toString())
+          if (data.controller != undefined) {// コントローラ情報ならば！
             robotIDRef.current = data.devId
-            publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
+            subscribeMQTT([
+              "control/"+data.devId
+            ]);
+          }
+        }else if (topic == "control/"+robotIDRef.current){
+          let data = JSON.parse(message.toString())
+          if (data.joints != undefined) {
+            set_input_rotate(data.joints)
           }
         }
       })
@@ -790,24 +798,18 @@ export default function Home() {
         init: function () {
           //this.el.enterVR();
           this.el.addEventListener('enter-vr', ()=>{
-            vrModeRef.current = true;
-//            set_vr_mode(true)
+            set_vr_mode(true)
             console.log('enter-vr')
-            
-            // VR mode に入ったタイミングで、利用したい robot のID を取得すべし
-            const requestInfo = {
-              devId: idtopic, // 自分のID
-              type: "cobotta-pro",  // とりあえず　Browser の Viwer が欲しい
-            }
-            publishMQTT(MQTT_REQUEST_TOPIC, JSON.stringify(requestInfo));
 
             // ここからMQTT Start
             let xrSession = this.el.renderer.xr.getSession();
             xrSession.requestAnimationFrame(onXRFrameMQTT);
+
+
+
           });
           this.el.addEventListener('exit-vr', ()=>{
-            vrModeRef.current = false;
-//            set_vr_mode(false)
+            set_vr_mode(false)
             console.log('exit-vr')
           });
         },
@@ -821,9 +823,7 @@ export default function Home() {
   // XR のレンダリングフレーム毎に MQTTを呼び出したい
   const onXRFrameMQTT = (time, frame) => {
     // for next frame
-    if (vrModeRef.current){// VR_mode じゃなかったら呼び出さない
-      frame.session.requestAnimationFrame(onXRFrameMQTT);
-    }
+    frame.session.requestAnimationFrame(onXRFrameMQTT);
 
     if ((mqttclient != null) && publish ) {// 状態を受信していないと、送信しない
       // MQTT 送信
@@ -850,7 +850,7 @@ export default function Home() {
     c_pos_x,set_c_pos_x,c_pos_y,set_c_pos_y,c_pos_z,set_c_pos_z,
     c_deg_x,set_c_deg_x,c_deg_y,set_c_deg_y,c_deg_z,set_c_deg_z,
     wrist_rot_x,set_wrist_rot_x,wrist_rot_y,set_wrist_rot_y,wrist_rot_z,set_wrist_rot_z,
-    tool_rotate,set_tool_rotate,normalize180, vr_mode:vrModeRef.current
+    tool_rotate,set_tool_rotate,normalize180,vr_mode
   }
 
   const robotProps = {
