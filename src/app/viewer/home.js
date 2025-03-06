@@ -325,7 +325,19 @@ export default function Home() {
         }
       })
     }
+    // 消える前にイベントを呼びたい
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
   }, [])
+
+  const handleBeforeUnload = () => {
+    if (mqttclient != undefined) {
+      publishMQTT("mgr/unregister", JSON.stringify({ devId: idtopic }));
+    }
+  }
+
 
 
   const quaternionToRotation = (q,v)=>{

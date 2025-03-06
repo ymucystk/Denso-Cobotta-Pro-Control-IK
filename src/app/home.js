@@ -317,7 +317,18 @@ export default function Home() {
         }
       })
     }
+    // 消える前にイベントを呼びたい
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () =>{
+      window.removeEventListener('beforeunload', handleBeforeUnload);      
+    }
   }, [])
+
+  const handleBeforeUnload = ()=>{
+    if (mqttclient != undefined) {
+      publishMQTT("mgr/unregister",JSON.stringify({devId:idtopic}));
+    }
+  }
 
 
   const quaternionToRotation = (q,v)=>{
@@ -804,6 +815,15 @@ export default function Home() {
             // ここからMQTT Start
             let xrSession = this.el.renderer.xr.getSession();
             xrSession.requestAnimationFrame(onXRFrameMQTT);
+
+                // ここでカメラ位置を変更します
+                set_c_pos_x(0)
+                set_c_pos_y(-0.8)
+                set_c_pos_z(0.95)
+                set_c_deg_x(0)
+                set_c_deg_y(0)
+                set_c_deg_z(0)
+
           });
           this.el.addEventListener('exit-vr', ()=>{
             vrModeRef.current = false;
