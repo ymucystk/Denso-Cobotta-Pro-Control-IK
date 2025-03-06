@@ -46,8 +46,8 @@ export default function Home() {
   const [j6_rotate,set_j6_rotate] = React.useState(0)
   const [j7_rotate,set_j7_rotate] = React.useState(0) //指用
 
-  const [rotate, set_rotate] = React.useState([0,0,0,0,0,0])  //出力用
-  const [input_rotate, set_input_rotate] = React.useState([0,0,0,0,0,0])  //入力用
+  const [rotate, set_rotate] = React.useState([0,0,0,0,0,0,0])  //出力用
+  const [input_rotate, set_input_rotate] = React.useState([0,0,0,0,0,0,0])  //入力用
 
   const [j1_object,set_j1_object] = React.useState()
   const [j2_object,set_j2_object] = React.useState()
@@ -230,6 +230,13 @@ export default function Home() {
   }, [j6_rotate])
 
   React.useEffect(() => {
+    set_rotate((org)=>{
+      org[6] = round(j7_rotate,3)
+      return org
+    })
+  }, [j7_rotate])
+
+  React.useEffect(() => {
     if (j1_object !== undefined) {
       const rotate_value = round(normalize180(input_rotate[0]))
       set_j1_rotate(rotate_value)
@@ -270,6 +277,13 @@ export default function Home() {
       set_j6_rotate(rotate_value)
     }
   }, [input_rotate[5]])
+
+  React.useEffect(() => {
+    if(rendered){
+      const rotate_value = input_rotate[6]
+      set_j7_rotate(rotate_value)
+    }
+  }, [input_rotate[6]])
 
   const get_j5_quaternion = (rot_x=wrist_rot_x,rot_y=wrist_rot_y,rot_z=wrist_rot_z)=>{
     return new THREE.Quaternion().setFromEuler(
@@ -632,6 +646,9 @@ export default function Home() {
       return angle
     }
     const amari = angle % 180
+    if(amari === 0){
+      return amari
+    }else
     if(amari < 0){
       return (180 + amari)
     }else{
@@ -932,6 +949,9 @@ const Assets = ()=>{
       <a-asset-items id="j4" src="link4.gltf" ></a-asset-items>
       <a-asset-items id="j5" src="link5.gltf" ></a-asset-items>
       <a-asset-items id="j6" src="link6.gltf" ></a-asset-items>
+      <a-asset-items id="j7" src="link7.gltf" ></a-asset-items>
+      <a-asset-items id="j8_r" src="link8_r.gltf" ></a-asset-items>
+      <a-asset-items id="j8_l" src="link8_l.gltf" ></a-asset-items>
     </a-assets>
   )
 }
@@ -966,8 +986,16 @@ const Model = (props)=>{
 const Model_Tool = (props)=>{
   const Toolpos = {x:0,y:0,z:0}
   const {j7_rotate, joint_pos:{j7:j7pos}, cursor_vis, box_vis, edit_pos} = props
+  const x = 36/90
+  const finger_pos = ((j7_rotate*x) / 1000)+0.0004
+  const j8_r_pos = { x: finger_pos, y:0, z:0.27 }
+  const j8_1_pos = { x: -finger_pos, y:0, z:0.27 }
+
   const return_table = [
     <>
+      <a-entity gltf-model="#j7" position={edit_pos(j7pos)}></a-entity>
+      <a-entity gltf-model="#j8_r" position={edit_pos(j8_r_pos)}></a-entity>
+      <a-entity gltf-model="#j8_l" position={edit_pos(j8_1_pos)}></a-entity>
       <Cursor3dp j_id="16" pos={j7pos} visible={cursor_vis}/>
       <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(j7pos)} visible={`${box_vis}`}></a-box>
     </>,

@@ -65,10 +65,10 @@ export default function Controller(props) {
     props.set_j6_rotate(value)
   }
 
-  /*const set_j7_rotate = (e)=>{
+  const set_j7_rotate = (e)=>{
     let value = Number.parseFloat(e.target.value || 0)
     props.set_j7_rotate(value)
-  }*/
+  }
 
   const set_c_pos_x = (e)=>{
     let value = Number.parseFloat(e.target.value || 0)
@@ -161,10 +161,10 @@ export default function Controller(props) {
           <div className="col-md-4"><label htmlFor="j6_rotate_number" className="form-label"><span className="form-control-plaintext">J6 Deg</span></label></div>
           <div className="col-md-8"><input type="number" className="form-control" id="j6_rotate_number" value={j6_rotate} onChange={set_j6_rotate} min={-180} max={180}/></div>
         </div>
-        {/*<div className="row mb-0">
+        <div className="row mb-0">
           <div className="col-md-4"><label htmlFor="j7_rotate_number" className="form-label"><span className="form-control-plaintext">Gripper</span></label></div>
-          <div className="col-md-8"><input type="number" className="form-control" id="j7_rotate_number" value={j7_rotate} onChange={set_j7_rotate} min={-1} max={89}/></div>
-        </div>*/}
+          <div className="col-md-8"><input type="number" className="form-control" id="j7_rotate_number" value={j7_rotate} onChange={set_j7_rotate} min={-20} max={64}/></div>
+        </div>
         {/*<div className="mb-0">
           <select className="form-select" onChange={set_toolName} value={toolName}>
             {toolNameList.map((name,idx)=><option key={idx} value={name}>{name}</option>)}
