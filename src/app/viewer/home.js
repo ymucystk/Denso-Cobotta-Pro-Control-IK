@@ -878,7 +878,7 @@ export default function Home() {
         <a-entity id="rig" position={`${c_pos_x} ${c_pos_y} ${c_pos_z}`} rotation={`${c_deg_x} ${c_deg_y} ${c_deg_z}`}>
           <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0"></a-camera>
         </a-entity>
-        <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${true}`}></a-sphere>
+        <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${false}`}></a-sphere>
         <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box>
         <Line pos1={{x:1,y:0.0001,z:1}} pos2={{x:-1,y:0.0001,z:-1}} visible={cursor_vis} color="white"></Line>
         <Line pos1={{x:1,y:0.0001,z:-1}} pos2={{x:-1,y:0.0001,z:1}} visible={cursor_vis} color="white"></Line>
@@ -905,16 +905,17 @@ const Assets = ()=>{
   return (
     <a-assets>
       {/*Model*/}
-      <a-asset-items id="base" src="base_link.gltf" ></a-asset-items>
-      <a-asset-items id="j1" src="link1.gltf" ></a-asset-items>
-      <a-asset-items id="j2" src="link2.gltf" ></a-asset-items>
-      <a-asset-items id="j3" src="link3.gltf" ></a-asset-items>
-      <a-asset-items id="j4" src="link4.gltf" ></a-asset-items>
-      <a-asset-items id="j5" src="link5.gltf" ></a-asset-items>
-      <a-asset-items id="j6" src="link6.gltf" ></a-asset-items>
+      <a-asset-items id="base" src="../base_link.gltf" ></a-asset-items>
+      <a-asset-items id="j1" src="../link1.gltf" ></a-asset-items>
+      <a-asset-items id="j2" src="../link2.gltf" ></a-asset-items>
+      <a-asset-items id="j3" src="../link3.gltf" ></a-asset-items>
+      <a-asset-items id="j4" src="../link4.gltf" ></a-asset-items>
+      <a-asset-items id="j5" src="../link5.gltf" ></a-asset-items>
+      <a-asset-items id="j6" src="../link6.gltf" ></a-asset-items>
     </a-assets>
   )
 }
+
 
 const Model = (props)=>{
   const {visible, cursor_vis, edit_pos, joint_pos} = props

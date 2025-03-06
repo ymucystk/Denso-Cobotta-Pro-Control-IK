@@ -1,5 +1,16 @@
 "use client";
 
+
+function generateUUID() {
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    );
+}
+
+//const id= generateUUID();
+
+
+
 function getOrSetUUID() {
     const cookieName = "sip3m_uuid";
     
@@ -33,11 +44,11 @@ function getOrSetUUID() {
     // UUIDを取得または新規生成
     let uuid = getCookie(cookieName);
     if (!uuid) {
-        uuid = crypto.randomUUID();
+        uuid = generateUUID(); // crypto.randomUUID();
         setCookie(cookieName, uuid, 365); // 1年間保存
     }
     let name = window.name;
-    if(window.location.pathname.endsWith("/viewer")) {
+    if(window.location.pathname.endsWith("/viewer/")) {
         name = name+ "-viewer";
     }
     return uuid+"-"+name; // これで tab毎に違うIDとして使える。

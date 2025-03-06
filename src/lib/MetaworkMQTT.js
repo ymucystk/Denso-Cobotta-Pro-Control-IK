@@ -21,7 +21,7 @@ export const connectMQTT = () => {
 
             const date = new Date();
             var devType = "browser";
-            if(window.location.pathname.endsWith("/viewer")) {
+            if(window.location.pathname.endsWith("/viewer/")) {
                 devType = "robot";
             }
             const info = {
