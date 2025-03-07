@@ -1004,8 +1004,8 @@ const Model = (props)=>{
                 <a-entity j_id="6" gltf-model="#j6" position={edit_pos(joint_pos.j6)}>
                   <Model_Tool {...props}/>
                   {/*<a-cylinder color="crimson" height="0.1" radius="0.005" position={edit_pos(joint_pos.j7)}></a-cylinder>*/}
+                  <Cursor3dp j_id="15" visible={cursor_vis}/>
                 </a-entity>
-                <Cursor3dp j_id="15" visible={cursor_vis}/>
               </a-entity>
               <Cursor3dp j_id="14" pos={{x:joint_pos.j5.x,y:0,z:0}} visible={cursor_vis}/>
               <Cursor3dp j_id="13" visible={cursor_vis}/>
