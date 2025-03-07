@@ -1,10 +1,16 @@
 "use client";
+const viewer = false
 import 'aframe'
 import * as React from 'react'
 import * as THREE from 'three'
-import Controller from './controller.js'
 
+//default用
+import Controller from './controller.js'
 import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT } from '../lib/MetaworkMQTT'
+
+//viewer用
+//import Controller from '../controller.js'
+//import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT } from '../../lib/MetaworkMQTT'
 
 const MQTT_REQUEST_TOPIC = "mgr/request";
 const MQTT_DEVICE_TOPIC = "dev/"+idtopic;
@@ -317,30 +323,52 @@ export default function Home() {
       ]);
       //        MQTT_CTRL_TOPIC  // MQTT Version5 なので、 noLocal が効くはず
 
-      //自分向けメッセージサブスクライブ処理
-      window.mqttClient.on('message', (topic, message) => {
-        if (topic === MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
-          let data = JSON.parse(message.toString())
-          console.log(" MQTT Device Topic: ", message.toString());
-          if (data.devId === "none") {
-            console.log("Can't find robot!")
-          }else{
-            robotIDRef.current = data.devId
-            publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
+      if(viewer){
+        //サブスクライブ時の処理
+        window.mqttClient.on('message', (topic, message) => {
+          if (topic == MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
+            console.log(" MQTT Device Topic: ", message.toString());
+              // ここでは Viewer の設定を実施！
+            let data = JSON.parse(message.toString())
+            if (data.controller != undefined) {// コントローラ情報ならば！
+              robotIDRef.current = data.devId
+              subscribeMQTT([
+                "control/"+data.devId
+              ]);
+            }
+          }else if (topic == "control/"+robotIDRef.current){
+            let data = JSON.parse(message.toString())
+            if (data.joints != undefined) {
+              set_input_rotate(data.joints)
+            }
           }
-        }
-      })
+        })
+      }else{
+        //自分向けメッセージサブスクライブ処理
+        window.mqttClient.on('message', (topic, message) => {
+          if (topic === MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
+            let data = JSON.parse(message.toString())
+            console.log(" MQTT Device Topic: ", message.toString());
+            if (data.devId === "none") {
+              console.log("Can't find robot!")
+            }else{
+              robotIDRef.current = data.devId
+              publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
+            }
+          }
+        })
+      }
     }
     // 消える前にイベントを呼びたい
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () =>{
-      window.removeEventListener('beforeunload', handleBeforeUnload);      
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     }
   }, [])
 
-  const handleBeforeUnload = ()=>{
+  const handleBeforeUnload = () => {
     if (mqttclient != undefined) {
-      publishMQTT("mgr/unregister",JSON.stringify({devId:idtopic}));
+      publishMQTT("mgr/unregister", JSON.stringify({ devId: idtopic }));
     }
   }
 
@@ -821,26 +849,29 @@ export default function Home() {
             vrModeRef.current = true;
 //            set_vr_mode(true)
             console.log('enter-vr')
-            
-            // VR mode に入ったタイミングで、利用したい robot のID を取得すべし
-            const requestInfo = {
-              devId: idtopic, // 自分のID
-              type: "cobotta-pro",  // とりあえず　Browser の Viwer が欲しい
+
+            if(!viewer){
+              // VR mode に入ったタイミングで、利用したい robot のID を取得すべし
+              const requestInfo = {
+                devId: idtopic, // 自分のID
+                type: "cobotta-pro",  // とりあえず　Browser の Viwer が欲しい
+              }
+              publishMQTT(MQTT_REQUEST_TOPIC, JSON.stringify(requestInfo));
             }
-            publishMQTT(MQTT_REQUEST_TOPIC, JSON.stringify(requestInfo));
 
             // ここからMQTT Start
             let xrSession = this.el.renderer.xr.getSession();
             xrSession.requestAnimationFrame(onXRFrameMQTT);
 
-                // ここでカメラ位置を変更します
-                set_c_pos_x(0)
-                set_c_pos_y(-0.8)
-                set_c_pos_z(0.95)
-                set_c_deg_x(0)
-                set_c_deg_y(0)
-                set_c_deg_z(0)
-
+            if(!viewer){
+              // ここでカメラ位置を変更します
+              set_c_pos_x(0)
+              set_c_pos_y(-0.8)
+              set_c_pos_z(0.95)
+              set_c_deg_x(0)
+              set_c_deg_y(0)
+              set_c_deg_z(0)
+            }
           });
           this.el.addEventListener('exit-vr', ()=>{
             vrModeRef.current = false;
@@ -858,8 +889,12 @@ export default function Home() {
   // XR のレンダリングフレーム毎に MQTTを呼び出したい
   const onXRFrameMQTT = (time, frame) => {
     // for next frame
-    if (vrModeRef.current){// VR_mode じゃなかったら呼び出さない
+    if(viewer){
       frame.session.requestAnimationFrame(onXRFrameMQTT);
+    }else{
+      if (vrModeRef.current){// VR_mode じゃなかったら呼び出さない
+        frame.session.requestAnimationFrame(onXRFrameMQTT);
+      }
     }
 
     if ((mqttclient != null) && publish ) {// 状態を受信していないと、送信しない
@@ -915,7 +950,7 @@ export default function Home() {
         <a-entity id="rig" position={`${c_pos_x} ${c_pos_y} ${c_pos_z}`} rotation={`${c_deg_x} ${c_deg_y} ${c_deg_z}`}>
           <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0"></a-camera>
         </a-entity>
-        <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${true}`}></a-sphere>
+        <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${!viewer}`}></a-sphere>
         <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box>
         <Line pos1={{x:1,y:0.0001,z:1}} pos2={{x:-1,y:0.0001,z:-1}} visible={cursor_vis} color="white"></Line>
         <Line pos1={{x:1,y:0.0001,z:-1}} pos2={{x:-1,y:0.0001,z:1}} visible={cursor_vis} color="white"></Line>
@@ -925,7 +960,7 @@ export default function Home() {
       </a-scene>
       <Controller {...controllerProps}/>
       <div className="footer" >
-        <div>{`wrist_degree:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}  ${dsp_message}`}</div>
+        <div>{`${viewer?'viewer mode / ':''}wrist_degree:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}  ${dsp_message}`}</div>
       </div>
     </>
     );
@@ -939,19 +974,20 @@ export default function Home() {
 }
 
 const Assets = ()=>{
+  const path = viewer?"../":""
   return (
     <a-assets>
       {/*Model*/}
-      <a-asset-items id="base" src="base_link.gltf" ></a-asset-items>
-      <a-asset-items id="j1" src="link1.gltf" ></a-asset-items>
-      <a-asset-items id="j2" src="link2.gltf" ></a-asset-items>
-      <a-asset-items id="j3" src="link3.gltf" ></a-asset-items>
-      <a-asset-items id="j4" src="link4.gltf" ></a-asset-items>
-      <a-asset-items id="j5" src="link5.gltf" ></a-asset-items>
-      <a-asset-items id="j6" src="link6.gltf" ></a-asset-items>
-      <a-asset-items id="j7" src="link7.gltf" ></a-asset-items>
-      <a-asset-items id="j8_r" src="link8_r.gltf" ></a-asset-items>
-      <a-asset-items id="j8_l" src="link8_l.gltf" ></a-asset-items>
+      <a-asset-items id="base" src={`${path}base_link.gltf`} ></a-asset-items>
+      <a-asset-items id="j1" src={`${path}link1.gltf`} ></a-asset-items>
+      <a-asset-items id="j2" src={`${path}link2.gltf`} ></a-asset-items>
+      <a-asset-items id="j3" src={`${path}link3.gltf`} ></a-asset-items>
+      <a-asset-items id="j4" src={`${path}link4.gltf`} ></a-asset-items>
+      <a-asset-items id="j5" src={`${path}link5.gltf`} ></a-asset-items>
+      <a-asset-items id="j6" src={`${path}link6.gltf`} ></a-asset-items>
+      <a-asset-items id="j7" src={`${path}link7.gltf`} ></a-asset-items>
+      <a-asset-items id="j8_r" src={`${path}link8_r.gltf`} ></a-asset-items>
+      <a-asset-items id="j8_l" src={`${path}link8_l.gltf`} ></a-asset-items>
     </a-assets>
   )
 }
