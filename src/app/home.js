@@ -866,12 +866,13 @@ export default function Home() {
             if(!viewer){
               // ここでカメラ位置を変更します
               set_c_pos_x(0)
-              set_c_pos_y(-0.8)
+              set_c_pos_y(-0.6)
               set_c_pos_z(0.95)
               set_c_deg_x(0)
               set_c_deg_y(0)
               set_c_deg_z(0)
             }
+            
           });
           this.el.addEventListener('exit-vr', ()=>{
             vrModeRef.current = false;
