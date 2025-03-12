@@ -5,6 +5,6 @@ const DynamicHome = dynamic(() => import('./home.js'), { ssr: false });
 
 export default function Home() {
   return (
-    <DynamicHome />
+    <DynamicHome viewer={false}/>
   );
 }

@@ -1,5 +1,4 @@
 "use client";
-const viewer = false
 import 'aframe'
 import * as React from 'react'
 import * as THREE from 'three'
@@ -34,7 +33,7 @@ const joint_pos = {
 let registered = false
 const order = 'ZYX'
 
-export default function Home() {
+export default function Home(props) {
   const [tick, setTick] = React.useState(0)
   const [now, setNow] = React.useState(new Date())
   const [rendered,set_rendered] = React.useState(false)
@@ -323,7 +322,7 @@ export default function Home() {
       ]);
       //        MQTT_CTRL_TOPIC  // MQTT Version5 なので、 noLocal が効くはず
 
-      if(viewer){
+      if(props.viewer){
         //サブスクライブ時の処理
         window.mqttClient.on('message', (topic, message) => {
           if (topic == MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
@@ -850,7 +849,7 @@ export default function Home() {
 //            set_vr_mode(true)
             console.log('enter-vr')
 
-            if(!viewer){
+            if(!props.viewer){
               // VR mode に入ったタイミングで、利用したい robot のID を取得すべし
               const requestInfo = {
                 devId: idtopic, // 自分のID
@@ -863,7 +862,7 @@ export default function Home() {
             let xrSession = this.el.renderer.xr.getSession();
             xrSession.requestAnimationFrame(onXRFrameMQTT);
 
-            if(!viewer){
+            if(!props.viewer){
               // ここでカメラ位置を変更します
               set_c_pos_x(0)
               set_c_pos_y(-0.8)
@@ -889,7 +888,7 @@ export default function Home() {
   // XR のレンダリングフレーム毎に MQTTを呼び出したい
   const onXRFrameMQTT = (time, frame) => {
     // for next frame
-    if(viewer){
+    if(props.viewer){
       frame.session.requestAnimationFrame(onXRFrameMQTT);
     }else{
       if (vrModeRef.current){// VR_mode じゃなかったら呼び出さない
@@ -936,7 +935,7 @@ export default function Home() {
       <a-scene scene>
         <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${false}`}></a-entity>
         <a-plane position="0 0 0" rotation="-90 0 0" width="10" height="10" color={target_error?"#ff7f50":"#7BC8A4"}></a-plane>
-        <Assets/>
+        <Assets viewer={props.viewer}/>
         <Select_Robot {...robotProps}/>
         <Cursor3dp j_id="20" pos={{x:0,y:0,z:0}} visible={cursor_vis}>
           <Cursor3dp j_id="21" pos={{x:0,y:0,z:p15_16_len}} visible={cursor_vis}></Cursor3dp>
@@ -950,7 +949,7 @@ export default function Home() {
         <a-entity id="rig" position={`${c_pos_x} ${c_pos_y} ${c_pos_z}`} rotation={`${c_deg_x} ${c_deg_y} ${c_deg_z}`}>
           <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0"></a-camera>
         </a-entity>
-        <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${!viewer}`}></a-sphere>
+        <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${!props.viewer}`}></a-sphere>
         <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box>
         <Line pos1={{x:1,y:0.0001,z:1}} pos2={{x:-1,y:0.0001,z:-1}} visible={cursor_vis} color="white"></Line>
         <Line pos1={{x:1,y:0.0001,z:-1}} pos2={{x:-1,y:0.0001,z:1}} visible={cursor_vis} color="white"></Line>
@@ -960,21 +959,21 @@ export default function Home() {
       </a-scene>
       <Controller {...controllerProps}/>
       <div className="footer" >
-        <div>{`${viewer?'viewer mode / ':''}wrist_degree:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}  ${dsp_message}`}</div>
+        <div>{`${props.viewer?'viewer mode / ':''}wrist_degree:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}  ${dsp_message}`}</div>
       </div>
     </>
     );
   }else{
     return(
       <a-scene>
-        <Assets/>
+        <Assets viewer={props.viewer}/>
       </a-scene>
     )
   }
 }
 
-const Assets = ()=>{
-  const path = viewer?"../":""
+const Assets = (props)=>{
+  const path = props.viewer?"../":""
   return (
     <a-assets>
       {/*Model*/}
