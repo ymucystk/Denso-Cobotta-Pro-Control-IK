@@ -1,5 +1,6 @@
 "use client";
 import mqtt from 'mqtt'
+import {version} from '../../package.json' // load version
 
 
 //const MetworkMQTT_URL = "https://sora2.uclab.jp/menroll"; 
@@ -35,6 +36,7 @@ export const connectMQTT = () => {
                 },
                 devType: devType,
                 codeType: 'cobotta-pro',
+                version: version,
                 devId: userUUID
             }
             // this is Metawork-MQTT protocol
