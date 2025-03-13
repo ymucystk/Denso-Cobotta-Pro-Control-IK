@@ -3,13 +3,8 @@ import 'aframe'
 import * as React from 'react'
 import * as THREE from 'three'
 
-//default用
 import Controller from './controller.js'
 import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT } from '../lib/MetaworkMQTT'
-
-//viewer用
-//import Controller from '../controller.js'
-//import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT } from '../../lib/MetaworkMQTT'
 
 const MQTT_REQUEST_TOPIC = "mgr/request";
 const MQTT_DEVICE_TOPIC = "dev/"+idtopic;
@@ -31,7 +26,12 @@ const joint_pos = {
 }
 
 let registered = false
+let trigger_on = false
 const order = 'ZYX'
+
+let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
+let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
+let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 
 export default function Home(props) {
   const [tick, setTick] = React.useState(0)
@@ -76,10 +76,9 @@ export default function Home(props) {
   const [p16_pos,set_p16_pos] = React.useState({x:0,y:0,z:0})
 
   const [controller_object,set_controller_object] = React.useState(new THREE.Object3D())
-  const [trigger_on,set_trigger_on] = React.useState(false)
   const [start_pos,set_start_pos] = React.useState(new THREE.Vector3())
   const [save_target,set_save_target] = React.useState()
-//  const [vr_mode,set_vr_mode] = React.useState(false)
+
   const vrModeRef = React.useRef(false); // vr_mode はref のほうが使いやすい
   const robotIDRef = React.useRef("none");
 
@@ -109,7 +108,7 @@ export default function Home(props) {
   const [target,set_target] = React.useState({x:0.3,y:0.5,z:-0.5})
   const [p15_16_len,set_p15_16_len] = React.useState(joint_pos.j7.z)
   const [p14_maxlen,set_p14_maxlen] = React.useState(0)
- 
+
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on){
       const move_pos = pos_sub(start_pos,controller_object.position)
@@ -118,7 +117,7 @@ export default function Home(props) {
       move_pos.z = move_pos.z/5
       let target_pos
       if(save_target === undefined){
-        set_save_target(target)
+        set_save_target({...target})
         target_pos = pos_sub(target,move_pos)
       }else{
         target_pos = pos_sub(save_target,move_pos)
@@ -132,17 +131,34 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on){
-      const wk_mtx = new THREE.Matrix4().makeRotationFromEuler(controller_object.rotation)
+      const quat_start = new THREE.Quaternion().setFromEuler(start_rotation);
+      const quat_controller = new THREE.Quaternion().setFromEuler(controller_object.rotation);
+      const quatDifference1 = quat_start.clone().invert().multiply(quat_controller);
+
+      const quat_save = new THREE.Quaternion().setFromEuler(save_rotation);
+      const quatDifference2 = quat_start.clone().invert().multiply(quat_save);
+
+      const wk_mtx = new THREE.Matrix4().makeRotationFromEuler(
+        start_rotation
+      ).multiply(
+        new THREE.Matrix4().makeRotationFromQuaternion(quatDifference1)
+      )
       .multiply(
+        new THREE.Matrix4().makeRotationFromQuaternion(quatDifference2)
+      )
+      current_rotation = new THREE.Euler().setFromRotationMatrix(wk_mtx,controller_object.rotation.order)
+
+      wk_mtx.multiply(
         new THREE.Matrix4().makeRotationFromEuler(
           new THREE.Euler(
             (0.6654549523360951*-1),  //x
-            toRadian(180),  //y
-            toRadian(180),  //z
+            Math.PI,  //y
+            Math.PI,  //z
             controller_object.rotation.order
           )
         )
       )
+
       const wk_euler = new THREE.Euler().setFromRotationMatrix(wk_mtx,controller_object.rotation.order)
       set_wrist_rot_x(round(toAngle(wk_euler.x)))
       set_wrist_rot_y(round(toAngle(wk_euler.y)))
@@ -830,13 +846,15 @@ export default function Home(props) {
           set_controller_object(this.el.object3D)
           this.el.object3D.rotation.order = order
           this.el.addEventListener('triggerdown', (evt)=>{
+            start_rotation = this.el.object3D.rotation.clone()
             const wk_start_pos = new THREE.Vector3().applyMatrix4(this.el.object3D.matrix)
             set_start_pos(wk_start_pos)
-            set_trigger_on(true)
+            trigger_on = true
           });
           this.el.addEventListener('triggerup', (evt)=>{
+            save_rotation = current_rotation.clone()
             set_save_target(undefined)
-            set_trigger_on(false)
+            trigger_on = false
           });
         }
       });
