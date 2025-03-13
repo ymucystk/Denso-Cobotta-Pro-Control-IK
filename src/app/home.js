@@ -138,18 +138,11 @@ export default function Home(props) {
       const quat_save = new THREE.Quaternion().setFromEuler(save_rotation);
       const quatDifference2 = quat_start.clone().invert().multiply(quat_save);
 
-      const wk_mtx = new THREE.Matrix4().makeRotationFromEuler(
-        start_rotation
-      ).multiply(
-        new THREE.Matrix4().makeRotationFromQuaternion(quatDifference1)
-      )
-      .multiply(
-        new THREE.Matrix4().makeRotationFromQuaternion(quatDifference2)
-      )
-      current_rotation = new THREE.Euler().setFromRotationMatrix(wk_mtx,controller_object.rotation.order)
+      const wk_mtx = quat_start.clone().multiply(quatDifference1).multiply(quatDifference2)
+      current_rotation = new THREE.Euler().setFromQuaternion(wk_mtx,controller_object.rotation.order)
 
       wk_mtx.multiply(
-        new THREE.Matrix4().makeRotationFromEuler(
+        new THREE.Quaternion().setFromEuler(
           new THREE.Euler(
             (0.6654549523360951*-1),  //x
             Math.PI,  //y
@@ -159,7 +152,7 @@ export default function Home(props) {
         )
       )
 
-      const wk_euler = new THREE.Euler().setFromRotationMatrix(wk_mtx,controller_object.rotation.order)
+      const wk_euler = new THREE.Euler().setFromQuaternion(wk_mtx,controller_object.rotation.order)
       set_wrist_rot_x(round(toAngle(wk_euler.x)))
       set_wrist_rot_y(round(toAngle(wk_euler.y)))
       set_wrist_rot_z(round(toAngle(wk_euler.z)))
