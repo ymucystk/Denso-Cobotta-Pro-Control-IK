@@ -32,6 +32,19 @@ const order = 'ZYX'
 let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
+const joint_move_speed_ms = 1
+const j1_rotate_table = []
+const j1_quatanion_master = new THREE.Quaternion()
+const j2_rotate_table = []
+const j2_quatanion_master = new THREE.Quaternion()
+const j3_rotate_table = []
+const j3_quatanion_master = new THREE.Quaternion()
+const j4_rotate_table = []
+const j4_quatanion_master = new THREE.Quaternion()
+const j5_rotate_table = []
+const j5_quatanion_master = new THREE.Quaternion()
+const j6_rotate_table = []
+const j6_quatanion_master = new THREE.Quaternion()
 
 export default function Home(props) {
   const [tick, setTick] = React.useState(0)
@@ -105,9 +118,15 @@ export default function Home(props) {
   const [y_vec_base,set_y_vec_base] = React.useState()
   const [z_vec_base,set_z_vec_base] = React.useState()
 
-  const [target,set_target] = React.useState({x:0.3,y:0.5,z:-0.5})
+  const [target,set_target_org] = React.useState({x:0.3,y:0.5,z:-0.5})
   const [p15_16_len,set_p15_16_len] = React.useState(joint_pos.j7.z)
   const [p14_maxlen,set_p14_maxlen] = React.useState(0)
+
+  const set_target = (new_pos)=>{
+    set_target_org((prev_pos)=>{
+      return new_pos
+    })
+  }
 
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on){
@@ -183,63 +202,333 @@ export default function Home(props) {
     set_robotName(get)
   }
 
+  const j1_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
+    j1_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+    j1_object.quaternion.set(j1_quatanion_master.x,j1_quatanion_master.y,j1_quatanion_master.z,j1_quatanion_master.w)
+    const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
+    set_rotate((org)=>{
+      org[0] = round(toAngle(wk_euler),3)
+      return org
+    })
+    if(count < max){
+      setTimeout(()=>{
+        j1_move_sub(start_quaternion,end_quaternion,max,count+1)
+      },joint_move_speed_ms)
+    }else{
+      setTimeout(()=>{
+        j1_rotate_table.shift()
+        j1_move()
+      },1)
+    }
+  }
+
+  const j1_move = ()=>{
+    if(j1_rotate_table.length > 0){
+      const wk_j1_rotate = j1_rotate_table[0]
+      const start_quaternion = j1_quatanion_master.clone()
+      const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j1_rotate))
+      const radian = j1_quatanion_master.angleTo(end_quaternion)
+      const max = Math.ceil(toAngle(radian))
+      if(max === 0){
+        setTimeout(()=>{
+          j1_rotate_table.shift()
+          j1_move()
+        },1)
+      }else{
+        setTimeout(()=>{
+          j1_move_sub(start_quaternion,end_quaternion,max)
+        },joint_move_speed_ms)
+      }
+    }
+  }
+
   React.useEffect(() => {
     if (j1_object !== undefined) {
-      j1_object.quaternion.setFromAxisAngle(y_vec_base,toRadian(j1_rotate))
-      set_rotate((org)=>{
-        org[0] = round(j1_rotate,3)
-        return org
-      })
+      const wk_switch = j1_rotate_table.length === 0
+      if(j1_rotate_table.length > 1){
+        j1_rotate_table.pop()
+      }
+      j1_rotate_table.push(j1_rotate)
+      if(wk_switch){
+        setTimeout(()=>{
+          j1_move()
+        },1)
+      }
     }
   }, [j1_rotate])
 
+  const j2_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
+    j2_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+    j2_object.quaternion.set(j2_quatanion_master.x,j2_quatanion_master.y,j2_quatanion_master.z,j2_quatanion_master.w)
+    const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
+    set_rotate((org)=>{
+      org[1] = round(toAngle(wk_euler),3)
+      return org
+    })
+    if(count < max){
+      setTimeout(()=>{
+        j2_move_sub(start_quaternion,end_quaternion,max,count+1)
+      },joint_move_speed_ms)
+    }else{
+      setTimeout(()=>{
+        j2_rotate_table.shift()
+        j2_move()
+      },1)
+    }
+  }
+
+  const j2_move = ()=>{
+    if(j2_rotate_table.length > 0){
+      const wk_j2_rotate = j2_rotate_table[0]
+      const start_quaternion = j2_quatanion_master.clone()
+      const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j2_rotate))
+      const radian = j2_quatanion_master.angleTo(end_quaternion)
+      const max = Math.ceil(toAngle(radian))
+      if(max === 0){
+        setTimeout(()=>{
+          j2_rotate_table.shift()
+          j2_move()
+        },1)
+      }else{
+        setTimeout(()=>{
+          j2_move_sub(start_quaternion,end_quaternion,max)
+        },joint_move_speed_ms)
+      }
+    }
+  }
+
   React.useEffect(() => {
     if (j2_object !== undefined) {
-      j2_object.quaternion.setFromAxisAngle(x_vec_base,toRadian(j2_rotate))
-      set_rotate((org)=>{
-        org[1] = round(j2_rotate,3)
-        return org
-      })
+      const wk_switch = j2_rotate_table.length === 0
+      if(j2_rotate_table.length > 1){
+        j2_rotate_table.pop()
+      }
+      j2_rotate_table.push(j2_rotate)
+      if(wk_switch){
+        setTimeout(()=>{
+          j2_move()
+        },1)
+      }
     }
   }, [j2_rotate])
 
+  const j3_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
+    j3_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+    j3_object.quaternion.set(j3_quatanion_master.x,j3_quatanion_master.y,j3_quatanion_master.z,j3_quatanion_master.w)
+    const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
+    set_rotate((org)=>{
+      org[2] = round(toAngle(wk_euler),3)
+      return org
+    })
+    if(count < max){
+      setTimeout(()=>{
+        j3_move_sub(start_quaternion,end_quaternion,max,count+1)
+      },joint_move_speed_ms)
+    }else{
+      setTimeout(()=>{
+        j3_rotate_table.shift()
+        j3_move()
+      },1)
+    }
+  }
+
+  const j3_move = ()=>{
+    if(j3_rotate_table.length > 0){
+      const wk_j3_rotate = j3_rotate_table[0]
+      const start_quaternion = j3_quatanion_master.clone()
+      const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j3_rotate))
+      const radian = j3_quatanion_master.angleTo(end_quaternion)
+      const max = Math.ceil(toAngle(radian))
+      if(max === 0){
+        setTimeout(()=>{
+          j3_rotate_table.shift()
+          j3_move()
+        },1)
+      }else{
+        setTimeout(()=>{
+          j3_move_sub(start_quaternion,end_quaternion,max)
+        },joint_move_speed_ms)
+      }
+    }
+  }
+
   React.useEffect(() => {
     if (j3_object !== undefined) {
-      j3_object.quaternion.setFromAxisAngle(x_vec_base,toRadian(j3_rotate))
-      set_rotate((org)=>{
-        org[2] = round(j3_rotate,3)
-        return org
-      })
+      const wk_switch = j3_rotate_table.length === 0
+      if(j3_rotate_table.length > 1){
+        j3_rotate_table.pop()
+      }
+      j3_rotate_table.push(j3_rotate)
+      if(wk_switch){
+        setTimeout(()=>{
+          j3_move()
+        },1)
+      }
     }
   }, [j3_rotate])
 
+  const j4_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
+    j4_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+    j4_object.quaternion.set(j4_quatanion_master.x,j4_quatanion_master.y,j4_quatanion_master.z,j4_quatanion_master.w)
+    const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
+    set_rotate((org)=>{
+      org[3] = round(toAngle(wk_euler),3)
+      return org
+    })
+    if(count < max){
+      setTimeout(()=>{
+        j4_move_sub(start_quaternion,end_quaternion,max,count+1)
+      },joint_move_speed_ms)
+    }else{
+      setTimeout(()=>{
+        j4_rotate_table.shift()
+        j4_move()
+      },1)
+    }
+  }
+
+  const j4_move = ()=>{
+    if(j4_rotate_table.length > 0){
+      const wk_j4_rotate = j4_rotate_table[0]
+      const start_quaternion = j4_quatanion_master.clone()
+      const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j4_rotate))
+      const radian = j4_quatanion_master.angleTo(end_quaternion)
+      const max = Math.ceil(toAngle(radian))
+      if(max === 0){
+        setTimeout(()=>{
+          j4_rotate_table.shift()
+          j4_move()
+        },1)
+      }else{
+        setTimeout(()=>{
+          j4_move_sub(start_quaternion,end_quaternion,max)
+        },joint_move_speed_ms)
+      }
+    }
+  }
+
   React.useEffect(() => {
     if (j4_object !== undefined) {
-      j4_object.quaternion.setFromAxisAngle(y_vec_base,toRadian(j4_rotate))
-      set_rotate((org)=>{
-        org[3] = round(j4_rotate,3)
-        return org
-      })
+      const wk_switch = j4_rotate_table.length === 0
+      if(j4_rotate_table.length > 1){
+        j4_rotate_table.pop()
+      }
+      j4_rotate_table.push(j4_rotate)
+      if(wk_switch){
+        setTimeout(()=>{
+          j4_move()
+        },1)
+      }
     }
   }, [j4_rotate])
 
+  const j5_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
+    j5_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+    j5_object.quaternion.set(j5_quatanion_master.x,j5_quatanion_master.y,j5_quatanion_master.z,j5_quatanion_master.w)
+    const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
+    set_rotate((org)=>{
+      org[4] = round(toAngle(wk_euler),3)
+      return org
+    })
+    if(count < max){
+      setTimeout(()=>{
+        j5_move_sub(start_quaternion,end_quaternion,max,count+1)
+      },joint_move_speed_ms)
+    }else{
+      setTimeout(()=>{
+        j5_rotate_table.shift()
+        j5_move()
+      },1)
+    }
+  }
+
+  const j5_move = ()=>{
+    if(j5_rotate_table.length > 0){
+      const wk_j5_rotate = j5_rotate_table[0]
+      const start_quaternion = j5_quatanion_master.clone()
+      const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j5_rotate))
+      const radian = j5_quatanion_master.angleTo(end_quaternion)
+      const max = Math.ceil(toAngle(radian))
+      if(max === 0){
+        setTimeout(()=>{
+          j5_rotate_table.shift()
+          j5_move()
+        },1)
+      }else{
+        setTimeout(()=>{
+          j5_move_sub(start_quaternion,end_quaternion,max)
+        },joint_move_speed_ms)
+      }
+    }
+  }
+
   React.useEffect(() => {
     if (j5_object !== undefined) {
-      j5_object.quaternion.setFromAxisAngle(x_vec_base,toRadian(j5_rotate))
-      set_rotate((org)=>{
-        org[4] = round(normalize180(j5_rotate+90),3)
-        return org
-      })
+      const wk_switch = j5_rotate_table.length === 0
+      if(j5_rotate_table.length > 1){
+        j5_rotate_table.pop()
+      }
+      j5_rotate_table.push(j5_rotate)
+      if(wk_switch){
+        setTimeout(()=>{
+          j5_move()
+        },1)
+      }
     }
   }, [j5_rotate])
 
+  const j6_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
+    j6_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+    j6_object.quaternion.set(j6_quatanion_master.x,j6_quatanion_master.y,j6_quatanion_master.z,j6_quatanion_master.w)
+    const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
+    set_rotate((org)=>{
+      org[5] = round(toAngle(wk_euler),3)
+      return org
+    })
+    if(count < max){
+      setTimeout(()=>{
+        j6_move_sub(start_quaternion,end_quaternion,max,count+1)
+      },joint_move_speed_ms)
+    }else{
+      setTimeout(()=>{
+        j6_rotate_table.shift()
+        j6_move()
+      },1)
+    }
+  }
+
+  const j6_move = ()=>{
+    if(j6_rotate_table.length > 0){
+      const wk_j6_rotate = j6_rotate_table[0]
+      const start_quaternion = j6_quatanion_master.clone()
+      const end_quaternion = new THREE.Quaternion().setFromAxisAngle(z_vec_base,toRadian(wk_j6_rotate))
+      const radian = j6_quatanion_master.angleTo(end_quaternion)
+      const max = Math.ceil(toAngle(radian))
+      if(max === 0){
+        setTimeout(()=>{
+          j6_rotate_table.shift()
+          j6_move()
+        },1)
+      }else{
+        setTimeout(()=>{
+          j6_move_sub(start_quaternion,end_quaternion,max)
+        },joint_move_speed_ms)
+      }
+    }
+  }
+
   React.useEffect(() => {
     if (j6_object !== undefined) {
-      j6_object.quaternion.setFromAxisAngle(z_vec_base,toRadian(j6_rotate))
-      set_rotate((org)=>{
-        org[5] = round(j6_rotate,3)
-        return org
-      })
+      const wk_switch = j6_rotate_table.length === 0
+      if(j6_rotate_table.length > 1){
+        j6_rotate_table.pop()
+      }
+      j6_rotate_table.push(j6_rotate)
+      if(wk_switch){
+        setTimeout(()=>{
+          j6_move()
+        },1)
+      }
     }
   }, [j6_rotate])
 
@@ -265,7 +554,7 @@ export default function Home(props) {
   }, [input_rotate[1]])
 
   React.useEffect(() => {
-    if (j3_object !== undefined) {
+    if (j4_object !== undefined) {
       const rotate_value = round(normalize180(input_rotate[2]))
       set_j3_rotate(rotate_value)
     }
@@ -848,6 +1137,10 @@ export default function Home(props) {
             save_rotation = current_rotation.clone()
             set_save_target(undefined)
             trigger_on = false
+          });
+          this.el.addEventListener('gripchanged', (evt)=>{
+            const grip_value = evt.detail.value * 64
+            set_j7_rotate(grip_value)
           });
         }
       });
