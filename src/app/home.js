@@ -138,19 +138,19 @@ export default function Home(props) {
 
   const set_wrist_rot_x = (new_rot)=>{
     set_wrist_rot_x_org((prev_rot)=>{
-      target_move_distance = (Math.abs(real_wrist_rot_x-new_rot)/90)/25
+      target_move_distance = (Math.abs(real_wrist_rot_x-new_rot)/90)/10
       return new_rot
     })
   }
   const set_wrist_rot_y = (new_rot)=>{
     set_wrist_rot_y_org((prev_rot)=>{
-      target_move_distance = (Math.abs(real_wrist_rot_y-new_rot)/90)/25
+      target_move_distance = (Math.abs(real_wrist_rot_y-new_rot)/90)/10
       return new_rot
     })
   }
   const set_wrist_rot_z = (new_rot)=>{
     set_wrist_rot_z_org((prev_rot)=>{
-      target_move_distance = (Math.abs(real_wrist_rot_z-new_rot)/90)/25
+      target_move_distance = (Math.abs(real_wrist_rot_z-new_rot)/90)/10
       return new_rot
     })
   }
