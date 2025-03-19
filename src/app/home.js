@@ -15,10 +15,9 @@ import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT } from '../l
 const MQTT_REQUEST_TOPIC = "mgr/request";
 const MQTT_DEVICE_TOPIC = "dev/"+idtopic;
 const MQTT_CTRL_TOPIC =        "control/"+idtopic; // 自分のIDに制御を送信
-//const MQTT_ROBOT_STATE_TOPIC = "robot/";
+const MQTT_ROBOT_STATE_TOPIC = "robot/";
 let publish = true //VRモードに移行するまではMQTTをpublishしない（かつ、ロボット情報を取得するまで）
-//let receive_state = false // ロボットの状態を受信してるかのフラグ
-let receive_state = true // ロボットの状態を受信してるかのフラグ
+let receive_state = false // ロボットの状態を受信してるかのフラグ
 
 const joint_pos = {
   base:{x:0,y:0,z:0},
@@ -352,10 +351,28 @@ export default function Home() {
             if (data.devId === "none") {
               console.log("Can't find robot!")
             }else{
-              robotIDRef.current = data.devId
-              publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
+              robotIDRef.current = data.devId 
+              if (receive_state == false ){ // ロボットの姿勢を受け取るまで、スタートしない。
+                subscribeMQTT([
+                  MQTT_ROBOT_STATE_TOPIC+robotIDRef.current // ロボットの姿勢を待つ
+                ])
+              }
             }
           }
+          if (topic === robotIDRef.current){ // ロボットの姿勢を受け取ったら
+            let data = JSON.parse(message.toString()) ///
+            const joints = data.joints
+            // ここで、joints の安全チェックをすべき
+            mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) // これでロボット姿勢の受信は終わり
+            console.log("receive joints",joints)
+            set_input_rotate(joints)
+            // すぐに制御を開始したくないので、少し待ってから送付
+            window.setTimeout(()=>{
+              receive_state = true; //
+              publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
+            }, 500);
+          }
+  
         })
       }
     }
@@ -854,7 +871,7 @@ export default function Home() {
               // VR mode に入ったタイミングで、利用したい robot のID を取得すべし
               const requestInfo = {
                 devId: idtopic, // 自分のID
-                type: "cobotta-pro",  // とりあえず　Browser の Viwer が欲しい
+                type: "cobotta-pro-real",  // とりあえず　Browser の Viwer が欲しい
               }
               publishMQTT(MQTT_REQUEST_TOPIC, JSON.stringify(requestInfo));
             }

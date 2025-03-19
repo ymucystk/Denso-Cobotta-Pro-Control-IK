@@ -874,8 +874,8 @@ export default function Home() {
             }
           });
           this.el.addEventListener('exit-vr', ()=>{
-//            vrModeRef.current = false;
-            set_vr_mode(false)
+            vrModeRef.current = false;
+//            set_vr_mode(false)
             console.log('exit-vr')
           });
         },
@@ -922,7 +922,7 @@ export default function Home() {
     c_pos_x,set_c_pos_x,c_pos_y,set_c_pos_y,c_pos_z,set_c_pos_z,
     c_deg_x,set_c_deg_x,c_deg_y,set_c_deg_y,c_deg_z,set_c_deg_z,
     wrist_rot_x,set_wrist_rot_x,wrist_rot_y,set_wrist_rot_y,wrist_rot_z,set_wrist_rot_z,
-    tool_rotate,set_tool_rotate,normalize180, vr_mode
+    tool_rotate,set_tool_rotate,normalize180, vr_mode: vrModeRef.current
   }
 
   const robotProps = {
