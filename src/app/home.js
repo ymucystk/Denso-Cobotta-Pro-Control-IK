@@ -33,6 +33,7 @@ let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 const joint_move_speed_ms = 1
+const joint_move_speed_unit = 5
 const j1_rotate_table = []
 const j1_quatanion_master = new THREE.Quaternion()
 const j2_rotate_table = []
@@ -228,7 +229,8 @@ export default function Home(props) {
       const start_quaternion = j1_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j1_rotate))
       const radian = j1_quatanion_master.angleTo(end_quaternion)
-      const max = Math.ceil(toAngle(radian))
+      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
+      const max = Math.ceil(toAngle(radian)/ratio)
       if(max === 0){
         setTimeout(()=>{
           j1_rotate_table.shift()
@@ -283,7 +285,8 @@ export default function Home(props) {
       const start_quaternion = j2_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j2_rotate))
       const radian = j2_quatanion_master.angleTo(end_quaternion)
-      const max = Math.ceil(toAngle(radian))
+      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
+      const max = Math.ceil(toAngle(radian)/ratio)
       if(max === 0){
         setTimeout(()=>{
           j2_rotate_table.shift()
@@ -338,7 +341,8 @@ export default function Home(props) {
       const start_quaternion = j3_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j3_rotate))
       const radian = j3_quatanion_master.angleTo(end_quaternion)
-      const max = Math.ceil(toAngle(radian))
+      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
+      const max = Math.ceil(toAngle(radian)/ratio)
       if(max === 0){
         setTimeout(()=>{
           j3_rotate_table.shift()
@@ -393,7 +397,8 @@ export default function Home(props) {
       const start_quaternion = j4_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j4_rotate))
       const radian = j4_quatanion_master.angleTo(end_quaternion)
-      const max = Math.ceil(toAngle(radian))
+      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
+      const max = Math.ceil(toAngle(radian)/ratio)
       if(max === 0){
         setTimeout(()=>{
           j4_rotate_table.shift()
@@ -448,7 +453,8 @@ export default function Home(props) {
       const start_quaternion = j5_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j5_rotate))
       const radian = j5_quatanion_master.angleTo(end_quaternion)
-      const max = Math.ceil(toAngle(radian))
+      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
+      const max = Math.ceil(toAngle(radian)/ratio)
       if(max === 0){
         setTimeout(()=>{
           j5_rotate_table.shift()
@@ -503,7 +509,8 @@ export default function Home(props) {
       const start_quaternion = j6_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(z_vec_base,toRadian(wk_j6_rotate))
       const radian = j6_quatanion_master.angleTo(end_quaternion)
-      const max = Math.ceil(toAngle(radian))
+      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
+      const max = Math.ceil(toAngle(radian)/ratio)
       if(max === 0){
         setTimeout(()=>{
           j6_rotate_table.shift()
