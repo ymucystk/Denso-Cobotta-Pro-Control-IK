@@ -32,8 +32,8 @@ const order = 'ZYX'
 let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
-const joint_move_speed_ms = 1
-const joint_move_speed_unit = 5
+const joint_move_speed_ms = 10
+const joint_move_speed_unit = 10
 const j1_rotate_table = []
 const j1_quatanion_master = new THREE.Quaternion()
 const j2_rotate_table = []
@@ -46,6 +46,8 @@ const j5_rotate_table = []
 const j5_quatanion_master = new THREE.Quaternion()
 const j6_rotate_table = []
 const j6_quatanion_master = new THREE.Quaternion()
+let target_move_distance = 0.2
+let real_target = {x:0.3,y:0.5,z:-0.5}
 
 export default function Home(props) {
   const [tick, setTick] = React.useState(0)
@@ -105,9 +107,9 @@ export default function Home(props) {
   const [c_deg_y,set_c_deg_y] = React.useState(180)
   const [c_deg_z,set_c_deg_z] = React.useState(0)
 
-  const [wrist_rot_x,set_wrist_rot_x] = React.useState(180)
-  const [wrist_rot_y,set_wrist_rot_y] = React.useState(0)
-  const [wrist_rot_z,set_wrist_rot_z] = React.useState(0)
+  const [wrist_rot_x,set_wrist_rot_x_org] = React.useState(180)
+  const [wrist_rot_y,set_wrist_rot_y_org] = React.useState(0)
+  const [wrist_rot_z,set_wrist_rot_z_org] = React.useState(0)
   const [tool_rotate,set_tool_rotate] = React.useState(0)
   const [wrist_degree,set_wrist_degree] = React.useState({direction:0,angle:0})
   const [dsp_message,set_dsp_message] = React.useState("")
@@ -119,13 +121,33 @@ export default function Home(props) {
   const [y_vec_base,set_y_vec_base] = React.useState()
   const [z_vec_base,set_z_vec_base] = React.useState()
 
-  const [target,set_target_org] = React.useState({x:0.3,y:0.5,z:-0.5})
+  const [target,set_target_org] = React.useState(real_target)
   const [p15_16_len,set_p15_16_len] = React.useState(joint_pos.j7.z)
   const [p14_maxlen,set_p14_maxlen] = React.useState(0)
 
   const set_target = (new_pos)=>{
     set_target_org((prev_pos)=>{
+      target_move_distance = distance(real_target,new_pos)
       return new_pos
+    })
+  }
+
+  const set_wrist_rot_x = (new_rot)=>{
+    set_wrist_rot_x_org((prev_rot)=>{
+      target_move_distance = (Math.abs(prev_rot-new_rot)/90)/10
+      return new_rot
+    })
+  }
+  const set_wrist_rot_y = (new_rot)=>{
+    set_wrist_rot_y_org((prev_rot)=>{
+      target_move_distance = (Math.abs(prev_rot-new_rot)/90)/10
+      return new_rot
+    })
+  }
+  const set_wrist_rot_z = (new_rot)=>{
+    set_wrist_rot_z_org((prev_rot)=>{
+      target_move_distance = (Math.abs(prev_rot-new_rot)/90)/10
+      return new_rot
     })
   }
 
@@ -228,9 +250,8 @@ export default function Home(props) {
       const wk_j1_rotate = j1_rotate_table[0]
       const start_quaternion = j1_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j1_rotate))
-      const radian = j1_quatanion_master.angleTo(end_quaternion)
-      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
-      const max = Math.ceil(toAngle(radian)/ratio)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
+      const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j1_rotate_table.shift()
@@ -284,9 +305,8 @@ export default function Home(props) {
       const wk_j2_rotate = j2_rotate_table[0]
       const start_quaternion = j2_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j2_rotate))
-      const radian = j2_quatanion_master.angleTo(end_quaternion)
-      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
-      const max = Math.ceil(toAngle(radian)/ratio)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
+      const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j2_rotate_table.shift()
@@ -340,9 +360,8 @@ export default function Home(props) {
       const wk_j3_rotate = j3_rotate_table[0]
       const start_quaternion = j3_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j3_rotate))
-      const radian = j3_quatanion_master.angleTo(end_quaternion)
-      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
-      const max = Math.ceil(toAngle(radian)/ratio)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
+      const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j3_rotate_table.shift()
@@ -396,9 +415,8 @@ export default function Home(props) {
       const wk_j4_rotate = j4_rotate_table[0]
       const start_quaternion = j4_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j4_rotate))
-      const radian = j4_quatanion_master.angleTo(end_quaternion)
-      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
-      const max = Math.ceil(toAngle(radian)/ratio)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
+      const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j4_rotate_table.shift()
@@ -452,9 +470,8 @@ export default function Home(props) {
       const wk_j5_rotate = j5_rotate_table[0]
       const start_quaternion = j5_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j5_rotate))
-      const radian = j5_quatanion_master.angleTo(end_quaternion)
-      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
-      const max = Math.ceil(toAngle(radian)/ratio)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
+      const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j5_rotate_table.shift()
@@ -508,9 +525,8 @@ export default function Home(props) {
       const wk_j6_rotate = j6_rotate_table[0]
       const start_quaternion = j6_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(z_vec_base,toRadian(wk_j6_rotate))
-      const radian = j6_quatanion_master.angleTo(end_quaternion)
-      const ratio = joint_move_speed_unit-Math.ceil((joint_move_speed_unit/90)*(toAngle(radian)<90?toAngle(radian):90))+1
-      const max = Math.ceil(toAngle(radian)/ratio)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
+      const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j6_rotate_table.shift()
@@ -759,6 +775,7 @@ export default function Home(props) {
   const target15_update = (wrist_direction,wrist_angle)=>{
     let dsp_message = ""
     const shift_target = {...target}
+    let save_target = {...target}
     let result_rotate = {j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,dsp_message}
     let save_distance = undefined
     let save_distance_cnt = 0
@@ -792,6 +809,7 @@ export default function Home(props) {
       const sabun_pos = pos_sub(target,result_target)
       const sabun_distance = sabun_pos.x**2+sabun_pos.y**2+sabun_pos.z**2
       if(round(sabun_distance) <= 0){
+        save_target = {...result_target}
         break
       }
       if(save_distance === undefined){
@@ -803,6 +821,7 @@ export default function Home(props) {
             if(round(sabun_distance,4) <= 0){
               result_rotate = {...save_rotate}
               console.log("姿勢制御困難！")
+              save_target = {...result_target}
               break  
             }
             console.log("姿勢制御不可！")
@@ -840,6 +859,7 @@ export default function Home(props) {
       set_j4_rotate(round(result_rotate.j4_rotate))
       set_j5_rotate(round(result_rotate.j5_rotate))
       set_j6_rotate(normalize180(round(result_rotate.j6_rotate + tool_rotate)))
+      real_target = {...save_target}
     }else{
       set_target_error(true)
     }
