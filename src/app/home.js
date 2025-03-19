@@ -48,6 +48,10 @@ const j6_rotate_table = []
 const j6_quatanion_master = new THREE.Quaternion()
 let target_move_distance = 0.2
 let real_target = {x:0.3,y:0.5,z:-0.5}
+let real_wrist_rot_x = 180
+let real_wrist_rot_y = 0
+let real_wrist_rot_z = 0
+
 
 export default function Home(props) {
   const [tick, setTick] = React.useState(0)
@@ -107,9 +111,9 @@ export default function Home(props) {
   const [c_deg_y,set_c_deg_y] = React.useState(180)
   const [c_deg_z,set_c_deg_z] = React.useState(0)
 
-  const [wrist_rot_x,set_wrist_rot_x_org] = React.useState(180)
-  const [wrist_rot_y,set_wrist_rot_y_org] = React.useState(0)
-  const [wrist_rot_z,set_wrist_rot_z_org] = React.useState(0)
+  const [wrist_rot_x,set_wrist_rot_x_org] = React.useState(real_wrist_rot_x)
+  const [wrist_rot_y,set_wrist_rot_y_org] = React.useState(real_wrist_rot_y)
+  const [wrist_rot_z,set_wrist_rot_z_org] = React.useState(real_wrist_rot_z)
   const [tool_rotate,set_tool_rotate] = React.useState(0)
   const [wrist_degree,set_wrist_degree] = React.useState({direction:0,angle:0})
   const [dsp_message,set_dsp_message] = React.useState("")
@@ -134,19 +138,19 @@ export default function Home(props) {
 
   const set_wrist_rot_x = (new_rot)=>{
     set_wrist_rot_x_org((prev_rot)=>{
-      target_move_distance = (Math.abs(prev_rot-new_rot)/90)/10
+      target_move_distance = (Math.abs(real_wrist_rot_x-new_rot)/90)/25
       return new_rot
     })
   }
   const set_wrist_rot_y = (new_rot)=>{
     set_wrist_rot_y_org((prev_rot)=>{
-      target_move_distance = (Math.abs(prev_rot-new_rot)/90)/10
+      target_move_distance = (Math.abs(real_wrist_rot_y-new_rot)/90)/25
       return new_rot
     })
   }
   const set_wrist_rot_z = (new_rot)=>{
     set_wrist_rot_z_org((prev_rot)=>{
-      target_move_distance = (Math.abs(prev_rot-new_rot)/90)/10
+      target_move_distance = (Math.abs(real_wrist_rot_z-new_rot)/90)/25
       return new_rot
     })
   }
@@ -860,6 +864,9 @@ export default function Home(props) {
       set_j5_rotate(round(result_rotate.j5_rotate))
       set_j6_rotate(normalize180(round(result_rotate.j6_rotate + tool_rotate)))
       real_target = {...save_target}
+      real_wrist_rot_x = wrist_rot_x
+      real_wrist_rot_y = wrist_rot_y
+      real_wrist_rot_z = wrist_rot_z
     }else{
       set_target_error(true)
     }
