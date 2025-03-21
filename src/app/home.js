@@ -244,23 +244,23 @@ export default function Home(props) {
     }else{
       setTimeout(()=>{
         j1_rotate_table.shift()
-        j1_move(0)
-      },1)
+        j1_move()
+      },0)
     }
   }
 
-  const j1_move = (move_sec)=>{
+  const j1_move = ()=>{
     if(j1_rotate_table.length > 0){
       const wk_j1_rotate = j1_rotate_table[0]
       const start_quaternion = j1_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j1_rotate))
-      const move_unit = ((move_sec*1000)/joint_move_speed_ms)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
       const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j1_rotate_table.shift()
-          j1_move(move_sec)
-        },1)
+          j1_move()
+        },0)
       }else{
         setTimeout(()=>{
           j1_move_sub(start_quaternion,end_quaternion,max)
@@ -278,8 +278,8 @@ export default function Home(props) {
       j1_rotate_table.push(j1_rotate)
       if(wk_switch){
         setTimeout(()=>{
-          j1_move(target_move_distance)
-        },1)
+          j1_move()
+        },0)
       }
     }
   }, [j1_rotate])
@@ -299,23 +299,23 @@ export default function Home(props) {
     }else{
       setTimeout(()=>{
         j2_rotate_table.shift()
-        j2_move(0)
-      },1)
+        j2_move()
+      },0)
     }
   }
 
-  const j2_move = (move_sec)=>{
+  const j2_move = ()=>{
     if(j2_rotate_table.length > 0){
       const wk_j2_rotate = j2_rotate_table[0]
       const start_quaternion = j2_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j2_rotate))
-      const move_unit = ((move_sec*1000)/joint_move_speed_ms)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
       const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j2_rotate_table.shift()
-          j2_move(move_sec)
-        },1)
+          j2_move()
+        },0)
       }else{
         setTimeout(()=>{
           j2_move_sub(start_quaternion,end_quaternion,max)
@@ -333,8 +333,8 @@ export default function Home(props) {
       j2_rotate_table.push(j2_rotate)
       if(wk_switch){
         setTimeout(()=>{
-          j2_move(target_move_distance)
-        },1)
+          j2_move()
+        },0)
       }
     }
   }, [j2_rotate])
@@ -354,23 +354,23 @@ export default function Home(props) {
     }else{
       setTimeout(()=>{
         j3_rotate_table.shift()
-        j3_move(0)
-      },1)
+        j3_move()
+      },0)
     }
   }
 
-  const j3_move = (move_sec)=>{
+  const j3_move = ()=>{
     if(j3_rotate_table.length > 0){
       const wk_j3_rotate = j3_rotate_table[0]
       const start_quaternion = j3_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j3_rotate))
-      const move_unit = ((move_sec*1000)/joint_move_speed_ms)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
       const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j3_rotate_table.shift()
-          j3_move(move_sec)
-        },1)
+          j3_move()
+        },0)
       }else{
         setTimeout(()=>{
           j3_move_sub(start_quaternion,end_quaternion,max)
@@ -388,8 +388,8 @@ export default function Home(props) {
       j3_rotate_table.push(j3_rotate)
       if(wk_switch){
         setTimeout(()=>{
-          j3_move(target_move_distance)
-        },1)
+          j3_move()
+        },0)
       }
     }
   }, [j3_rotate])
@@ -409,23 +409,23 @@ export default function Home(props) {
     }else{
       setTimeout(()=>{
         j4_rotate_table.shift()
-        j4_move(0)
-      },1)
+        j4_move()
+      },0)
     }
   }
 
-  const j4_move = (move_sec)=>{
+  const j4_move = ()=>{
     if(j4_rotate_table.length > 0){
       const wk_j4_rotate = j4_rotate_table[0]
       const start_quaternion = j4_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j4_rotate))
-      const move_unit = ((move_sec*1000)/joint_move_speed_ms)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
       const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j4_rotate_table.shift()
-          j4_move(move_sec)
-        },1)
+          j4_move()
+        },0)
       }else{
         setTimeout(()=>{
           j4_move_sub(start_quaternion,end_quaternion,max)
@@ -443,8 +443,8 @@ export default function Home(props) {
       j4_rotate_table.push(j4_rotate)
       if(wk_switch){
         setTimeout(()=>{
-          j4_move(target_move_distance)
-        },1)
+          j4_move()
+        },0)
       }
     }
   }, [j4_rotate])
@@ -464,23 +464,23 @@ export default function Home(props) {
     }else{
       setTimeout(()=>{
         j5_rotate_table.shift()
-        j5_move(0)
-      },1)
+        j5_move()
+      },0)
     }
   }
 
-  const j5_move = (move_sec)=>{
+  const j5_move = ()=>{
     if(j5_rotate_table.length > 0){
       const wk_j5_rotate = j5_rotate_table[0]
       const start_quaternion = j5_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j5_rotate))
-      const move_unit = ((move_sec*1000)/joint_move_speed_ms)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
       const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j5_rotate_table.shift()
-          j5_move(move_sec)
-        },1)
+          j5_move()
+        },0)
       }else{
         setTimeout(()=>{
           j5_move_sub(start_quaternion,end_quaternion,max)
@@ -498,8 +498,8 @@ export default function Home(props) {
       j5_rotate_table.push(j5_rotate)
       if(wk_switch){
         setTimeout(()=>{
-          j5_move(target_move_distance)
-        },1)
+          j5_move()
+        },0)
       }
     }
   }, [j5_rotate])
@@ -519,23 +519,23 @@ export default function Home(props) {
     }else{
       setTimeout(()=>{
         j6_rotate_table.shift()
-        j6_move(0)
-      },1)
+        j6_move()
+      },0)
     }
   }
 
-  const j6_move = (move_sec)=>{
+  const j6_move = ()=>{
     if(j6_rotate_table.length > 0){
       const wk_j6_rotate = j6_rotate_table[0]
       const start_quaternion = j6_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(z_vec_base,toRadian(wk_j6_rotate))
-      const move_unit = ((move_sec*1000)/joint_move_speed_ms)
+      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
       const max = Math.ceil(move_unit)+1
       if(max === 0){
         setTimeout(()=>{
           j6_rotate_table.shift()
-          j6_move(move_sec)
-        },1)
+          j6_move()
+        },0)
       }else{
         setTimeout(()=>{
           j6_move_sub(start_quaternion,end_quaternion,max)
@@ -553,8 +553,8 @@ export default function Home(props) {
       j6_rotate_table.push(j6_rotate)
       if(wk_switch){
         setTimeout(()=>{
-          j6_move(target_move_distance)
-        },1)
+          j6_move()
+        },0)
       }
     }
   }, [j6_rotate])
