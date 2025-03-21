@@ -33,7 +33,7 @@ let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 const joint_move_speed_ms = 10
-const joint_move_speed_unit = 10
+const max_move_unit = (0.1/60)
 const j1_rotate_table = []
 const j1_quatanion_master = new THREE.Quaternion()
 const j2_rotate_table = []
@@ -48,10 +48,6 @@ const j6_rotate_table = []
 const j6_quatanion_master = new THREE.Quaternion()
 let target_move_distance = 0.2
 let real_target = {x:0.3,y:0.5,z:-0.5}
-let real_wrist_rot_x = 180
-let real_wrist_rot_y = 0
-let real_wrist_rot_z = 0
-
 
 export default function Home(props) {
   const [tick, setTick] = React.useState(0)
@@ -111,9 +107,9 @@ export default function Home(props) {
   const [c_deg_y,set_c_deg_y] = React.useState(180)
   const [c_deg_z,set_c_deg_z] = React.useState(0)
 
-  const [wrist_rot_x,set_wrist_rot_x_org] = React.useState(real_wrist_rot_x)
-  const [wrist_rot_y,set_wrist_rot_y_org] = React.useState(real_wrist_rot_y)
-  const [wrist_rot_z,set_wrist_rot_z_org] = React.useState(real_wrist_rot_z)
+  const [wrist_rot_x,set_wrist_rot_x_org] = React.useState(180)
+  const [wrist_rot_y,set_wrist_rot_y_org] = React.useState(0)
+  const [wrist_rot_z,set_wrist_rot_z_org] = React.useState(0)
   const [tool_rotate,set_tool_rotate] = React.useState(0)
   const [wrist_degree,set_wrist_degree] = React.useState({direction:0,angle:0})
   const [dsp_message,set_dsp_message] = React.useState("")
@@ -138,19 +134,19 @@ export default function Home(props) {
 
   const set_wrist_rot_x = (new_rot)=>{
     set_wrist_rot_x_org((prev_rot)=>{
-      target_move_distance = (Math.abs(real_wrist_rot_x-new_rot)/90)/10
+      target_move_distance = 0.01
       return new_rot
     })
   }
   const set_wrist_rot_y = (new_rot)=>{
     set_wrist_rot_y_org((prev_rot)=>{
-      target_move_distance = (Math.abs(real_wrist_rot_y-new_rot)/90)/10
+      target_move_distance = 0.01
       return new_rot
     })
   }
   const set_wrist_rot_z = (new_rot)=>{
     set_wrist_rot_z_org((prev_rot)=>{
-      target_move_distance = (Math.abs(real_wrist_rot_z-new_rot)/90)/10
+      target_move_distance = 0.01
       return new_rot
     })
   }
@@ -229,17 +225,29 @@ export default function Home(props) {
     set_robotName(get)
   }
 
-  const j1_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
-    j1_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+  const getDivision = (start_quaternion,end_quaternion)=>{
+    const move_unit_1 = ((target_move_distance*1000)/joint_move_speed_ms)
+    const division_1 = Math.ceil(move_unit_1)+1
+
+    const deff_quaternion = start_quaternion.clone().invert().multiply(end_quaternion)
+    const wk_euler = new THREE.Quaternion().angleTo(deff_quaternion)
+    const move_unit_2 = ((toAngle(wk_euler)*max_move_unit)*1000)/joint_move_speed_ms
+    const division_2 = Math.ceil(move_unit_2)+1
+
+    return Math.max(division_1,division_2)
+  }
+
+  const j1_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
+    j1_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     j1_object.quaternion.set(j1_quatanion_master.x,j1_quatanion_master.y,j1_quatanion_master.z,j1_quatanion_master.w)
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[0] = round(toAngle(wk_euler),3)
       return org
     })
-    if(count < max){
+    if(count < division){
       setTimeout(()=>{
-        j1_move_sub(start_quaternion,end_quaternion,max,count+1)
+        j1_move_sub(start_quaternion,end_quaternion,division,count+1)
       },joint_move_speed_ms)
     }else{
       setTimeout(()=>{
@@ -254,16 +262,15 @@ export default function Home(props) {
       const wk_j1_rotate = j1_rotate_table[0]
       const start_quaternion = j1_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j1_rotate))
-      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
-      const max = Math.ceil(move_unit)+1
-      if(max === 0){
+      const division = getDivision(start_quaternion,end_quaternion)
+      if(division === 0){
         setTimeout(()=>{
           j1_rotate_table.shift()
           j1_move()
         },0)
       }else{
         setTimeout(()=>{
-          j1_move_sub(start_quaternion,end_quaternion,max)
+          j1_move_sub(start_quaternion,end_quaternion,division)
         },joint_move_speed_ms)
       }
     }
@@ -284,17 +291,17 @@ export default function Home(props) {
     }
   }, [j1_rotate])
 
-  const j2_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
-    j2_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+  const j2_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
+    j2_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     j2_object.quaternion.set(j2_quatanion_master.x,j2_quatanion_master.y,j2_quatanion_master.z,j2_quatanion_master.w)
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[1] = round(toAngle(wk_euler),3)
       return org
     })
-    if(count < max){
+    if(count < division){
       setTimeout(()=>{
-        j2_move_sub(start_quaternion,end_quaternion,max,count+1)
+        j2_move_sub(start_quaternion,end_quaternion,division,count+1)
       },joint_move_speed_ms)
     }else{
       setTimeout(()=>{
@@ -309,16 +316,15 @@ export default function Home(props) {
       const wk_j2_rotate = j2_rotate_table[0]
       const start_quaternion = j2_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j2_rotate))
-      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
-      const max = Math.ceil(move_unit)+1
-      if(max === 0){
+      const division = getDivision(start_quaternion,end_quaternion)
+      if(division === 0){
         setTimeout(()=>{
           j2_rotate_table.shift()
           j2_move()
         },0)
       }else{
         setTimeout(()=>{
-          j2_move_sub(start_quaternion,end_quaternion,max)
+          j2_move_sub(start_quaternion,end_quaternion,division)
         },joint_move_speed_ms)
       }
     }
@@ -339,17 +345,17 @@ export default function Home(props) {
     }
   }, [j2_rotate])
 
-  const j3_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
-    j3_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+  const j3_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
+    j3_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     j3_object.quaternion.set(j3_quatanion_master.x,j3_quatanion_master.y,j3_quatanion_master.z,j3_quatanion_master.w)
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[2] = round(toAngle(wk_euler),3)
       return org
     })
-    if(count < max){
+    if(count < division){
       setTimeout(()=>{
-        j3_move_sub(start_quaternion,end_quaternion,max,count+1)
+        j3_move_sub(start_quaternion,end_quaternion,division,count+1)
       },joint_move_speed_ms)
     }else{
       setTimeout(()=>{
@@ -364,16 +370,15 @@ export default function Home(props) {
       const wk_j3_rotate = j3_rotate_table[0]
       const start_quaternion = j3_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j3_rotate))
-      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
-      const max = Math.ceil(move_unit)+1
-      if(max === 0){
+      const division = getDivision(start_quaternion,end_quaternion)
+      if(division === 0){
         setTimeout(()=>{
           j3_rotate_table.shift()
           j3_move()
         },0)
       }else{
         setTimeout(()=>{
-          j3_move_sub(start_quaternion,end_quaternion,max)
+          j3_move_sub(start_quaternion,end_quaternion,division)
         },joint_move_speed_ms)
       }
     }
@@ -394,17 +399,17 @@ export default function Home(props) {
     }
   }, [j3_rotate])
 
-  const j4_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
-    j4_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+  const j4_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
+    j4_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     j4_object.quaternion.set(j4_quatanion_master.x,j4_quatanion_master.y,j4_quatanion_master.z,j4_quatanion_master.w)
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[3] = round(toAngle(wk_euler),3)
       return org
     })
-    if(count < max){
+    if(count < division){
       setTimeout(()=>{
-        j4_move_sub(start_quaternion,end_quaternion,max,count+1)
+        j4_move_sub(start_quaternion,end_quaternion,division,count+1)
       },joint_move_speed_ms)
     }else{
       setTimeout(()=>{
@@ -419,16 +424,15 @@ export default function Home(props) {
       const wk_j4_rotate = j4_rotate_table[0]
       const start_quaternion = j4_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j4_rotate))
-      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
-      const max = Math.ceil(move_unit)+1
-      if(max === 0){
+      const division = getDivision(start_quaternion,end_quaternion)
+      if(division === 0){
         setTimeout(()=>{
           j4_rotate_table.shift()
           j4_move()
         },0)
       }else{
         setTimeout(()=>{
-          j4_move_sub(start_quaternion,end_quaternion,max)
+          j4_move_sub(start_quaternion,end_quaternion,division)
         },joint_move_speed_ms)
       }
     }
@@ -449,17 +453,17 @@ export default function Home(props) {
     }
   }, [j4_rotate])
 
-  const j5_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
-    j5_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+  const j5_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
+    j5_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     j5_object.quaternion.set(j5_quatanion_master.x,j5_quatanion_master.y,j5_quatanion_master.z,j5_quatanion_master.w)
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[4] = round(toAngle(wk_euler),3)
       return org
     })
-    if(count < max){
+    if(count < division){
       setTimeout(()=>{
-        j5_move_sub(start_quaternion,end_quaternion,max,count+1)
+        j5_move_sub(start_quaternion,end_quaternion,division,count+1)
       },joint_move_speed_ms)
     }else{
       setTimeout(()=>{
@@ -474,16 +478,15 @@ export default function Home(props) {
       const wk_j5_rotate = j5_rotate_table[0]
       const start_quaternion = j5_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j5_rotate))
-      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
-      const max = Math.ceil(move_unit)+1
-      if(max === 0){
+      const division = getDivision(start_quaternion,end_quaternion)
+      if(division === 0){
         setTimeout(()=>{
           j5_rotate_table.shift()
           j5_move()
         },0)
       }else{
         setTimeout(()=>{
-          j5_move_sub(start_quaternion,end_quaternion,max)
+          j5_move_sub(start_quaternion,end_quaternion,division)
         },joint_move_speed_ms)
       }
     }
@@ -504,17 +507,17 @@ export default function Home(props) {
     }
   }, [j5_rotate])
 
-  const j6_move_sub = (start_quaternion,end_quaternion,max,count=1)=>{
-    j6_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/max))
+  const j6_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
+    j6_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     j6_object.quaternion.set(j6_quatanion_master.x,j6_quatanion_master.y,j6_quatanion_master.z,j6_quatanion_master.w)
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[5] = round(toAngle(wk_euler),3)
       return org
     })
-    if(count < max){
+    if(count < division){
       setTimeout(()=>{
-        j6_move_sub(start_quaternion,end_quaternion,max,count+1)
+        j6_move_sub(start_quaternion,end_quaternion,division,count+1)
       },joint_move_speed_ms)
     }else{
       setTimeout(()=>{
@@ -529,16 +532,15 @@ export default function Home(props) {
       const wk_j6_rotate = j6_rotate_table[0]
       const start_quaternion = j6_quatanion_master.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(z_vec_base,toRadian(wk_j6_rotate))
-      const move_unit = ((target_move_distance*1000)/joint_move_speed_ms)
-      const max = Math.ceil(move_unit)+1
-      if(max === 0){
+      const division = getDivision(start_quaternion,end_quaternion)
+      if(division === 0){
         setTimeout(()=>{
           j6_rotate_table.shift()
           j6_move()
         },0)
       }else{
         setTimeout(()=>{
-          j6_move_sub(start_quaternion,end_quaternion,max)
+          j6_move_sub(start_quaternion,end_quaternion,division)
         },joint_move_speed_ms)
       }
     }
@@ -568,6 +570,7 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if (j1_object !== undefined) {
+      target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[0]))
       set_j1_rotate(rotate_value)
     }
@@ -575,6 +578,7 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if (j2_object !== undefined) {
+      target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[1]))
       set_j2_rotate(rotate_value)
     }
@@ -582,6 +586,7 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if (j4_object !== undefined) {
+      target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[2]))
       set_j3_rotate(rotate_value)
     }
@@ -589,6 +594,7 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if (j4_object !== undefined) {
+      target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[3]))
       set_j4_rotate(rotate_value)
     }
@@ -596,6 +602,7 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if (j5_object !== undefined) {
+      target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[4]-90))
       set_j5_rotate(rotate_value)
     }
@@ -603,6 +610,7 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if (j6_object !== undefined) {
+      target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[5]))
       set_j6_rotate(rotate_value)
     }
@@ -864,9 +872,6 @@ export default function Home(props) {
       set_j5_rotate(round(result_rotate.j5_rotate))
       set_j6_rotate(normalize180(round(result_rotate.j6_rotate + tool_rotate)))
       real_target = {...save_target}
-      real_wrist_rot_x = wrist_rot_x
-      real_wrist_rot_y = wrist_rot_y
-      real_wrist_rot_z = wrist_rot_z
     }else{
       set_target_error(true)
     }
