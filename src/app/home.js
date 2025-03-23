@@ -35,17 +35,11 @@ let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 const joint_move_speed_ms = 10
 const max_move_unit = (0.1/60)
 const j1_rotate_table = []
-const j1_quatanion_master = new THREE.Quaternion()
 const j2_rotate_table = []
-const j2_quatanion_master = new THREE.Quaternion()
 const j3_rotate_table = []
-const j3_quatanion_master = new THREE.Quaternion()
 const j4_rotate_table = []
-const j4_quatanion_master = new THREE.Quaternion()
 const j5_rotate_table = []
-const j5_quatanion_master = new THREE.Quaternion()
 const j6_rotate_table = []
-const j6_quatanion_master = new THREE.Quaternion()
 let target_move_distance = 0.2
 let real_target = {x:0.3,y:0.5,z:-0.5}
 
@@ -238,8 +232,7 @@ export default function Home(props) {
   }
 
   const j1_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
-    j1_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
-    j1_object.quaternion.set(j1_quatanion_master.x,j1_quatanion_master.y,j1_quatanion_master.z,j1_quatanion_master.w)
+    j1_object.quaternion.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[0] = round(toAngle(wk_euler),3)
@@ -260,7 +253,7 @@ export default function Home(props) {
   const j1_move = ()=>{
     if(j1_rotate_table.length > 0){
       const wk_j1_rotate = j1_rotate_table[0]
-      const start_quaternion = j1_quatanion_master.clone()
+      const start_quaternion = j1_object.quaternion.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j1_rotate))
       const division = getDivision(start_quaternion,end_quaternion)
       if(division === 0){
@@ -292,8 +285,7 @@ export default function Home(props) {
   }, [j1_rotate])
 
   const j2_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
-    j2_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
-    j2_object.quaternion.set(j2_quatanion_master.x,j2_quatanion_master.y,j2_quatanion_master.z,j2_quatanion_master.w)
+    j2_object.quaternion.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[1] = round(toAngle(wk_euler),3)
@@ -314,7 +306,7 @@ export default function Home(props) {
   const j2_move = ()=>{
     if(j2_rotate_table.length > 0){
       const wk_j2_rotate = j2_rotate_table[0]
-      const start_quaternion = j2_quatanion_master.clone()
+      const start_quaternion = j2_object.quaternion.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j2_rotate))
       const division = getDivision(start_quaternion,end_quaternion)
       if(division === 0){
@@ -346,8 +338,7 @@ export default function Home(props) {
   }, [j2_rotate])
 
   const j3_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
-    j3_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
-    j3_object.quaternion.set(j3_quatanion_master.x,j3_quatanion_master.y,j3_quatanion_master.z,j3_quatanion_master.w)
+    j3_object.quaternion.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[2] = round(toAngle(wk_euler),3)
@@ -368,7 +359,7 @@ export default function Home(props) {
   const j3_move = ()=>{
     if(j3_rotate_table.length > 0){
       const wk_j3_rotate = j3_rotate_table[0]
-      const start_quaternion = j3_quatanion_master.clone()
+      const start_quaternion = j3_object.quaternion.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j3_rotate))
       const division = getDivision(start_quaternion,end_quaternion)
       if(division === 0){
@@ -400,8 +391,7 @@ export default function Home(props) {
   }, [j3_rotate])
 
   const j4_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
-    j4_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
-    j4_object.quaternion.set(j4_quatanion_master.x,j4_quatanion_master.y,j4_quatanion_master.z,j4_quatanion_master.w)
+    j4_object.quaternion.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[3] = round(toAngle(wk_euler),3)
@@ -422,7 +412,7 @@ export default function Home(props) {
   const j4_move = ()=>{
     if(j4_rotate_table.length > 0){
       const wk_j4_rotate = j4_rotate_table[0]
-      const start_quaternion = j4_quatanion_master.clone()
+      const start_quaternion = j4_object.quaternion.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(wk_j4_rotate))
       const division = getDivision(start_quaternion,end_quaternion)
       if(division === 0){
@@ -454,8 +444,7 @@ export default function Home(props) {
   }, [j4_rotate])
 
   const j5_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
-    j5_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
-    j5_object.quaternion.set(j5_quatanion_master.x,j5_quatanion_master.y,j5_quatanion_master.z,j5_quatanion_master.w)
+    j5_object.quaternion.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[4] = round(toAngle(wk_euler),3)
@@ -476,7 +465,7 @@ export default function Home(props) {
   const j5_move = ()=>{
     if(j5_rotate_table.length > 0){
       const wk_j5_rotate = j5_rotate_table[0]
-      const start_quaternion = j5_quatanion_master.clone()
+      const start_quaternion = j5_object.quaternion.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(wk_j5_rotate))
       const division = getDivision(start_quaternion,end_quaternion)
       if(division === 0){
@@ -508,8 +497,7 @@ export default function Home(props) {
   }, [j5_rotate])
 
   const j6_move_sub = (start_quaternion,end_quaternion,division,count=1)=>{
-    j6_quatanion_master.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
-    j6_object.quaternion.set(j6_quatanion_master.x,j6_quatanion_master.y,j6_quatanion_master.z,j6_quatanion_master.w)
+    j6_object.quaternion.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     const wk_euler = new THREE.Quaternion().angleTo(j1_object.quaternion)
     set_rotate((org)=>{
       org[5] = round(toAngle(wk_euler),3)
@@ -530,7 +518,7 @@ export default function Home(props) {
   const j6_move = ()=>{
     if(j6_rotate_table.length > 0){
       const wk_j6_rotate = j6_rotate_table[0]
-      const start_quaternion = j6_quatanion_master.clone()
+      const start_quaternion = j6_object.quaternion.clone()
       const end_quaternion = new THREE.Quaternion().setFromAxisAngle(z_vec_base,toRadian(wk_j6_rotate))
       const division = getDivision(start_quaternion,end_quaternion)
       if(division === 0){
