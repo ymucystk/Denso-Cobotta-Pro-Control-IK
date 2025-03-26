@@ -233,11 +233,6 @@ export default function Home(props) {
 
   const j_move_sub = (j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division,count=1)=>{
     j_object.quaternion.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
-    const wk_euler = new THREE.Quaternion().angleTo(j_object.quaternion)
-    set_rotate((org)=>{
-      org[idx] = round(toAngle(wk_euler),3)
-      return org
-    })
     if(count < division){
       setTimeout(()=>{
         j_move_sub(j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division,count+1)
@@ -281,6 +276,12 @@ export default function Home(props) {
           j_move(j1_object,j1_rotate_table,y_vec_base,0)
         },0)
       }
+      if(!props.viewer){
+        set_rotate((org)=>{
+          org[0] = round(j1_rotate,3)
+          return org
+        })
+      }
     }
   }, [j1_rotate])
 
@@ -295,6 +296,12 @@ export default function Home(props) {
         setTimeout(()=>{
           j_move(j2_object,j2_rotate_table,x_vec_base,1)
         },0)
+      }
+      if(!props.viewer){
+        set_rotate((org)=>{
+          org[1] = round(j2_rotate,3)
+          return org
+        })
       }
     }
   }, [j2_rotate])
@@ -311,6 +318,12 @@ export default function Home(props) {
           j_move(j3_object,j3_rotate_table,x_vec_base,2)
         },0)
       }
+      if(!props.viewer){
+        set_rotate((org)=>{
+          org[2] = round(j3_rotate,3)
+          return org
+        })
+      }
     }
   }, [j3_rotate])
 
@@ -325,6 +338,12 @@ export default function Home(props) {
         setTimeout(()=>{
           j_move(j4_object,j4_rotate_table,y_vec_base,3)
         },0)
+      }
+      if(!props.viewer){
+        set_rotate((org)=>{
+          org[3] = round(j4_rotate,3)
+          return org
+        })
       }
     }
   }, [j4_rotate])
@@ -341,6 +360,12 @@ export default function Home(props) {
           j_move(j5_object,j5_rotate_table,x_vec_base,4)
         },0)
       }
+      if(!props.viewer){
+        set_rotate((org)=>{
+          org[4] = round(j5_rotate,3)
+          return org
+        })
+      }
     }
   }, [j5_rotate])
 
@@ -356,18 +381,26 @@ export default function Home(props) {
           j_move(j6_object,j6_rotate_table,z_vec_base,5)
         },0)
       }
+      if(!props.viewer){
+        set_rotate((org)=>{
+          org[5] = round(j6_rotate,3)
+          return org
+        })
+      }
     }
   }, [j6_rotate])
 
   React.useEffect(() => {
-    set_rotate((org)=>{
-      org[6] = round(j7_rotate,3)
-      return org
-    })
+    if(!props.viewer){
+      set_rotate((org)=>{
+        org[6] = round(j7_rotate,3)
+        return org
+      })
+    }
   }, [j7_rotate])
 
   React.useEffect(() => {
-    if (rendered && j1_object !== undefined) {
+    if (props.viewer && rendered) {
       target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[0]))
       set_j1_rotate(rotate_value)
@@ -375,7 +408,7 @@ export default function Home(props) {
   }, [input_rotate[0]])
 
   React.useEffect(() => {
-    if (rendered && j2_object !== undefined) {
+    if (props.viewer && rendered) {
       target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[1]))
       set_j2_rotate(rotate_value)
@@ -383,7 +416,7 @@ export default function Home(props) {
   }, [input_rotate[1]])
 
   React.useEffect(() => {
-    if (rendered && j4_object !== undefined) {
+    if (props.viewer && rendered) {
       target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[2]))
       set_j3_rotate(rotate_value)
@@ -391,7 +424,7 @@ export default function Home(props) {
   }, [input_rotate[2]])
 
   React.useEffect(() => {
-    if (rendered && j4_object !== undefined) {
+    if (props.viewer && rendered) {
       target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[3]))
       set_j4_rotate(rotate_value)
@@ -399,15 +432,15 @@ export default function Home(props) {
   }, [input_rotate[3]])
 
   React.useEffect(() => {
-    if (rendered && j5_object !== undefined) {
+    if (props.viewer && rendered) {
       target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[4]-90))
+      const rotate_value = round(normalize180(input_rotate[4]))
       set_j5_rotate(rotate_value)
     }
   }, [input_rotate[4]])
 
   React.useEffect(() => {
-    if (rendered && j6_object !== undefined) {
+    if (props.viewer && rendered) {
       target_move_distance = 0.1
       const rotate_value = round(normalize180(input_rotate[5]))
       set_j6_rotate(rotate_value)
@@ -415,7 +448,7 @@ export default function Home(props) {
   }, [input_rotate[5]])
 
   React.useEffect(() => {
-    if(rendered){
+    if(props.viewer && rendered) {
       const rotate_value = input_rotate[6]
       set_j7_rotate(rotate_value)
     }
