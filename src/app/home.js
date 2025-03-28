@@ -67,6 +67,8 @@ export default function Home() {
   const [p14_object,set_p14_object] = React.useState()
   const [p15_object,set_p15_object] = React.useState()
   const [p16_object,set_p16_object] = React.useState()
+  const targetRef = React.useRef(null); // target 位置
+
   const [p20_object,set_p20_object] = React.useState()
   const [p21_object,set_p21_object] = React.useState()
   const [p22_object,set_p22_object] = React.useState()
@@ -77,6 +79,8 @@ export default function Home() {
 
   const [controller_object,set_controller_object] = React.useState(new THREE.Object3D())
   const [trigger_on,set_trigger_on] = React.useState(false)
+  const gripRef = React.useRef(false);
+
   const [start_pos,set_start_pos] = React.useState(new THREE.Vector3())
   const [save_target,set_save_target] = React.useState()
 //  const [vr_mode,set_vr_mode] = React.useState(false)
@@ -338,7 +342,19 @@ export default function Home() {
           }else if (topic == "control/"+robotIDRef.current){
             let data = JSON.parse(message.toString())
             if (data.joints != undefined) {
-              set_input_rotate(data.joints)
+              set_input_rotate(data.joints) // 同時に targetRef の変更も必要
+                      // target 位置の計算！
+                      // forward kinematics をすべき。。。
+              // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
+              requestAnimationFrame(()=>{
+                const wpos = new THREE.Vector3();
+                targetRef.current.getWorldPosition(wpos);              
+                set_target((vr)=>{
+                              console.log("Set target!", wpos)
+                              vr.x = wpos.x; vr.y = wpos.y; vr.z = wpos.z;
+                              return vr
+                          }); // これだと場所だけ
+              })
             }
           }
         })
@@ -359,7 +375,7 @@ export default function Home() {
               }
             }
           }
-          if (topic === robotIDRef.current){ // ロボットの姿勢を受け取ったら
+          if (topic === MQTT_ROBOT_STATE_TOPIC+robotIDRef.current){ // ロボットの姿勢を受け取ったら
             let data = JSON.parse(message.toString()) ///
             const joints = data.joints
             // ここで、joints の安全チェックをすべき
@@ -367,7 +383,22 @@ export default function Home() {
             console.log("receive joints",joints)
             set_input_rotate(joints)
             // すぐに制御を開始したくないので、少し待ってから送付
+            // target 位置の計算！
+            // forward kinematics をすべき。。。
+            // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
+            requestAnimationFrame(()=>{
+              requestAnimationFrame(()=>{
+                const wpos = new THREE.Vector3();
+                targetRef.current.getWorldPosition(wpos);              
+                set_target((vr)=>{
+                      console.log("Set target!", wpos)
+                      vr.x = wpos.x; vr.y = wpos.y; vr.z = wpos.z;
+                      return vr
+                  }); // これだと場所だけ (手首の相対もやるべし！)
+              })
+            })
             window.setTimeout(()=>{
+
               receive_state = true; //
               publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
             }, 500);
@@ -822,6 +853,8 @@ export default function Home() {
           }else
           if(this.data === 16){
             set_p16_object(this.el.object3D)
+            // j_id 16 が、target の位置
+            targetRef.current = this.el.object3D; // ここで Target のref を取得
           }else
           if(this.data === 20){
             set_p20_object(this.el.object3D)
@@ -855,6 +888,13 @@ export default function Home() {
           this.el.addEventListener('triggerup', (evt)=>{
             set_save_target(undefined)
             set_trigger_on(false)
+          });
+
+          this.el.addEventListener('gripdown', (evt) => {
+            gripRef.current = true;
+          });
+          this.el.addEventListener('gripup', (evt) => {
+            gripRef.current = false;
           });
         }
       });
@@ -920,6 +960,7 @@ export default function Home() {
       const ctl_json = JSON.stringify({
         time: time,
         joints: rotate,
+        grip: gripRef.current
 //        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
       });
 
