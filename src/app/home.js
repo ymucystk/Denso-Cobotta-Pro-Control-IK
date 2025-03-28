@@ -276,12 +276,6 @@ export default function Home(props) {
           j_move(j1_object,j1_rotate_table,y_vec_base,0)
         },0)
       }
-      if(!props.viewer){
-        set_rotate((org)=>{
-          org[0] = round(j1_rotate,3)
-          return org
-        })
-      }
     }
   }, [j1_rotate])
 
@@ -296,12 +290,6 @@ export default function Home(props) {
         setTimeout(()=>{
           j_move(j2_object,j2_rotate_table,x_vec_base,1)
         },0)
-      }
-      if(!props.viewer){
-        set_rotate((org)=>{
-          org[1] = round(j2_rotate,3)
-          return org
-        })
       }
     }
   }, [j2_rotate])
@@ -318,12 +306,6 @@ export default function Home(props) {
           j_move(j3_object,j3_rotate_table,x_vec_base,2)
         },0)
       }
-      if(!props.viewer){
-        set_rotate((org)=>{
-          org[2] = round(j3_rotate,3)
-          return org
-        })
-      }
     }
   }, [j3_rotate])
 
@@ -338,12 +320,6 @@ export default function Home(props) {
         setTimeout(()=>{
           j_move(j4_object,j4_rotate_table,y_vec_base,3)
         },0)
-      }
-      if(!props.viewer){
-        set_rotate((org)=>{
-          org[3] = round(j4_rotate,3)
-          return org
-        })
       }
     }
   }, [j4_rotate])
@@ -360,12 +336,6 @@ export default function Home(props) {
           j_move(j5_object,j5_rotate_table,x_vec_base,4)
         },0)
       }
-      if(!props.viewer){
-        set_rotate((org)=>{
-          org[4] = round(j5_rotate,3)
-          return org
-        })
-      }
     }
   }, [j5_rotate])
 
@@ -381,71 +351,45 @@ export default function Home(props) {
           j_move(j6_object,j6_rotate_table,z_vec_base,5)
         },0)
       }
-      if(!props.viewer){
-        set_rotate((org)=>{
-          org[5] = round(j6_rotate,3)
-          return org
-        })
-      }
     }
   }, [j6_rotate])
 
   React.useEffect(() => {
     if(!props.viewer){
-      set_rotate((org)=>{
-        org[6] = round(j7_rotate,3)
-        return org
-      })
+      const new_rotate = [
+        round(j1_rotate,3),round(j2_rotate,3),round(j3_rotate,3),
+        round(j4_rotate,3),round(j5_rotate,3),round(j6_rotate,3),round(j7_rotate,3)
+      ]
+      set_rotate(new_rotate)
     }
-  }, [j7_rotate])
+  }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
 
   React.useEffect(() => {
     if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[0]))
-      set_j1_rotate(rotate_value)
+      const [new_j1_rot,new_j2_rot,new_j3_rot,new_j4_rot,new_j5_rot,new_j6_rot] = input_rotate
+      const new_m4 = new THREE.Matrix4().multiply(
+        new THREE.Matrix4().makeRotationY(toRadian(new_j1_rot)).setPosition(joint_pos.j1.x,joint_pos.j1.y,joint_pos.j1.z)
+      ).multiply(
+        new THREE.Matrix4().makeRotationX(toRadian(new_j2_rot)).setPosition(joint_pos.j2.x,joint_pos.j2.y,joint_pos.j2.z)
+      ).multiply(
+        new THREE.Matrix4().makeRotationX(toRadian(new_j3_rot)).setPosition(joint_pos.j3.x,joint_pos.j3.y,joint_pos.j3.z)
+      ).multiply(
+        new THREE.Matrix4().makeRotationY(toRadian(new_j4_rot)).setPosition(joint_pos.j4.x,joint_pos.j4.y,joint_pos.j4.z)
+      ).multiply(
+        new THREE.Matrix4().makeRotationX(toRadian(new_j5_rot)).setPosition(joint_pos.j5.x,joint_pos.j5.y,joint_pos.j5.z)
+      ).multiply(
+        new THREE.Matrix4().makeRotationZ(toRadian(new_j6_rot)).setPosition(joint_pos.j6.x,joint_pos.j6.y,joint_pos.j6.z)
+      ).multiply(
+        new THREE.Matrix4().setPosition(joint_pos.j7.x,joint_pos.j7.y,p15_16_len)
+      )
+      const new_target = new THREE.Vector3().applyMatrix4(new_m4)
+      const w_euler = new THREE.Euler().setFromRotationMatrix(new_m4,order)
+      set_wrist_rot_x(round(toAngle(w_euler.x)))
+      set_wrist_rot_y(round(toAngle(w_euler.y)))
+      set_wrist_rot_z(round(toAngle(w_euler.z)))
+      set_target({x:round(new_target.x),y:round(new_target.y),z:round(new_target.z)})
     }
-  }, [input_rotate[0]])
-
-  React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[1]))
-      set_j2_rotate(rotate_value)
-    }
-  }, [input_rotate[1]])
-
-  React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[2]))
-      set_j3_rotate(rotate_value)
-    }
-  }, [input_rotate[2]])
-
-  React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[3]))
-      set_j4_rotate(rotate_value)
-    }
-  }, [input_rotate[3]])
-
-  React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[4]))
-      set_j5_rotate(rotate_value)
-    }
-  }, [input_rotate[4]])
-
-  React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[5]))
-      set_j6_rotate(rotate_value)
-    }
-  }, [input_rotate[5]])
+  }, [input_rotate[0],input_rotate[1],input_rotate[2],input_rotate[3],input_rotate[4],input_rotate[5]])
 
   React.useEffect(() => {
     if(props.viewer && rendered) {
