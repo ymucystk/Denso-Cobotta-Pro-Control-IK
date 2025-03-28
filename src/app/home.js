@@ -41,7 +41,7 @@ const j4_rotate_table = []
 const j5_rotate_table = []
 const j6_rotate_table = []
 let target_move_distance = 0.2
-let real_target = {x:0.3,y:0.5,z:-0.5}
+let real_target = {x:0.4,y:0.5,z:-0.4}
 
 export default function Home(props) {
   const [tick, setTick] = React.useState(0)
@@ -116,7 +116,7 @@ export default function Home(props) {
   const [z_vec_base,set_z_vec_base] = React.useState()
 
   const [target,set_target_org] = React.useState(real_target)
-  const [p15_16_len,set_p15_16_len] = React.useState(joint_pos.j7.z)
+  const [p15_16_len,set_p15_16_len] = React.useState(joint_pos.j7.z+0.14)
   const [p14_maxlen,set_p14_maxlen] = React.useState(0)
 
   const set_target = (new_pos)=>{
@@ -161,7 +161,7 @@ export default function Home(props) {
       if(target_pos.y < 0.012){
         target_pos.y = 0.012
       }
-      set_target((target_pos))
+      set_target({x:round(target_pos.x),y:round(target_pos.y),z:round(target_pos.z)})
     }
   },[controller_object.position.x,controller_object.position.y,controller_object.position.z])
 
@@ -646,12 +646,15 @@ export default function Home(props) {
       ).multiply(
         new THREE.Matrix4().makeRotationZ(toRadian(result_rotate.j6_rotate)).setPosition(joint_pos.j6.x,joint_pos.j6.y,joint_pos.j6.z)
       ).multiply(
-        new THREE.Matrix4().setPosition(joint_pos.j7.x,joint_pos.j7.y,joint_pos.j7.z)
+        new THREE.Matrix4().setPosition(joint_pos.j7.x,joint_pos.j7.y,p15_16_len)
       )
-      const result_target = new THREE.Vector3().applyMatrix4(base_m4)
+      const wk_target = new THREE.Vector3().applyMatrix4(base_m4)
+      const result_target = {x:round(wk_target.x),y:round(wk_target.y),z:round(wk_target.z)}
       const sabun_pos = pos_sub(target,result_target)
       const sabun_distance = sabun_pos.x**2+sabun_pos.y**2+sabun_pos.z**2
-      if(round(sabun_distance) <= 0){
+      const wk_euler = new THREE.Euler().setFromRotationMatrix(base_m4,order)
+      const sabun_angle = get_j5_quaternion().angleTo(new THREE.Quaternion().setFromEuler(wk_euler))
+      if(round(sabun_distance) <= 0 && round(sabun_angle,2) <= 0){
         save_target = {...result_target}
         break
       }
@@ -896,7 +899,7 @@ export default function Home(props) {
     return {k:kakudo, t:takasa}
   }
 
-  React.useEffect(() => {
+  /*React.useEffect(() => {
     if(rendered){
       const box15_result = getposq(p15_object)
       const p15_pos = getpos(box15_result.position)
@@ -908,7 +911,7 @@ export default function Home(props) {
 
       set_p15_16_len(distance(p15_pos,p16_pos))
     }
-  },[now])
+  },[now])*/
 
   React.useEffect(() => {
     if(!registered){

@@ -1,22 +1,22 @@
-Cobotta Pro �� IK �� MQTT �o�R�� Joint ���𑗂�R�[�h
+Cobotta Pro の IK で MQTT 経由で Joint 情報を送るコード
 
 ```
 pnpm install 
 pnpm dev-https
 ```
 
-�� https �o�R�œ��삵�܂��B
+で https 経由で動作します。
 
-Chrome �u���E�U�œ������ɂ́AWebXR �̃v���O�C���iImmersive Web Emulator)���K�v�ł��B
+Chrome ブラウザで動かすには、WebXR のプラグイン（Immersive Web Emulator)が必要です。
 https://chromewebstore.google.com/detail/immersive-web-emulator/cgffilbpcibhmcfbgggfhfolhkfbhmik?hl=ja
 
-�܂��AMQTT�̐ݒ�Ȃǂ� static �ɏ����Ă���̂ŏC�����K�v�ł��B
+また、MQTTの設定などが static に書いてあるので修正が必要です。
 
-MQTT ���œ��삷��}�l�[�W�����v���g�^�C�v�����܂���
+MQTT 側で動作するマネージャもプロトタイプを作りました
 
 https://github.com/nkawa/MetaworkMQTT
 
-�i�Ȃ� sora2.uclab.jp �ł���΁A���ł� MetaworkMQTT ������Ă���̂ŁA����Ȃ��Ă����삷��͂��j
+（なお sora2.uclab.jp であれば、すでに MetaworkMQTT が入れてあるので、入れなくても動作するはず）
 
 
 
