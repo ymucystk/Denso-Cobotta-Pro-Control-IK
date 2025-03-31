@@ -44,7 +44,7 @@ let target_move_distance = 0.2
 let real_target = {x:0.4,y:0.5,z:-0.4}
 
 export default function Home(props) {
-  const [tick, setTick] = React.useState(0)
+  //const [tick, setTick] = React.useState(0)
   const [now, setNow] = React.useState(new Date())
   const [rendered,set_rendered] = React.useState(false)
   const robotNameList = ["Model"]
@@ -118,6 +118,17 @@ export default function Home(props) {
   const [target,set_target_org] = React.useState(real_target)
   const [p15_16_len,set_p15_16_len] = React.useState(joint_pos.j7.z+0.14)
   const [p14_maxlen,set_p14_maxlen] = React.useState(0)
+  const reqIdRef = React.useRef()
+
+  const loop = ()=>{
+    setNow(new Date());
+    reqIdRef.current = requestAnimationFrame(loop)
+  }
+
+  React.useEffect(() => {
+    loop()
+    return () => cancelAnimationFrame(reqIdRef.current)
+  },[])
 
   const set_target = (new_pos)=>{
     set_target_org((prev_pos)=>{
@@ -195,12 +206,12 @@ export default function Home(props) {
     }
   },[controller_object.rotation.x,controller_object.rotation.y,controller_object.rotation.z])
 
-  React.useEffect(function() {
-    const intervalId = setInterval(function() {
+  /*React.useEffect(()=>{
+    const intervalId = setInterval(()=>{
       setNow(new Date());
-    }, 10);
-    return function(){clearInterval(intervalId)};
-  }, [now]);
+    }, 50);
+    return ()=>{clearInterval(intervalId)};
+  }, [now]);*/
 
   React.useEffect(() => {
     if(rendered){
@@ -231,12 +242,14 @@ export default function Home(props) {
     return Math.max(division_1,division_2)
   }
 
-  const j_move_sub = (j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division,count=1)=>{
+  const j_move_sub = (time,j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division,count=1)=>{
+    const wk_jisa = new Date() - (time + joint_move_speed_ms)
+    const nexttimer = wk_jisa <= joint_move_speed_ms ? joint_move_speed_ms : 1
     j_object.quaternion.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
     if(count < division){
       setTimeout(()=>{
-        j_move_sub(j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division,count+1)
-      },joint_move_speed_ms)
+        j_move_sub(new Date(),j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division,count+1)
+      },nexttimer)
     }else{
       setTimeout(()=>{
         j_rotate_table.shift()
@@ -257,9 +270,10 @@ export default function Home(props) {
           j_move(j_object,j_rotate_table,vec_base,idx)
         },0)
       }else{
+        const time = new Date() - joint_move_speed_ms
         setTimeout(()=>{
-          j_move_sub(j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division)
-        },joint_move_speed_ms)
+          j_move_sub(time,j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division)
+        },0)
       }
     }
   }
@@ -998,9 +1012,9 @@ export default function Home(props) {
 //            set_vr_mode(false)
             console.log('exit-vr')
           });
-        },
-        tick: function (t) {
-          setTick(t)
+        /*},
+        tick: function (t) {*/
+          //setTick(t)
         }
       });
     }
