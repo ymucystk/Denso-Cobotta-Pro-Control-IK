@@ -29,17 +29,17 @@ let registered = false
 let trigger_on = false
 const order = 'ZYX'
 
+const x_vec_base = new THREE.Vector3(1,0,0).normalize()
+const y_vec_base = new THREE.Vector3(0,1,0).normalize()
+const z_vec_base = new THREE.Vector3(0,0,1).normalize()
+
 let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
-const joint_move_speed_ms = 10
-const max_move_unit = (0.1/90)
-const j1_rotate_table = []
-const j2_rotate_table = []
-const j3_rotate_table = []
-const j4_rotate_table = []
-const j5_rotate_table = []
-const j6_rotate_table = []
+const max_move_unit = (0.1/60)
+const rotate_table = [[],[],[],[],[],[]]
+const object_table = []
+const rotvec_table = [y_vec_base,x_vec_base,x_vec_base,y_vec_base,x_vec_base,z_vec_base]
 let target_move_distance = 0.2
 let real_target = {x:0.4,y:0.5,z:-0.4}
 
@@ -63,13 +63,6 @@ export default function Home(props) {
 
   const [rotate, set_rotate] = React.useState([0,0,0,0,0,0,0])  //出力用
   const [input_rotate, set_input_rotate] = React.useState([0,0,0,0,0,0,0])  //入力用
-
-  const [j1_object,set_j1_object] = React.useState()
-  const [j2_object,set_j2_object] = React.useState()
-  const [j3_object,set_j3_object] = React.useState()
-  const [j4_object,set_j4_object] = React.useState()
-  const [j5_object,set_j5_object] = React.useState()
-  const [j6_object,set_j6_object] = React.useState()
 
   const [p11_object,set_p11_object] = React.useState()
   const [p12_object,set_p12_object] = React.useState()
@@ -111,23 +104,19 @@ export default function Home(props) {
   const toolNameList = ["No tool"]
   const [toolName,set_toolName] = React.useState(toolNameList[0])
 
-  const [x_vec_base,set_x_vec_base] = React.useState()
-  const [y_vec_base,set_y_vec_base] = React.useState()
-  const [z_vec_base,set_z_vec_base] = React.useState()
-
   const [target,set_target_org] = React.useState(real_target)
   const [p15_16_len,set_p15_16_len] = React.useState(joint_pos.j7.z+0.14)
   const [p14_maxlen,set_p14_maxlen] = React.useState(0)
   const reqIdRef = React.useRef()
 
   const loop = ()=>{
-    setNow(new Date());
-    reqIdRef.current = requestAnimationFrame(loop)
+    setNow(performance.now());
+    reqIdRef.current = window.requestAnimationFrame(loop)
   }
 
   React.useEffect(() => {
     loop()
-    return () => cancelAnimationFrame(reqIdRef.current)
+    return () => window.cancelAnimationFrame(reqIdRef.current)
   },[])
 
   const set_target = (new_pos)=>{
@@ -139,19 +128,19 @@ export default function Home(props) {
 
   const set_wrist_rot_x = (new_rot)=>{
     set_wrist_rot_x_org((prev_rot)=>{
-      target_move_distance = 0.01
+      target_move_distance = 0
       return new_rot
     })
   }
   const set_wrist_rot_y = (new_rot)=>{
     set_wrist_rot_y_org((prev_rot)=>{
-      target_move_distance = 0.01
+      target_move_distance = 0
       return new_rot
     })
   }
   const set_wrist_rot_z = (new_rot)=>{
     set_wrist_rot_z_org((prev_rot)=>{
-      target_move_distance = 0.01
+      target_move_distance = 0
       return new_rot
     })
   }
@@ -230,141 +219,85 @@ export default function Home(props) {
     set_robotName(get)
   }
 
-  const getDivision = (start_quaternion,end_quaternion)=>{
-    const move_unit_1 = ((target_move_distance*555)/joint_move_speed_ms)
-    const division_1 = Math.ceil(move_unit_1)+1
-
-    const deff_quaternion = start_quaternion.clone().invert().multiply(end_quaternion)
-    const wk_euler = new THREE.Quaternion().angleTo(deff_quaternion)
-    const move_unit_2 = ((toAngle(wk_euler)*max_move_unit)*1000)/joint_move_speed_ms
-    const division_2 = Math.ceil(move_unit_2)+1
-
-    return Math.max(division_1,division_2)
-  }
-
-  const j_move_sub = (time,j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division,count=1)=>{
-    const wk_jisa = new Date() - (time + joint_move_speed_ms)
-    const nexttimer = wk_jisa <= joint_move_speed_ms ? joint_move_speed_ms : 1
-    j_object.quaternion.slerpQuaternions(start_quaternion,end_quaternion,(count/division))
-    if(count < division){
-      setTimeout(()=>{
-        j_move_sub(new Date(),j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division,count+1)
-      },nexttimer)
-    }else{
-      setTimeout(()=>{
-        j_rotate_table.shift()
-        j_move(j_object,j_rotate_table,vec_base,idx)
-      },0)
-    }
-  }
-
-  const j_move = (j_object,j_rotate_table,vec_base,idx)=>{
-    if(j_rotate_table.length > 0){
-      const wk_j_rotate = j_rotate_table[0]
-      const start_quaternion = j_object.quaternion.clone()
-      const end_quaternion = new THREE.Quaternion().setFromAxisAngle(vec_base,toRadian(wk_j_rotate))
-      const division = getDivision(start_quaternion,end_quaternion)
-      if(division === 0){
-        setTimeout(()=>{
-          j_rotate_table.shift()
-          j_move(j_object,j_rotate_table,vec_base,idx)
-        },0)
-      }else{
-        const time = new Date() - joint_move_speed_ms
-        setTimeout(()=>{
-          j_move_sub(time,j_object,j_rotate_table,vec_base,idx,start_quaternion,end_quaternion,division)
-        },0)
+  React.useEffect(()=>{
+    for(let i=0; i<rotate_table.length; i=i+1){
+      if(rotate_table[i].length > 0){
+        if(rotate_table[i][0].first){
+          rotate_table[i][0].first = false
+          rotate_table[i][0].starttime = performance.now()
+          rotate_table[i][0].start_quaternion = object_table[i].quaternion.clone()
+          rotate_table[i][0].end_quaternion = new THREE.Quaternion().setFromAxisAngle(rotvec_table[i],toRadian(rotate_table[i][0].rot))
+          const move_time_1 = target_move_distance*555
+          const wk_euler = new THREE.Quaternion().angleTo(
+            rotate_table[i][0].start_quaternion.clone().invert().multiply(rotate_table[i][0].end_quaternion))
+          const move_time_2 = (toAngle(wk_euler)*max_move_unit)*1000
+          rotate_table[i][0].move_time = Math.max(move_time_1,move_time_2)
+          rotate_table[i][0].endtime = rotate_table[i][0].starttime + rotate_table[i][0].move_time
+        }
+        const current_time = performance.now()
+        if(current_time < rotate_table[i][0].endtime){
+          const elapsed_time = current_time - rotate_table[i][0].starttime
+          object_table[i].quaternion.slerpQuaternions(
+            rotate_table[i][0].start_quaternion,rotate_table[i][0].end_quaternion,(elapsed_time/rotate_table[i][0].move_time))
+        }else{
+          object_table[i].quaternion.copy(rotate_table[i][0].end_quaternion)
+          rotate_table[i].shift()
+        }
       }
     }
-  }
+  }, [now])
 
   React.useEffect(() => {
-    if (rendered && j1_object !== undefined) {
-      const wk_switch = j1_rotate_table.length === 0
-      if(j1_rotate_table.length > 1){
-        j1_rotate_table.pop()
+    if (rendered && object_table[0] !== undefined) {
+      if(rotate_table[0].length > 1){
+        rotate_table[0].pop()
       }
-      j1_rotate_table.push(j1_rotate)
-      if(wk_switch){
-        setTimeout(()=>{
-          j_move(j1_object,j1_rotate_table,y_vec_base,0)
-        },0)
-      }
+      rotate_table[0].push({rot:j1_rotate,first:true})
     }
   }, [j1_rotate])
 
   React.useEffect(() => {
-    if (rendered && j2_object !== undefined) {
-      const wk_switch = j2_rotate_table.length === 0
-      if(j2_rotate_table.length > 1){
-        j2_rotate_table.pop()
+    if (rendered && object_table[1] !== undefined) {
+      if(rotate_table[1].length > 1){
+        rotate_table[1].pop()
       }
-      j2_rotate_table.push(j2_rotate)
-      if(wk_switch){
-        setTimeout(()=>{
-          j_move(j2_object,j2_rotate_table,x_vec_base,1)
-        },0)
-      }
+      rotate_table[1].push({rot:j2_rotate,first:true})
     }
   }, [j2_rotate])
 
   React.useEffect(() => {
-    if (rendered && j3_object !== undefined) {
-      const wk_switch = j3_rotate_table.length === 0
-      if(j3_rotate_table.length > 1){
-        j3_rotate_table.pop()
+    if (rendered && object_table[2] !== undefined) {
+      if(rotate_table[2].length > 1){
+        rotate_table[2].pop()
       }
-      j3_rotate_table.push(j3_rotate)
-      if(wk_switch){
-        setTimeout(()=>{
-          j_move(j3_object,j3_rotate_table,x_vec_base,2)
-        },0)
-      }
+      rotate_table[2].push({rot:j3_rotate,first:true})
     }
   }, [j3_rotate])
 
   React.useEffect(() => {
-    if (rendered && j4_object !== undefined) {
-      const wk_switch = j4_rotate_table.length === 0
-      if(j4_rotate_table.length > 1){
-        j4_rotate_table.pop()
+    if (rendered && object_table[3] !== undefined) {
+      if(rotate_table[3].length > 1){
+        rotate_table[3].pop()
       }
-      j4_rotate_table.push(j4_rotate)
-      if(wk_switch){
-        setTimeout(()=>{
-          j_move(j4_object,j4_rotate_table,y_vec_base,3)
-        },0)
-      }
+      rotate_table[3].push({rot:j4_rotate,first:true})
     }
   }, [j4_rotate])
 
   React.useEffect(() => {
-    if (rendered && j5_object !== undefined) {
-      const wk_switch = j5_rotate_table.length === 0
-      if(j5_rotate_table.length > 1){
-        j5_rotate_table.pop()
+    if (rendered && object_table[4] !== undefined) {
+      if(rotate_table[4].length > 1){
+        rotate_table[4].pop()
       }
-      j5_rotate_table.push(j5_rotate)
-      if(wk_switch){
-        setTimeout(()=>{
-          j_move(j5_object,j5_rotate_table,x_vec_base,4)
-        },0)
-      }
+      rotate_table[4].push({rot:j5_rotate,first:true})
     }
   }, [j5_rotate])
 
   React.useEffect(() => {
-    if (rendered && j6_object !== undefined) {
-      const wk_switch = j6_rotate_table.length === 0
-      if(j6_rotate_table.length > 1){
-        j6_rotate_table.pop()
+    if (rendered && object_table[5] !== undefined) {
+      if(rotate_table[5].length > 1){
+        rotate_table[5].pop()
       }
-      j6_rotate_table.push(j6_rotate)
-      if(wk_switch){
-        setTimeout(()=>{
-          j_move(j6_object,j6_rotate_table,z_vec_base,5)
-        },0)
-      }
+      rotate_table[5].push({rot:j6_rotate,first:true})
     }
   }, [j6_rotate])
 
@@ -883,10 +816,6 @@ export default function Home(props) {
       const result = calc_side_2(teihen, takasa)
       set_p14_maxlen(result.s)
 
-      set_x_vec_base(new THREE.Vector3(1,0,0).normalize())
-      set_y_vec_base(new THREE.Vector3(0,1,0).normalize())
-      set_z_vec_base(new THREE.Vector3(0,0,1).normalize())
-    
       AFRAME.registerComponent('robot-click', {
         init: function () {
           this.el.addEventListener('click', (evt)=>{
@@ -899,22 +828,22 @@ export default function Home(props) {
         schema: {type: 'number', default: 0},
         init: function () {
           if(this.data === 1){
-            set_j1_object(this.el.object3D)
+            object_table[0] = this.el.object3D
           }else
           if(this.data === 2){
-            set_j2_object(this.el.object3D)
+            object_table[1] = this.el.object3D
           }else
           if(this.data === 3){
-            set_j3_object(this.el.object3D)
+            object_table[2] = this.el.object3D
           }else
           if(this.data === 4){
-            set_j4_object(this.el.object3D)
+            object_table[3] = this.el.object3D
           }else
           if(this.data === 5){
-            set_j5_object(this.el.object3D)
+            object_table[4] = this.el.object3D
           }else
           if(this.data === 6){
-            set_j6_object(this.el.object3D)
+            object_table[5] = this.el.object3D
           }else
           if(this.data === 11){
             set_p11_object(this.el.object3D)
