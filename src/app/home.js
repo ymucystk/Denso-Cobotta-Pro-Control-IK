@@ -121,29 +121,21 @@ export default function Home(props) {
   },[])
 
   const set_target = (new_pos)=>{
-    set_target_org((prev_pos)=>{
-      target_move_distance = distance(real_target,new_pos)
-      return new_pos
-    })
+    target_move_distance = distance(real_target,new_pos)
+    set_target_org(new_pos)
   }
 
   const set_wrist_rot_x = (new_rot)=>{
-    set_wrist_rot_x_org((prev_rot)=>{
-      target_move_distance = 0
-      return new_rot
-    })
+    target_move_distance = 0
+    set_wrist_rot_x_org(new_rot)
   }
   const set_wrist_rot_y = (new_rot)=>{
-    set_wrist_rot_y_org((prev_rot)=>{
-      target_move_distance = 0
-      return new_rot
-    })
+    target_move_distance = 0
+    set_wrist_rot_y_org(new_rot)
   }
   const set_wrist_rot_z = (new_rot)=>{
-    set_wrist_rot_z_org((prev_rot)=>{
-      target_move_distance = 0
-      return new_rot
-    })
+    target_move_distance = 0
+    set_wrist_rot_z_org(new_rot)
   }
 
   React.useEffect(() => {
