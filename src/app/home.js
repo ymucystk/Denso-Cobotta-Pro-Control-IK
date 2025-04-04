@@ -88,7 +88,7 @@ export default function Home(props) {
 
   const [controller_object,set_controller_object] = React.useState(new THREE.Object3D())
 
-  const [trigger_on,set_trigger_on] = React.useState(false)
+//  const [trigger_on,set_trigger_on] = React.useState(false)
   const gripRef = React.useRef(false);
 
   const [start_pos,set_start_pos] = React.useState(new THREE.Vector3())
@@ -153,9 +153,9 @@ export default function Home(props) {
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on){
       const move_pos = pos_sub(start_pos,controller_object.position)
-      move_pos.x = move_pos.x/5
-      move_pos.y = move_pos.y/5
-      move_pos.z = move_pos.z/5
+      move_pos.x = move_pos.x/2
+      move_pos.y = move_pos.y/2
+      move_pos.z = move_pos.z/2
       let target_pos
       if(save_target === undefined){
         set_save_target({...target})
@@ -1167,9 +1167,10 @@ export default function Home(props) {
   if(rendered){
     return (
     <>
-      <a-scene scene>
+      <a-scene scene xr-mode-ui="XRMode: ar">
         <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${false}`}></a-entity>
-        <a-plane position="0 0 0" rotation="-90 0 0" width="10" height="10" color={target_error?"#ff7f50":"#7BC8A4"}></a-plane>
+        <a-plane position="0 0 0" rotation="-90 0 0" width="0.4" height="0.4" color={target_error?"#ff7f50":"#7BC8A4"} opacity="0.5"></a-plane>
+
         <Assets viewer={props.viewer}/>
         <Select_Robot {...robotProps}/>
         <Cursor3dp j_id="20" pos={{x:0,y:0,z:0}} visible={cursor_vis}>
@@ -1200,7 +1201,7 @@ export default function Home(props) {
     );
   }else{
     return(
-      <a-scene>
+      <a-scene xr-mode-ui="XRMode: ar">
         <Assets viewer={props.viewer}/>
       </a-scene>
     )
