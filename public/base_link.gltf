@@ -15,7 +15,13 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"node0"
+			"name":"node0",
+			"rotation":[
+				0,
+				-1,
+				0,
+				4.371138828673793e-08
+			]
 		}
 	],
 	"materials":[
@@ -53,7 +59,7 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":926312,
+			"count":926776,
 			"max":[
 				0.18400001525878906,
 				0.11149999499320984,
@@ -69,7 +75,7 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":926312,
+			"count":926776,
 			"type":"VEC3"
 		},
 		{
@@ -82,26 +88,26 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":11115744,
+			"byteLength":11121312,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":11115744,
-			"byteOffset":11115744,
+			"byteLength":11121312,
+			"byteOffset":11121312,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":4118568,
-			"byteOffset":22231488,
+			"byteOffset":22242624,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":26350056,
+			"byteLength":26361192,
 			"uri":"base_link.bin"
 		}
 	]

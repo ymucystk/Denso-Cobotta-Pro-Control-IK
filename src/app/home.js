@@ -95,9 +95,9 @@ export default function Home(props) {
 
   const [c_pos_x,set_c_pos_x] = React.useState(0)
   const [c_pos_y,set_c_pos_y] = React.useState(0.35)
-  const [c_pos_z,set_c_pos_z] = React.useState(-1.2)
+  const [c_pos_z,set_c_pos_z] = React.useState(1.2)
   const [c_deg_x,set_c_deg_x] = React.useState(0)
-  const [c_deg_y,set_c_deg_y] = React.useState(180)
+  const [c_deg_y,set_c_deg_y] = React.useState(0)
   const [c_deg_z,set_c_deg_z] = React.useState(0)
 
   const [wrist_rot_x,set_wrist_rot_x_org] = React.useState(180)
