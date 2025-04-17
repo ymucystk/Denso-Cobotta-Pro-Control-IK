@@ -35,7 +35,7 @@ export const connectMQTT = () => {
                     cookie: navigator.cookieEnabled
                 },
                 devType: devType,
-                codeType: 'cobotta-pro',
+                type: 'cobotta-pro',
                 version: version,
                 devId: userUUID
             }

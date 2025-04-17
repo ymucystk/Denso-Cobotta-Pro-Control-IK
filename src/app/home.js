@@ -9,10 +9,9 @@ import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT } from '../l
 const MQTT_REQUEST_TOPIC = "mgr/request";
 const MQTT_DEVICE_TOPIC = "dev/"+idtopic;
 const MQTT_CTRL_TOPIC =        "control/"+idtopic; // 自分のIDに制御を送信
-//const MQTT_ROBOT_STATE_TOPIC = "robot/";
+const MQTT_ROBOT_STATE_TOPIC = "robot/";
 let publish = true //VRモードに移行するまではMQTTをpublishしない（かつ、ロボット情報を取得するまで）
-//let receive_state = false // ロボットの状態を受信してるかのフラグ
-let receive_state = true // ロボットの状態を受信してるかのフラグ
+let receive_state = false // ロボットの状態を受信してるかのフラグ
 
 const joint_pos = {
   base:{x:0,y:0,z:0},
@@ -71,6 +70,8 @@ export default function Home(props) {
   const [p14_object,set_p14_object] = React.useState()
   const [p15_object,set_p15_object] = React.useState()
   const [p16_object,set_p16_object] = React.useState()
+  const targetRef = React.useRef(null); // target 位置
+
   const [p20_object,set_p20_object] = React.useState()
   const [p21_object,set_p21_object] = React.useState()
   const [p22_object,set_p22_object] = React.useState()
@@ -80,6 +81,10 @@ export default function Home(props) {
   const [p16_pos,set_p16_pos] = React.useState({x:0,y:0,z:0})
 
   const [controller_object,set_controller_object] = React.useState(new THREE.Object3D())
+
+//  const [trigger_on,set_trigger_on] = React.useState(false)
+  const gripRef = React.useRef(false);
+
   const [start_pos,set_start_pos] = React.useState(new THREE.Vector3())
   const [save_target,set_save_target] = React.useState()
 
@@ -141,9 +146,9 @@ export default function Home(props) {
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on){
       const move_pos = pos_sub(start_pos,controller_object.position)
-      move_pos.x = move_pos.x/5
-      move_pos.y = move_pos.y/5
-      move_pos.z = move_pos.z/5
+      move_pos.x = move_pos.x/2
+      move_pos.y = move_pos.y/2
+      move_pos.z = move_pos.z/2
       let target_pos
       if(save_target === undefined){
         set_save_target({...target})
@@ -235,7 +240,7 @@ export default function Home(props) {
           const elapsed_time = current_time - current_data.starttime
           current_object3D.quaternion.slerpQuaternions(
             current_data.start_quaternion,current_data.end_quaternion,(elapsed_time/current_data.move_time))
-        }else{
+    }else{
           current_object3D.quaternion.copy(current_data.end_quaternion)
           current_table.shift()
         }
@@ -309,30 +314,51 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if (props.viewer && rendered) {
-      const [new_j1_rot,new_j2_rot,new_j3_rot,new_j4_rot,new_j5_rot,new_j6_rot] = input_rotate
-      const new_m4 = new THREE.Matrix4().multiply(
-        new THREE.Matrix4().makeRotationY(toRadian(new_j1_rot)).setPosition(joint_pos.j1.x,joint_pos.j1.y,joint_pos.j1.z)
-      ).multiply(
-        new THREE.Matrix4().makeRotationX(toRadian(new_j2_rot)).setPosition(joint_pos.j2.x,joint_pos.j2.y,joint_pos.j2.z)
-      ).multiply(
-        new THREE.Matrix4().makeRotationX(toRadian(new_j3_rot)).setPosition(joint_pos.j3.x,joint_pos.j3.y,joint_pos.j3.z)
-      ).multiply(
-        new THREE.Matrix4().makeRotationY(toRadian(new_j4_rot)).setPosition(joint_pos.j4.x,joint_pos.j4.y,joint_pos.j4.z)
-      ).multiply(
-        new THREE.Matrix4().makeRotationX(toRadian(new_j5_rot)).setPosition(joint_pos.j5.x,joint_pos.j5.y,joint_pos.j5.z)
-      ).multiply(
-        new THREE.Matrix4().makeRotationZ(toRadian(new_j6_rot)).setPosition(joint_pos.j6.x,joint_pos.j6.y,joint_pos.j6.z)
-      ).multiply(
-        new THREE.Matrix4().setPosition(joint_pos.j7.x,joint_pos.j7.y,p15_16_len)
-      )
-      const new_target = new THREE.Vector3().applyMatrix4(new_m4)
-      const w_euler = new THREE.Euler().setFromRotationMatrix(new_m4,order)
-      set_wrist_rot_x(round(toAngle(w_euler.x)))
-      set_wrist_rot_y(round(toAngle(w_euler.y)))
-      set_wrist_rot_z(round(toAngle(w_euler.z)))
-      set_target({x:round(new_target.x),y:round(new_target.y),z:round(new_target.z)})
+      target_move_distance = 0.1
+      const rotate_value = round(normalize180(input_rotate[0]))
+      set_j1_rotate(rotate_value)
     }
-  }, [input_rotate[0],input_rotate[1],input_rotate[2],input_rotate[3],input_rotate[4],input_rotate[5]])
+  }, [input_rotate[0]])
+
+  React.useEffect(() => {
+    if (props.viewer && rendered) {
+      target_move_distance = 0.1
+      const rotate_value = round(normalize180(input_rotate[1]))
+      set_j2_rotate(rotate_value)
+    }
+  }, [input_rotate[1]])
+
+  React.useEffect(() => {
+    if (props.viewer && rendered) {
+      target_move_distance = 0.1
+      const rotate_value = round(normalize180(input_rotate[2]))
+      set_j3_rotate(rotate_value)
+    }
+  }, [input_rotate[2]])
+
+  React.useEffect(() => {
+    if (props.viewer && rendered) {
+      target_move_distance = 0.1
+      const rotate_value = round(normalize180(input_rotate[3]))
+      set_j4_rotate(rotate_value)
+    }
+  }, [input_rotate[3]])
+
+  React.useEffect(() => {
+    if (props.viewer && rendered) {
+      target_move_distance = 0.1
+      const rotate_value = round(normalize180(input_rotate[4]))
+      set_j5_rotate(rotate_value)
+    }
+  }, [input_rotate[4]])
+
+  React.useEffect(() => {
+    if (props.viewer && rendered) {
+      target_move_distance = 0.1
+      const rotate_value = round(normalize180(input_rotate[5]))
+      set_j6_rotate(rotate_value)
+    }
+  }, [input_rotate[5]])
 
   React.useEffect(() => {
     if(props.viewer && rendered) {
@@ -389,7 +415,19 @@ export default function Home(props) {
           }else if (topic == "control/"+robotIDRef.current){
             let data = JSON.parse(message.toString())
             if (data.joints != undefined) {
-              set_input_rotate(data.joints)
+              set_input_rotate(data.joints) // 同時に targetRef の変更も必要
+                      // target 位置の計算！
+                      // forward kinematics をすべき。。。
+              // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
+              requestAnimationFrame(()=>{
+                const wpos = new THREE.Vector3();
+                targetRef.current.getWorldPosition(wpos);              
+                set_target((vr)=>{
+                              console.log("Set target!", wpos)
+                              vr.x = wpos.x; vr.y = wpos.y; vr.z = wpos.z;
+                              return vr
+                          }); // これだと場所だけ
+              })
             }
           }
         })
@@ -402,10 +440,43 @@ export default function Home(props) {
             if (data.devId === "none") {
               console.log("Can't find robot!")
             }else{
-              robotIDRef.current = data.devId
-              publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
+              robotIDRef.current = data.devId 
+              if (receive_state == false ){ // ロボットの姿勢を受け取るまで、スタートしない。
+                subscribeMQTT([
+                  MQTT_ROBOT_STATE_TOPIC+robotIDRef.current // ロボットの姿勢を待つ
+                ])
+              }
             }
           }
+          if (topic === MQTT_ROBOT_STATE_TOPIC+robotIDRef.current){ // ロボットの姿勢を受け取ったら
+            let data = JSON.parse(message.toString()) ///
+            const joints = data.joints
+            // ここで、joints の安全チェックをすべき
+            mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) // これでロボット姿勢の受信は終わり
+            console.log("receive joints",joints)
+            set_input_rotate(joints)
+            // すぐに制御を開始したくないので、少し待ってから送付
+            // target 位置の計算！
+            // forward kinematics をすべき。。。
+            // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
+            requestAnimationFrame(()=>{
+              requestAnimationFrame(()=>{
+                const wpos = new THREE.Vector3();
+                targetRef.current.getWorldPosition(wpos);              
+                set_target((vr)=>{
+                      console.log("Set target!", wpos)
+                      vr.x = wpos.x; vr.y = wpos.y; vr.z = wpos.z;
+                      return vr
+                  }); // これだと場所だけ (手首の相対もやるべし！)
+              })
+            })
+            window.setTimeout(()=>{
+
+              receive_state = true; //
+              publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
+            }, 500);
+          }
+  
         })
       }
     }
@@ -811,7 +882,7 @@ export default function Home(props) {
       const takasa = joint_pos.j3.y + joint_pos.j4.y
       const result = calc_side_2(teihen, takasa)
       set_p14_maxlen(result.s)
-
+    
       AFRAME.registerComponent('robot-click', {
         init: function () {
           this.el.addEventListener('click', (evt)=>{
@@ -858,6 +929,8 @@ export default function Home(props) {
           }else
           if(this.data === 16){
             set_p16_object(this.el.object3D)
+            // j_id 16 が、target の位置
+            targetRef.current = this.el.object3D; // ここで Target のref を取得
           }else
           if(this.data === 20){
             set_p20_object(this.el.object3D)
@@ -898,6 +971,13 @@ export default function Home(props) {
             const grip_value = evt.detail.value * 64
             set_j7_rotate(grip_value)
           });
+
+          this.el.addEventListener('gripdown', (evt) => {
+            gripRef.current = true;
+          });
+          this.el.addEventListener('gripup', (evt) => {
+            gripRef.current = false;
+          });
         }
       });
       AFRAME.registerComponent('scene', {
@@ -913,7 +993,7 @@ export default function Home(props) {
               // VR mode に入ったタイミングで、利用したい robot のID を取得すべし
               const requestInfo = {
                 devId: idtopic, // 自分のID
-                type: "cobotta-pro",  // とりあえず　Browser の Viwer が欲しい
+                type: "cobotta-pro-real",  // とりあえず　Browser の Viwer が欲しい
               }
               publishMQTT(MQTT_REQUEST_TOPIC, JSON.stringify(requestInfo));
             }
@@ -931,6 +1011,7 @@ export default function Home(props) {
               set_c_deg_y(0)
               set_c_deg_z(0)
             }
+            
           });
           this.el.addEventListener('exit-vr', ()=>{
             vrModeRef.current = false;
@@ -961,6 +1042,7 @@ export default function Home(props) {
       const ctl_json = JSON.stringify({
         time: time,
         joints: rotate,
+        grip: gripRef.current
 //        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
       });
 
@@ -992,9 +1074,10 @@ export default function Home(props) {
   if(rendered){
     return (
     <>
-      <a-scene scene>
+      <a-scene scene xr-mode-ui="XRMode: ar">
         <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${false}`}></a-entity>
-        <a-plane position="0 0 0" rotation="-90 0 0" width="10" height="10" color={target_error?"#ff7f50":"#7BC8A4"}></a-plane>
+        <a-plane position="0 0 0" rotation="-90 0 0" width="0.4" height="0.4" color={target_error?"#ff7f50":"#7BC8A4"} opacity="0.5"></a-plane>
+
         <Assets viewer={props.viewer}/>
         <Select_Robot {...robotProps}/>
         <Cursor3dp j_id="20" pos={{x:0,y:0,z:0}} visible={cursor_vis}>
@@ -1025,7 +1108,7 @@ export default function Home(props) {
     );
   }else{
     return(
-      <a-scene>
+      <a-scene xr-mode-ui="XRMode: ar">
         <Assets viewer={props.viewer}/>
       </a-scene>
     )

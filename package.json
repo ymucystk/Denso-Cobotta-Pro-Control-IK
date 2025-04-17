@@ -1,6 +1,6 @@
 {
   "name": "CobottaWebXR",
-  "version": "0.1.0",
+  "version": "0.2.4",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,8 +13,9 @@
     "aframe": "1.6",
     "bootstrap": "^5.3.3",
     "mqtt": "^5.10.3",
-    "next": "15.1.7",
+    "next": "15.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }
 }
+
