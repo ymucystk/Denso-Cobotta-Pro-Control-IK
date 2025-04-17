@@ -43,6 +43,19 @@ let target_move_distance = 0
 const target_move_speed = (1000/1.8)
 let real_target = {x:0.4,y:0.5,z:-0.4}
 
+const j1_Correct_value = 0.0
+const j2_Correct_value = 0.0
+const j3_Correct_value = 0.0
+const j4_Correct_value = 0.0
+const j5_Correct_value = 90.0
+const j6_Correct_value = 0.0
+
+let j1_error = false
+let j2_error = false
+let j3_error = false
+let j4_error = false
+let j5_error = false
+
 export default function Home(props) {
   //const [tick, setTick] = React.useState(0)
   const [now, setNow] = React.useState(new Date())
@@ -115,13 +128,13 @@ export default function Home(props) {
   const [p14_maxlen,set_p14_maxlen] = React.useState(0)
   const reqIdRef = React.useRef()
 
-  const loop = ()=>{
-    setNow(performance.now());
+  const loop = (timestamp)=>{
+    setNow(timestamp);
     reqIdRef.current = window.requestAnimationFrame(loop)
   }
 
   React.useEffect(() => {
-    loop()
+    loop(performance.now())
     return () => window.cancelAnimationFrame(reqIdRef.current)
   },[])
 
@@ -305,8 +318,13 @@ export default function Home(props) {
   React.useEffect(() => {
     if(!props.viewer){
       const new_rotate = [
-        round(j1_rotate,3),round(j2_rotate,3),round(j3_rotate,3),
-        round(j4_rotate,3),round(j5_rotate,3),round(j6_rotate,3),round(j7_rotate,3)
+        round(j1_rotate+j1_Correct_value,3),
+        round(j2_rotate+j2_Correct_value,3),
+        round(j3_rotate+j3_Correct_value,3),
+        round(j4_rotate+j4_Correct_value,3),
+        round(j5_rotate+j5_Correct_value,3),
+        round(j6_rotate+j6_Correct_value,3),
+        round(j7_rotate,3)
       ]
       set_rotate(new_rotate)
     }
@@ -315,7 +333,7 @@ export default function Home(props) {
   React.useEffect(() => {
     if (props.viewer && rendered) {
       target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[0]))
+      const rotate_value = round(normalize180(input_rotate[0]-j1_Correct_value))
       set_j1_rotate(rotate_value)
     }
   }, [input_rotate[0]])
@@ -323,7 +341,7 @@ export default function Home(props) {
   React.useEffect(() => {
     if (props.viewer && rendered) {
       target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[1]))
+      const rotate_value = round(normalize180(input_rotate[1]-j2_Correct_value))
       set_j2_rotate(rotate_value)
     }
   }, [input_rotate[1]])
@@ -331,7 +349,7 @@ export default function Home(props) {
   React.useEffect(() => {
     if (props.viewer && rendered) {
       target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[2]))
+      const rotate_value = round(normalize180(input_rotate[2]-j3_Correct_value))
       set_j3_rotate(rotate_value)
     }
   }, [input_rotate[2]])
@@ -339,7 +357,7 @@ export default function Home(props) {
   React.useEffect(() => {
     if (props.viewer && rendered) {
       target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[3]))
+      const rotate_value = round(normalize180(input_rotate[3]-j4_Correct_value))
       set_j4_rotate(rotate_value)
     }
   }, [input_rotate[3]])
@@ -347,7 +365,7 @@ export default function Home(props) {
   React.useEffect(() => {
     if (props.viewer && rendered) {
       target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[4]))
+      const rotate_value = round(normalize180(input_rotate[4]-j5_Correct_value))
       set_j5_rotate(rotate_value)
     }
   }, [input_rotate[4]])
@@ -355,7 +373,7 @@ export default function Home(props) {
   React.useEffect(() => {
     if (props.viewer && rendered) {
       target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[5]))
+      const rotate_value = round(normalize180(input_rotate[5]-j6_Correct_value))
       set_j6_rotate(rotate_value)
     }
   }, [input_rotate[5]])
@@ -581,6 +599,11 @@ export default function Home(props) {
     let save_distance = undefined
     let save_distance_cnt = 0
     let save_rotate = {...result_rotate}
+    j1_error = false
+    j2_error = false
+    j3_error = false
+    j4_error = false
+    j5_error = false
 
     for(let i=0; i<10; i=i+1){
       set_test_pos({...shift_target})
@@ -644,14 +667,20 @@ export default function Home(props) {
     }
 
     if(dsp_message === ""){
-      if(result_rotate.j2_rotate<-150 || result_rotate.j2_rotate>150){
+      const wk_j2_rotate = result_rotate.j2_rotate + j2_Correct_value
+      if(wk_j2_rotate<-150 || wk_j2_rotate>150){
         dsp_message = `j2_rotate 指定可能範囲外！:(${result_rotate.j2_rotate})`
+        j2_error = true
       }
-      if(result_rotate.j3_rotate<-150 || result_rotate.j3_rotate>150){
+      const wk_j3_rotate = result_rotate.j3_rotate + j3_Correct_value
+      if(wk_j3_rotate<-150 || wk_j3_rotate>150){
         dsp_message = `j3_rotate 指定可能範囲外！:(${result_rotate.j3_rotate})`
+        j3_error = true
       }
-      if((result_rotate.j5_rotate+90)<-150 || (result_rotate.j5_rotate+90)>150){
+      const wk_j5_rotate = result_rotate.j5_rotate + j5_Correct_value
+      if(wk_j5_rotate<-150 || wk_j5_rotate>150){
         dsp_message = `j5_rotate 指定可能範囲外！:(${result_rotate.j5_rotate})`
+        j5_error = true
       }
     }
 
@@ -1068,7 +1097,7 @@ export default function Home(props) {
 
   const robotProps = {
     robotNameList, robotName, joint_pos, j2_rotate, j3_rotate, j4_rotate, j5_rotate, j6_rotate, j7_rotate,
-    toolNameList, toolName, cursor_vis, box_vis, edit_pos
+    toolNameList, toolName, cursor_vis, box_vis, edit_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error
   }
 
   if(rendered){
@@ -1135,14 +1164,29 @@ const Assets = (props)=>{
 }
 
 const Model = (props)=>{
-  const {visible, cursor_vis, edit_pos, joint_pos} = props
+  const {visible, cursor_vis, edit_pos, joint_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error} = props
   return (<>{visible?
     <a-entity robot-click="" gltf-model="#base" position={edit_pos(joint_pos.base)} visible={`${visible}`}>
       <a-entity j_id="1" gltf-model="#j1" position={edit_pos(joint_pos.j1)}>
+        <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j2,{x:-0.08,y:0,z:0}))} rotation="0 90 0" visible={`${j2_error}`}></a-entity>
+        <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j2,{x:-0.08,y:0,z:0}))} rotation="0 -90 0" visible={`${j2_error}`}></a-entity>
         <a-entity j_id="2" gltf-model="#j2" position={edit_pos(joint_pos.j2)}>
+          <a-entity position="-0.08 0 0" rotation="0 0 0" visible={`${j2_error}`}>
+            <a-cylinder position="0 0.05 0" rotation="0 0 0" radius="0.003" height="0.1" color="#FF0000"></a-cylinder>
+          </a-entity>
+          <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j3,{x:-0.09,y:0,z:0}))} rotation="0 90 0" visible={`${j3_error}`}></a-entity>
+          <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j3,{x:-0.09,y:0,z:0}))} rotation="0 -90 0" visible={`${j3_error}`}></a-entity>
           <a-entity j_id="3" gltf-model="#j3" position={edit_pos(joint_pos.j3)}>
+            <a-entity position="-0.09 0 0" rotation="0 0 0" visible={`${j3_error}`}>
+              <a-cylinder position="0 0.05 0" rotation="0 0 0" radius="0.003" height="0.1" color="#FF0000"></a-cylinder>
+            </a-entity>
             <a-entity j_id="4" gltf-model="#j4" position={edit_pos(joint_pos.j4)}>
+              <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j5,{x:0.077,y:0,z:0}))} rotation="0 90 0" visible={`${j5_error}`}></a-entity>
+              <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j5,{x:0.077,y:0,z:0}))} rotation="0 -90 0" visible={`${j5_error}`}></a-entity>
               <a-entity j_id="5" gltf-model="#j5" position={edit_pos(joint_pos.j5)}>
+                <a-entity position="0.077 0 0" rotation="90 0 0" visible={`${j5_error}`}>
+                  <a-cylinder position="0 0.05 0" rotation="0 0 0" radius="0.003" height="0.1" color="#FF0000"></a-cylinder>
+                </a-entity>
                 <a-entity j_id="6" gltf-model="#j6" position={edit_pos(joint_pos.j6)}>
                   <Model_Tool {...props}/>
                   {/*<a-cylinder color="crimson" height="0.1" radius="0.005" position={edit_pos(joint_pos.j7)}></a-cylinder>*/}
