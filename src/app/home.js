@@ -126,6 +126,9 @@ export default function Home(props) {
   const [target,set_target_org] = React.useState(real_target)
   const [p15_16_len,set_p15_16_len] = React.useState(joint_pos.j7.z+0.14)
   const [p14_maxlen,set_p14_maxlen] = React.useState(0)
+
+  const [do_target_update, set_do_target_update] = React.useState(0) // count up for each target_update call
+
   const reqIdRef = React.useRef()
 
   const loop = (timestamp)=>{
@@ -213,12 +216,6 @@ export default function Home(props) {
     return ()=>{clearInterval(intervalId)};
   }, [now]);*/
 
-  React.useEffect(() => {
-    if(rendered){
-      target_update()
-    }
-  },[rendered])
-
   const robotChange = ()=>{
     const get = (robotName)=>{
       let changeIdx = robotNameList.findIndex((e)=>e===robotName) + 1
@@ -234,7 +231,7 @@ export default function Home(props) {
     for(let i=0; i<rotate_table.length; i=i+1){
       const current_table = rotate_table[i]
       const current_object3D = object3D_table[i]
-      if(current_table.length > 0){
+      if(current_object3D !== undefined && current_table.length > 0){
         const current_data = current_table[0]
         if(current_data.first){
           current_data.first = false
@@ -262,57 +259,45 @@ export default function Home(props) {
   }, [now])
 
   React.useEffect(() => {
-    if (rendered && object3D_table[0] !== undefined) {
-      if(rotate_table[0].length > 1){
-        rotate_table[0].pop()
-      }
-      rotate_table[0].push({rot:j1_rotate,first:true})
+    if(rotate_table[0].length > 1){
+      rotate_table[0].pop()
     }
+    rotate_table[0].push({rot:j1_rotate,first:true})
   }, [j1_rotate])
 
   React.useEffect(() => {
-    if (rendered && object3D_table[1] !== undefined) {
-      if(rotate_table[1].length > 1){
-        rotate_table[1].pop()
-      }
-      rotate_table[1].push({rot:j2_rotate,first:true})
+    if(rotate_table[1].length > 1){
+      rotate_table[1].pop()
     }
+    rotate_table[1].push({rot:j2_rotate,first:true})
   }, [j2_rotate])
 
   React.useEffect(() => {
-    if (rendered && object3D_table[2] !== undefined) {
-      if(rotate_table[2].length > 1){
-        rotate_table[2].pop()
-      }
-      rotate_table[2].push({rot:j3_rotate,first:true})
+    if(rotate_table[2].length > 1){
+      rotate_table[2].pop()
     }
+    rotate_table[2].push({rot:j3_rotate,first:true})
   }, [j3_rotate])
 
   React.useEffect(() => {
-    if (rendered && object3D_table[3] !== undefined) {
-      if(rotate_table[3].length > 1){
-        rotate_table[3].pop()
-      }
-      rotate_table[3].push({rot:j4_rotate,first:true})
+    if(rotate_table[3].length > 1){
+      rotate_table[3].pop()
     }
+    rotate_table[3].push({rot:j4_rotate,first:true})
   }, [j4_rotate])
 
   React.useEffect(() => {
-    if (rendered && object3D_table[4] !== undefined) {
-      if(rotate_table[4].length > 1){
-        rotate_table[4].pop()
-      }
-      rotate_table[4].push({rot:j5_rotate,first:true})
+    if(rotate_table[4].length > 1){
+      rotate_table[4].pop()
     }
+    rotate_table[4].push({rot:j5_rotate,first:true})
   }, [j5_rotate])
 
   React.useEffect(() => {
-    if (rendered && object3D_table[5] !== undefined) {
-      if(rotate_table[5].length > 1){
-        rotate_table[5].pop()
-      }
-      rotate_table[5].push({rot:j6_rotate,first:true})
+    if(rotate_table[5].length > 1){
+      rotate_table[5].pop()
     }
+    rotate_table[5].push({rot:j6_rotate,first:true})
   }, [j6_rotate])
 
   React.useEffect(() => {
@@ -404,7 +389,7 @@ export default function Home(props) {
       if(p51_object)p51_object.quaternion.copy(get_j5_quaternion())
   
     }
-  },[wrist_rot_x,wrist_rot_y,wrist_rot_z])
+  },[do_target_update])
 
 // MetaworkMQTT protocol
   // register to MQTT
@@ -569,9 +554,9 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if(rendered){
-      target_update()
+      set_do_target_update((prev) => prev + 1) // increment the counter to trigger target_update
     }
-  },[target,tool_rotate])
+  },[target,tool_rotate,rendered,wrist_rot_x,wrist_rot_y,wrist_rot_z])
 
   const target_update = ()=>{
     const p21_pos = get_p21_pos()
