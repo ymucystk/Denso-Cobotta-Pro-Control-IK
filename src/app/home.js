@@ -96,6 +96,8 @@ export default function Home(props) {
   const [p15_pos,set_p15_pos] = React.useState({x:0,y:0,z:0})
   const [p16_pos,set_p16_pos] = React.useState({x:0,y:0,z:0})
 
+  const [controller_object,set_controller_object] = React.useState(new THREE.Object3D())
+
 //  const [trigger_on,set_trigger_on] = React.useState(false)
   const gripRef = React.useRef(false);
 
@@ -141,7 +143,7 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on){
-      const move_pos = pos_sub(start_pos,controller_object_position)
+      const move_pos = pos_sub(start_pos,controller_object.position)
       move_pos.x = move_pos.x/2
       move_pos.y = move_pos.y/2
       move_pos.z = move_pos.z/2
