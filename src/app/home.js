@@ -26,6 +26,8 @@ const joint_pos = {
 
 let registered = false
 let trigger_on = false
+const cursor_vis = false
+const box_vis = false
 const order = 'ZYX'
 
 const x_vec_base = new THREE.Vector3(1,0,0).normalize()
@@ -61,12 +63,10 @@ const controller_object_rotation = new THREE.Euler(0,0,0,order)
 
 export default function Home(props) {
   //const [tick, setTick] = React.useState(0)
-  const [now, setNow] = React.useState(new Date())
+  //const [now, setNow] = React.useState(new Date())
   const [rendered,set_rendered] = React.useState(false)
   const robotNameList = ["Model"]
   const [robotName,set_robotName] = React.useState(robotNameList[0])
-  const [cursor_vis,set_cursor_vis] = React.useState(false)
-  const [box_vis,set_box_vis] = React.useState(false)
   const [target_error,set_target_error] = React.useState(false)
 
   const [j1_rotate,set_j1_rotate] = React.useState(0)
@@ -231,7 +231,7 @@ export default function Home(props) {
           const elapsed_time = current_time - current_data.starttime
           current_object3D.quaternion.slerpQuaternions(
             current_data.start_quaternion,current_data.end_quaternion,(elapsed_time/current_data.move_time))
-    }else{
+        }else{
           current_object3D.quaternion.copy(current_data.end_quaternion)
           current_table.shift()
         }
@@ -1122,7 +1122,7 @@ export default function Home(props) {
     );
   }else{
     return(
-      <a-scene xr-mode-ui="XRMode: ar">
+      <a-scene xr-mode-ui="XRMode: xr">
         <Assets viewer={props.viewer}/>
       </a-scene>
     )
