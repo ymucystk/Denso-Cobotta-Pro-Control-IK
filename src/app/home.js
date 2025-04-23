@@ -1,7 +1,7 @@
 "use client";
 import 'aframe'
 import * as React from 'react'
-import * as THREE from 'three'
+const THREE = window.AFRAME.THREE; // これで　AFRAME と　THREEを同時に使える
 
 import Controller from './controller.js'
 import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT } from '../lib/MetaworkMQTT'
