@@ -207,12 +207,12 @@ export default function Home(props) {
 
   //React.useEffect(()=>{
   const joint_slerp = () => {
-    let recursive_flg = false
+    let raw_data = 0
     for(let i=0; i<rotate_table.length; i=i+1){
       const current_table = rotate_table[i]
       const current_object3D = object3D_table[i]
+      raw_data = raw_data + current_table.length
       if(current_object3D !== undefined && current_table.length > 0){
-        recursive_flg = true
         const current_data = current_table[0]
         if(current_data.first){
           current_data.first = false
@@ -237,7 +237,7 @@ export default function Home(props) {
         }
       }
     }
-    if(recursive_flg){
+    if(raw_data > 0){
       setTimeout(()=>{joint_slerp()},0)
     }
   }
