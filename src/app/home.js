@@ -238,7 +238,8 @@ export default function Home(props) {
       }
     }
     if(raw_data > 0){
-      setTimeout(()=>{joint_slerp()},0)
+      requestAnimationFrame(joint_slerp)
+      //setTimeout(()=>{joint_slerp()},0)
     }
   }
   //}, [now])
@@ -286,7 +287,8 @@ export default function Home(props) {
   }, [j6_rotate])
 
   React.useEffect(() => {
-    setTimeout(()=>{joint_slerp()},0)
+    requestAnimationFrame(joint_slerp)
+    //setTimeout(()=>{joint_slerp()},0)
     if(!props.viewer){
       const new_rotate = [
         round(j1_rotate+j1_Correct_value,3),
