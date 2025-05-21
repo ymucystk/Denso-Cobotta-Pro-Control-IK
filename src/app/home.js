@@ -21,7 +21,7 @@ const joint_pos = {
   j4:{x:-0.03,y:0.39,z:0},
   j5:{x:0,y:0,z:0},
   j6:{x:0.15,y:0,z:0},
-  j7:{x:0,y:0,z:0.16},
+  j7:{x:0,y:0,z:0.18},
 }
 
 let registered = false
@@ -84,14 +84,14 @@ export default function Home(props) {
   const [p12_object,set_p12_object] = React.useState()
   const [p13_object,set_p13_object] = React.useState()
   const [p14_object,set_p14_object] = React.useState()
-  const [p15_object,set_p15_object] = React.useState()
-  const [p16_object,set_p16_object] = React.useState()
+  const [p15_object,set_p15_object] = React.useState(new THREE.Object3D())
+  const [p16_object,set_p16_object] = React.useState(new THREE.Object3D())
   const targetRef = React.useRef(null); // target 位置
 
   const [p20_object,set_p20_object] = React.useState()
   const [p21_object,set_p21_object] = React.useState()
   const [p22_object,set_p22_object] = React.useState()
-  const [p51_object,set_p51_object] = React.useState()
+  const [p51_object,set_p51_object] = React.useState(new THREE.Object3D())
 
   const [p15_pos,set_p15_pos] = React.useState({x:0,y:0,z:0})
   const [p16_pos,set_p16_pos] = React.useState({x:0,y:0,z:0})
@@ -119,7 +119,7 @@ export default function Home(props) {
   const [wrist_degree,set_wrist_degree] = React.useState({direction:0,angle:0})
   const [dsp_message,set_dsp_message] = React.useState("")
 
-  const toolNameList = ["No tool"]
+  const toolNameList = ["No tool","Gripper","vgc10-1","vgc10-4"]
   const [toolName,set_toolName] = React.useState(toolNameList[0])
 
   const [target,set_target_org] = React.useState(real_target)
@@ -544,7 +544,7 @@ export default function Home(props) {
     if(rendered){
       set_do_target_update((prev) => prev + 1) // increment the counter to trigger target_update
     }
-  },[target.x,target.y,target.z,tool_rotate,rendered,wrist_rot.x,wrist_rot.y,wrist_rot.z])
+  },[target.x,target.y,target.z,tool_rotate,rendered,wrist_rot.x,wrist_rot.y,wrist_rot.z,p15_16_len])
 
   const target_update = ()=>{
     const p21_pos = get_p21_pos()
@@ -859,6 +859,14 @@ export default function Home(props) {
     return {k:kakudo, t:takasa}
   }
 
+  React.useEffect(() => {
+    if(rendered){
+      const p15_pos = new THREE.Vector3().applyMatrix4(p15_object.matrix)
+      const p16_pos = new THREE.Vector3().applyMatrix4(p16_object.matrix)
+      set_p15_16_len(distance(p15_pos,p16_pos))
+    }
+  },[p16_object.matrix.elements[14]])
+
   /*React.useEffect(() => {
     if(rendered){
       const box15_result = getposq(p15_object)
@@ -1146,6 +1154,8 @@ const Assets = (props)=>{
       <a-asset-items id="j7" src={`${path}link7.gltf`} ></a-asset-items>
       <a-asset-items id="j8_r" src={`${path}link8_r.gltf`} ></a-asset-items>
       <a-asset-items id="j8_l" src={`${path}link8_l.gltf`} ></a-asset-items>
+      <a-asset-items id="vgc10-1" src={`${path}gripper_vgc10_1.gltf`} ></a-asset-items>
+      <a-asset-items id="vgc10-4" src={`${path}gripper_vgc10_4.gltf`} ></a-asset-items>
     </a-assets>
   )
 }
@@ -1193,8 +1203,9 @@ const Model = (props)=>{
 }
 
 const Model_Tool = (props)=>{
-  const Toolpos = {x:0,y:0,z:0}
   const {j7_rotate, joint_pos:{j7:j7pos}, cursor_vis, box_vis, edit_pos} = props
+  const Toolpos = [j7pos,{x:0,y:0,z:0.16},{x:0,y:0,z:0.1712},{x:0,y:0,z:0.1712}]
+  const p16pos = [j7pos,{...j7pos,z:j7pos.z+0.12},{...j7pos,z:j7pos.z+0.16},{...j7pos,z:j7pos.z+0.10}]
   const x = 36/90
   const finger_pos = ((j7_rotate*x) / 1000)+0.0004
   const j8_r_pos = { x: finger_pos, y:0, z:0.27 }
@@ -1202,12 +1213,24 @@ const Model_Tool = (props)=>{
 
   const return_table = [
     <>
-      <a-entity gltf-model="#j7" position={edit_pos(j7pos)}></a-entity>
+      <Cursor3dp j_id="16" pos={p16pos[0]} visible={cursor_vis}/>
+      <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[0])} visible={`${box_vis}`}></a-box>
+    </>,
+    <>
+      <a-entity gltf-model="#j7" position={edit_pos(Toolpos[1])}></a-entity>
       <a-entity gltf-model="#j8_r" position={edit_pos(j8_r_pos)}></a-entity>
       <a-entity gltf-model="#j8_l" position={edit_pos(j8_1_pos)}></a-entity>
-      <Cursor3dp j_id="16" pos={j7pos} visible={cursor_vis}/>
-      <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(j7pos)} visible={`${box_vis}`}></a-box>
+      <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[1])} visible={`${box_vis}`}></a-box>
+      <Cursor3dp j_id="16" pos={p16pos[1]} visible={cursor_vis}/>
     </>,
+    <a-entity gltf-model="#vgc10-1" position={edit_pos(Toolpos[2])} rotation={`0 0 0`}>
+      <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${box_vis}`}></a-box>
+      <Cursor3dp j_id="16" pos={p16pos[2]} visible={cursor_vis}/>
+    </a-entity>,
+    <a-entity gltf-model="#vgc10-4" position={edit_pos(Toolpos[3])} rotation={`0 0 0`}>
+      <Cursor3dp j_id="16" pos={p16pos[3]} visible={cursor_vis}/>
+      <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
+    </a-entity>
   ]
   const {toolNameList, toolName} = props
   const findindex = toolNameList.findIndex((e)=>e===toolName)

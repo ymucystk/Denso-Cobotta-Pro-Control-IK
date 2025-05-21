@@ -12,10 +12,10 @@ export default function Controller(props) {
   const {tool_rotate} = props
   const {normalize180} = props
   const {vr_mode} = props
-  /*
+
   const set_toolName = (e)=>{
     props.set_toolName(e.target.value)
-  }*/
+  }
 
   const set_j1_rotate = (e)=>{
     let value = Number.parseFloat(e.target.value || 0)
@@ -165,11 +165,11 @@ export default function Controller(props) {
           <div className="col-md-4"><label htmlFor="j7_rotate_number" className="form-label"><span className="form-control-plaintext">Gripper</span></label></div>
           <div className="col-md-8"><input type="number" className="form-control" id="j7_rotate_number" value={j7_rotate} onChange={set_j7_rotate} min={-20} max={64}/></div>
         </div>
-        {/*<div className="mb-0">
+        <div className="mb-0">
           <select className="form-select" onChange={set_toolName} value={toolName}>
             {toolNameList.map((name,idx)=><option key={idx} value={name}>{name}</option>)}
           </select>
-        </div>*/}
+        </div>
       </div>
       <div className="camera-controller" >
         {vr_mode?null:<><span>CAMERA</span>
