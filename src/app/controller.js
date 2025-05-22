@@ -233,6 +233,10 @@ export default function Controller(props) {
           <div className="col-md-4"><label htmlFor="target_z_number" className="form-label"><span className="form-control-plaintext">target z</span></label></div>
           <div className="col-md-8"><input type="number" className="form-control" id="target_z_number" value={target.z} onChange={set_target_z} step={0.002} min={-10} max={10}/></div>
         </div>
+        <div className="d-grid gap-0">
+          <button className="btn btn-light" type="button" onClick={props.toolChange1}>Tool Change 1</button>
+          <button className="btn btn-light" type="button" onClick={props.toolChange2}>Tool Change 2</button>
+        </div>
       </div>
     </>
     )

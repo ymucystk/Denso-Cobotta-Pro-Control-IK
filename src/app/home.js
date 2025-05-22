@@ -61,6 +61,14 @@ let j5_error = false
 const controller_object_position = new THREE.Vector3()
 const controller_object_rotation = new THREE.Euler(0,0,0,order)
 
+const Toolpos1 = {rot:{x:90,y:0,z:0},pos:{x:-0.1,y:-0.02,z:0.4},toolrot:0}
+const Toolpos2 = {rot:{x:90,y:0,z:0},pos:{x:-0.3,y:-0.02,z:0.4},toolrot:0}
+const Toolpos1front = {rot:{x:90,y:0,z:0},pos:{x:-0.1,y:-0.02,z:0.55},toolrot:0}
+const Toolpos2front = {rot:{x:90,y:0,z:0},pos:{x:-0.3,y:-0.02,z:0.55},toolrot:0}
+const Toolpos1upper = {rot:{x:90,y:0,z:0},pos:{x:-0.1,y:0.07,z:0.4},toolrot:0}
+const Toolpos2upper = {rot:{x:90,y:0,z:0},pos:{x:-0.3,y:0.07,z:0.4},toolrot:0}
+const ToolChangeTbl = []
+
 export default function Home(props) {
   //const [tick, setTick] = React.useState(0)
   //const [now, setNow] = React.useState(new Date())
@@ -205,6 +213,37 @@ export default function Home(props) {
     set_robotName(get)
   }
 
+  const toolChange1 = ()=>{
+    ToolChangeTbl.push(Toolpos2front)
+    ToolChangeTbl.push(Toolpos2)
+    ToolChangeTbl.push(Toolpos2upper)
+    ToolChangeTbl.push(Toolpos1upper)
+    ToolChangeTbl.push(Toolpos1)
+    ToolChangeTbl.push(Toolpos1front)
+    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate})
+    toolChangeExec()
+  }
+
+  const toolChange2 = ()=>{
+    ToolChangeTbl.push(Toolpos1front)
+    ToolChangeTbl.push(Toolpos1)
+    ToolChangeTbl.push(Toolpos1upper)
+    ToolChangeTbl.push(Toolpos2upper)
+    ToolChangeTbl.push(Toolpos2)
+    ToolChangeTbl.push(Toolpos2front)
+    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate})
+    toolChangeExec()
+  }
+
+  const toolChangeExec = ()=>{
+    if(ToolChangeTbl.length > 0){
+      set_tool_rotate(ToolChangeTbl[0].toolrot)
+      set_wrist_rot(ToolChangeTbl[0].rot)
+      set_target(ToolChangeTbl[0].pos)
+      ToolChangeTbl.shift()
+    }
+  }
+
   //React.useEffect(()=>{
   const joint_slerp = () => {
     let raw_data = 0
@@ -240,6 +279,8 @@ export default function Home(props) {
     if(raw_data > 0){
       requestAnimationFrame(joint_slerp)
       //setTimeout(()=>{joint_slerp()},0)
+    }else{
+      toolChangeExec()
     }
   }
   //}, [now])
@@ -1087,7 +1128,8 @@ export default function Home(props) {
     c_pos_x,set_c_pos_x,c_pos_y,set_c_pos_y,c_pos_z,set_c_pos_z,
     c_deg_x,set_c_deg_x,c_deg_y,set_c_deg_y,c_deg_z,set_c_deg_z,
     wrist_rot,set_wrist_rot,
-    tool_rotate,set_tool_rotate,normalize180, vr_mode:vrModeRef.current
+    tool_rotate,set_tool_rotate,normalize180, vr_mode:vrModeRef.current,
+    toolChange1, toolChange2
   }
 
   const robotProps = {
