@@ -1205,12 +1205,12 @@ const Model = (props)=>{
 const Model_Tool = (props)=>{
   const {j7_rotate, joint_pos:{j7:j7pos}, cursor_vis, box_vis, edit_pos} = props
   const Spacer = 0.01
-  const Toolpos = [j7pos,{x:0,y:0,z:0.16},{x:0,y:0,z:0.1712+Spacer},{x:0,y:0,z:0.1712+Spacer}]
-  const p16pos = [j7pos,{...j7pos,z:j7pos.z+0.12},{...j7pos,z:j7pos.z+0.16+Spacer},{...j7pos,z:j7pos.z+0.10+Spacer}]
+  const Toolpos = [j7pos,{x:0,y:0,z:0.16+Spacer},{x:0,y:0,z:0.1712+Spacer},{x:0,y:0,z:0.1712+Spacer}]
+  const p16pos = [j7pos,{...j7pos,z:j7pos.z+0.12+Spacer},{...j7pos,z:j7pos.z+0.16+Spacer},{...j7pos,z:j7pos.z+0.10+Spacer}]
   const x = 36/90
   const finger_pos = ((j7_rotate*x) / 1000)+0.0004
-  const j8_r_pos = { x: finger_pos, y:0, z:0.27 }
-  const j8_1_pos = { x: -finger_pos, y:0, z:0.27 }
+  const j8_r_pos = { x: finger_pos, y:0, z:0.27+Spacer }
+  const j8_1_pos = { x: -finger_pos, y:0, z:0.27+Spacer }
 
   const return_table = [
     <>
