@@ -69,6 +69,8 @@ const Toolpos1upper = {rot:{x:90,y:0,z:0},pos:{x:-0.1,y:0.07,z:0.4},toolrot:0}
 const Toolpos2upper = {rot:{x:90,y:0,z:0},pos:{x:-0.3,y:0.07,z:0.4},toolrot:0}
 const ToolChangeTbl = []
 
+let tool_change_value = undefined
+
 export default function Home(props) {
   //const [tick, setTick] = React.useState(0)
   //const [now, setNow] = React.useState(new Date())
@@ -1028,6 +1030,19 @@ export default function Home(props) {
           this.el.addEventListener('gripup', (evt) => {
             gripRef.current = false;
           });
+
+          this.el.addEventListener('abuttondown', (evt) => {
+            tool_change_value = 1
+          });
+          this.el.addEventListener('abuttonup', (evt) => {
+            tool_change_value = undefined
+          });
+          this.el.addEventListener('bbuttondown', (evt) => {
+            tool_change_value = 2
+          });
+          this.el.addEventListener('bbuttonup', (evt) => {
+            tool_change_value = undefined
+          });
         },
         tick: function () {
           let move = false
@@ -1103,12 +1118,17 @@ export default function Home(props) {
     }
 
     if ((mqttclient != null) && publish ) {// 状態を受信していないと、送信しない
+      const addKey = {}
+      if(tool_change_value !== undefined){
+        addKey.tool_change = tool_change_value
+      }
       // MQTT 送信
       const ctl_json = JSON.stringify({
         time: time,
         joints: rotate,
-        grip: gripRef.current
+        grip: gripRef.current,
 //        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
+        ...addKey
       });
 
       publishMQTT(MQTT_CTRL_TOPIC, ctl_json);
