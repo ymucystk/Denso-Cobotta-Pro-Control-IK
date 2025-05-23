@@ -456,7 +456,7 @@ export default function Home(props) {
               requestAnimationFrame(()=>{
                 const wpos = new THREE.Vector3();
                 targetRef.current.getWorldPosition(wpos);              
-                set_target((vr)=>{
+                set_target_org((vr)=>{
                               console.log("Set target!", wpos)
                               vr.x = wpos.x; vr.y = wpos.y; vr.z = wpos.z;
                               return vr
@@ -497,7 +497,7 @@ export default function Home(props) {
               requestAnimationFrame(()=>{
                 const wpos = new THREE.Vector3();
                 targetRef.current.getWorldPosition(wpos);              
-                set_target((vr)=>{
+                set_target_org((vr)=>{
                       console.log("Set target!", wpos)
                       vr.x = wpos.x; vr.y = wpos.y; vr.z = wpos.z;
                       return vr
