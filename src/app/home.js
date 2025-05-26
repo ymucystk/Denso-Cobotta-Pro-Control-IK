@@ -223,7 +223,7 @@ export default function Home(props) {
     ToolChangeTbl.push({...Toolpos1,speedfacter:20})
     ToolChangeTbl.push({...Toolpos1front,speedfacter:10})
     ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:2})
-    toolChangeExec()
+    requestAnimationFrame(toolChangeExec)
   }
 
   const toolChange2 = ()=>{
@@ -234,7 +234,7 @@ export default function Home(props) {
     ToolChangeTbl.push({...Toolpos2,speedfacter:20})
     ToolChangeTbl.push({...Toolpos2front,speedfacter:10})
     ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:2})
-    toolChangeExec()
+    requestAnimationFrame(toolChangeExec)
   }
 
   const toolChangeExec = ()=>{
@@ -283,7 +283,7 @@ export default function Home(props) {
       requestAnimationFrame(joint_slerp)
       //setTimeout(()=>{joint_slerp()},0)
     }else{
-      toolChangeExec()
+      requestAnimationFrame(toolChangeExec)
     }
   }
   //}, [now])
