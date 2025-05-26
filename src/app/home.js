@@ -607,6 +607,28 @@ export default function Home(props) {
     target15_update(direction,angle)
   }
 
+  function getReaultPosRot(all_joint_rot){
+    const {j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate} = all_joint_rot
+    const new_m4 = new THREE.Matrix4().multiply(
+      new THREE.Matrix4().makeRotationY(toRadian(j1_rotate)).setPosition(joint_pos.j1.x,joint_pos.j1.y,joint_pos.j1.z)
+    ).multiply(
+      new THREE.Matrix4().makeRotationX(toRadian(j2_rotate)).setPosition(joint_pos.j2.x,joint_pos.j2.y,joint_pos.j2.z)
+    ).multiply(
+      new THREE.Matrix4().makeRotationX(toRadian(j3_rotate)).setPosition(joint_pos.j3.x,joint_pos.j3.y,joint_pos.j3.z)
+    ).multiply(
+      new THREE.Matrix4().makeRotationY(toRadian(j4_rotate)).setPosition(joint_pos.j4.x,joint_pos.j4.y,joint_pos.j4.z)
+    ).multiply(
+      new THREE.Matrix4().makeRotationX(toRadian(j5_rotate)).setPosition(joint_pos.j5.x,joint_pos.j5.y,joint_pos.j5.z)
+    ).multiply(
+      new THREE.Matrix4().makeRotationZ(toRadian(j6_rotate)).setPosition(joint_pos.j6.x,joint_pos.j6.y,joint_pos.j6.z)
+    ).multiply(
+      new THREE.Matrix4().setPosition(joint_pos.j7.x,joint_pos.j7.y,p15_16_len)
+    )
+    const target_pos = new THREE.Vector3().applyMatrix4(new_m4)
+    const wrist_euler = new THREE.Euler().setFromRotationMatrix(new_m4,order)
+    return {target_pos, wrist_euler}
+  }
+
   const target15_update = (wrist_direction,wrist_angle)=>{
     let dsp_message = ""
     const shift_target = {...target}
@@ -630,26 +652,12 @@ export default function Home(props) {
         set_target_error(true)
       }
 
-      const base_m4 = new THREE.Matrix4().multiply(
-        new THREE.Matrix4().makeRotationY(toRadian(result_rotate.j1_rotate)).setPosition(joint_pos.j1.x,joint_pos.j1.y,joint_pos.j1.z)
-      ).multiply(
-        new THREE.Matrix4().makeRotationX(toRadian(result_rotate.j2_rotate)).setPosition(joint_pos.j2.x,joint_pos.j2.y,joint_pos.j2.z)
-      ).multiply(
-        new THREE.Matrix4().makeRotationX(toRadian(result_rotate.j3_rotate)).setPosition(joint_pos.j3.x,joint_pos.j3.y,joint_pos.j3.z)
-      ).multiply(
-        new THREE.Matrix4().makeRotationY(toRadian(result_rotate.j4_rotate)).setPosition(joint_pos.j4.x,joint_pos.j4.y,joint_pos.j4.z)
-      ).multiply(
-        new THREE.Matrix4().makeRotationX(toRadian(result_rotate.j5_rotate)).setPosition(joint_pos.j5.x,joint_pos.j5.y,joint_pos.j5.z)
-      ).multiply(
-        new THREE.Matrix4().makeRotationZ(toRadian(result_rotate.j6_rotate)).setPosition(joint_pos.j6.x,joint_pos.j6.y,joint_pos.j6.z)
-      ).multiply(
-        new THREE.Matrix4().setPosition(joint_pos.j7.x,joint_pos.j7.y,p15_16_len)
-      )
-      const wk_target = new THREE.Vector3().applyMatrix4(base_m4)
+      const wk_result = getReaultPosRot(result_rotate)
+      const wk_target = wk_result.target_pos
       const result_target = {x:round(wk_target.x),y:round(wk_target.y),z:round(wk_target.z)}
       const sabun_pos = pos_sub(target,result_target)
       const sabun_distance = sabun_pos.x**2+sabun_pos.y**2+sabun_pos.z**2
-      const wk_euler = new THREE.Euler().setFromRotationMatrix(base_m4,order)
+      const wk_euler = wk_result.wrist_euler
       const sabun_angle = get_j5_quaternion().angleTo(new THREE.Quaternion().setFromEuler(wk_euler))
       if(round(sabun_distance) <= 0 && round(sabun_angle,2) <= 0){
         save_target = {...result_target}
