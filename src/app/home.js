@@ -216,24 +216,24 @@ export default function Home(props) {
   }
 
   const toolChange1 = ()=>{
-    ToolChangeTbl.push(Toolpos2front)
-    ToolChangeTbl.push(Toolpos2)
-    ToolChangeTbl.push(Toolpos2upper)
-    ToolChangeTbl.push(Toolpos1upper)
-    ToolChangeTbl.push(Toolpos1)
-    ToolChangeTbl.push(Toolpos1front)
-    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate})
+    ToolChangeTbl.push({...Toolpos2front,speedfacter:2})
+    ToolChangeTbl.push({...Toolpos2,speedfacter:10})
+    ToolChangeTbl.push({...Toolpos2upper,speedfacter:20})
+    ToolChangeTbl.push({...Toolpos1upper,speedfacter:10})
+    ToolChangeTbl.push({...Toolpos1,speedfacter:20})
+    ToolChangeTbl.push({...Toolpos1front,speedfacter:10})
+    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:2})
     toolChangeExec()
   }
 
   const toolChange2 = ()=>{
-    ToolChangeTbl.push(Toolpos1front)
-    ToolChangeTbl.push(Toolpos1)
-    ToolChangeTbl.push(Toolpos1upper)
-    ToolChangeTbl.push(Toolpos2upper)
-    ToolChangeTbl.push(Toolpos2)
-    ToolChangeTbl.push(Toolpos2front)
-    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate})
+    ToolChangeTbl.push({...Toolpos1front,speedfacter:2})
+    ToolChangeTbl.push({...Toolpos1,speedfacter:10})
+    ToolChangeTbl.push({...Toolpos1upper,speedfacter:20})
+    ToolChangeTbl.push({...Toolpos2upper,speedfacter:10})
+    ToolChangeTbl.push({...Toolpos2,speedfacter:20})
+    ToolChangeTbl.push({...Toolpos2front,speedfacter:10})
+    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:2})
     toolChangeExec()
   }
 
@@ -242,6 +242,7 @@ export default function Home(props) {
       set_tool_rotate(ToolChangeTbl[0].toolrot)
       set_wrist_rot(ToolChangeTbl[0].rot)
       set_target(ToolChangeTbl[0].pos)
+      target_move_distance*= ToolChangeTbl[0].speedfacter
       ToolChangeTbl.shift()
     }
   }
