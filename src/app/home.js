@@ -87,7 +87,9 @@ export default function Home(props) {
   const [j6_rotate,set_j6_rotate] = React.useState(0)
   const [j7_rotate,set_j7_rotate] = React.useState(0) //指用
 
-  const [rotate, set_rotate] = React.useState([0,0,0,0,0,0,0])  //出力用
+  //const [rotate, set_rotate] = React.useState([0,0,0,0,0,0,0])  //出力用
+  const rotateRef = React.useRef([0,0,0,0,0,0,0]); // ref を使って rotate を保持する
+
   const [input_rotate, set_input_rotate] = React.useState([0,0,0,0,0,0,0])  //入力用
 
   const [p11_object,set_p11_object] = React.useState()
@@ -343,7 +345,8 @@ export default function Home(props) {
         round(j6_rotate+j6_Correct_value,3),
         round(j7_rotate,3)
       ]
-      set_rotate(new_rotate)
+      //set_rotate(new_rotate)
+      rotateRef.current = [...new_rotate]
     }
   }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
 
@@ -1134,7 +1137,7 @@ export default function Home(props) {
       // MQTT 送信
       const ctl_json = JSON.stringify({
         time: time,
-        joints: rotate,
+        joints: rotateRef.current,
         grip: gripRef.current,
 //        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
         ...addKey
