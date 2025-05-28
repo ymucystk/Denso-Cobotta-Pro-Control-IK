@@ -492,20 +492,28 @@ export default function Home(props) {
             // ここで、joints の安全チェックをすべき
             mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) // これでロボット姿勢の受信は終わり
             console.log("receive joints",joints)
-            set_input_rotate(joints)
+            //set_input_rotate(joints)
             // すぐに制御を開始したくないので、少し待ってから送付
             // target 位置の計算！
             // forward kinematics をすべき。。。
             // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
             requestAnimationFrame(()=>{
               requestAnimationFrame(()=>{
-                const wpos = new THREE.Vector3();
-                targetRef.current.getWorldPosition(wpos);              
+                const inp_rotate = {j1_rotate:joints[0],j2_rotate:joints[1],j3_rotate:joints[2],
+                  j4_rotate:joints[3],j5_rotate:joints[4],j6_rotate:joints[5]} 
+                const {target_pos:wpos, wrist_euler} = getReaultPosRot(inp_rotate) // これで target_pos が計算される
+                //const wpos = new THREE.Vector3();
+                //targetRef.current.getWorldPosition(wpos);              
+                set_wrist_rot_org(
+                  {x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))}
+                ) // 手首の相対
                 set_target_org((vr)=>{
+                      target_move_distance = distance({x:vr.x,y:vr.y,z:vr.z},{x:wpos.x,y:wpos.y,z:wpos.z}) // 位置の差分を計算
                       console.log("Set target!", wpos)
-                      vr.x = wpos.x; vr.y = wpos.y; vr.z = wpos.z;
+                      vr.x = round(wpos.x); vr.y = round(wpos.y); vr.z = round(wpos.z);
                       return vr
                   }); // これだと場所だけ (手首の相対もやるべし！)
+                set_j7_rotate(joints[6]) // 指用
               })
             })
             window.setTimeout(()=>{
