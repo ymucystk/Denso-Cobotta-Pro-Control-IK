@@ -58,6 +58,7 @@ let j3_error = false
 let j4_error = false
 let j5_error = false
 
+let tickprev = 0
 const controller_object_position = new THREE.Vector3()
 const controller_object_rotation = new THREE.Euler(0,0,0,order)
 
@@ -1064,19 +1065,22 @@ export default function Home(props) {
             tool_change_value = undefined
           });
         },
-        tick: function () {
-          let move = false
-          const obj = this.el.object3D
-          if(!controller_object_position.equals(obj.position)){
-            controller_object_position.set(obj.position.x,obj.position.y,obj.position.z)
-            move = true
-          }
-          if(!controller_object_rotation.equals(obj.rotation)){
-            controller_object_rotation.set(obj.rotation.x,obj.rotation.y,obj.rotation.z,obj.rotation.order)
-            move = true
-          }
-          if(move){
-            set_vrcontroller_move((flg)=>!flg)
+        tick: function (time) {
+          if((tickprev + 30) < time){
+            tickprev = time
+            let move = false
+            const obj = this.el.object3D
+            if(!controller_object_position.equals(obj.position)){
+              controller_object_position.set(obj.position.x,obj.position.y,obj.position.z)
+              move = true
+            }
+            if(!controller_object_rotation.equals(obj.rotation)){
+              controller_object_rotation.set(obj.rotation.x,obj.rotation.y,obj.rotation.z,obj.rotation.order)
+              move = true
+            }
+            if(move){
+              set_vrcontroller_move((flg)=>!flg)
+            }
           }
         }
       });
