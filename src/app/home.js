@@ -59,6 +59,7 @@ let j4_error = false
 let j5_error = false
 
 let tickprev = 0
+let controller_object = new THREE.Object3D()
 const controller_object_position = new THREE.Vector3()
 const controller_object_rotation = new THREE.Euler(0,0,0,order)
 
@@ -71,6 +72,12 @@ const Toolpos2upper = {rot:{x:90,y:0,z:0},pos:{x:-0.3,y:0.07,z:0.4},toolrot:0}
 const ToolChangeTbl = []
 
 let tool_change_value = undefined
+let tool_current_value = undefined
+let tool_menu_on = false
+let tool_load_operation = false
+let tool_menu_idx = 0
+let save_tool_menu_idx = 0
+let save_thumbstickmoved = 0
 
 export default function Home(props) {
   //const [tick, setTick] = React.useState(0)
@@ -140,8 +147,8 @@ export default function Home(props) {
   const [p14_maxlen,set_p14_maxlen] = React.useState(0)
 
   const [do_target_update, set_do_target_update] = React.useState(0) // count up for each target_update call
-  const [vrcontroller_move, set_vrcontroller_move] = React.useState(false)
-
+  const [update, set_update] = React.useState(false)
+  
   const set_target = (new_pos)=>{
     target_move_distance = distance(real_target,new_pos)
     set_target_org(new_pos)
@@ -153,7 +160,7 @@ export default function Home(props) {
   }
 
   React.useEffect(() => {
-    if(rendered && vrModeRef.current && trigger_on){
+    if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation){
       const move_pos = pos_sub(start_pos,controller_object_position)
       move_pos.x = move_pos.x/2
       move_pos.y = move_pos.y/2
@@ -173,7 +180,7 @@ export default function Home(props) {
   },[controller_object_position.x,controller_object_position.y,controller_object_position.z])
 
   React.useEffect(() => {
-    if(rendered && vrModeRef.current && trigger_on){
+    if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation){
       const quat_start = new THREE.Quaternion().setFromEuler(start_rotation);
       const quat_controller = new THREE.Quaternion().setFromEuler(controller_object_rotation);
       const quatDifference1 = quat_start.clone().invert().multiply(quat_controller);
@@ -945,6 +952,17 @@ export default function Home(props) {
     }
   },[now])*/
 
+  const vrControllStart = ()=>{
+    start_rotation = controller_object.rotation.clone()
+    const wk_start_pos = new THREE.Vector3().applyMatrix4(controller_object.matrix)
+    set_start_pos(wk_start_pos)
+  }
+
+  const vrControllEnd = ()=>{
+    save_rotation = current_rotation.clone()
+    set_save_target(undefined)
+  }
+
   React.useEffect(() => {
     if(!registered){
       registered = true
@@ -1028,16 +1046,14 @@ export default function Home(props) {
       AFRAME.registerComponent('vr-controller-right', {
         schema: {type: 'string', default: ''},
         init: function () {
+          controller_object = this.el.object3D
           this.el.object3D.rotation.order = order
           this.el.addEventListener('triggerdown', (evt)=>{
-            start_rotation = this.el.object3D.rotation.clone()
-            const wk_start_pos = new THREE.Vector3().applyMatrix4(this.el.object3D.matrix)
-            set_start_pos(wk_start_pos)
+            vrControllStart()
             trigger_on = true
           });
           this.el.addEventListener('triggerup', (evt)=>{
-            save_rotation = current_rotation.clone()
-            set_save_target(undefined)
+            vrControllEnd()
             trigger_on = false
           });
           this.el.addEventListener('gripchanged', (evt)=>{
@@ -1052,17 +1068,96 @@ export default function Home(props) {
             gripRef.current = false;
           });
 
-          this.el.addEventListener('abuttondown', (evt) => {
-            tool_change_value = 1
+          this.el.addEventListener('thumbstickdown', (evt) => {
+            if(tool_menu_on){
+              if(tool_menu_idx === 0){
+                if(tool_current_value !== 1){
+                  tool_change_value = 1
+                  tool_current_value = 1
+                  set_toolName(toolNameList[1])
+                  tool_load_operation = true
+
+                  setTimeout(()=>{
+                    tool_load_operation = false
+                    vrControllEnd()
+                    if(trigger_on){
+                      vrControllStart()
+                    }
+                    set_update((flg)=>!flg)
+                  },30000) // 30秒間は操作しない(暫定タイマー)
+                }else{
+                  vrControllEnd()
+                  if(trigger_on){
+                    vrControllStart()
+                  }
+                }
+              }else
+              if(tool_menu_idx === 1){
+                if(tool_current_value !== 2){
+                  tool_change_value = 2
+                  tool_current_value = 2
+                  set_toolName(toolNameList[2])
+                  tool_load_operation = true
+
+                  setTimeout(()=>{
+                    tool_load_operation = false
+                    vrControllEnd()
+                    if(trigger_on){
+                      vrControllStart()
+                    }
+                    set_update((flg)=>!flg)
+                  },30000) // 30秒間は操作しない(暫定タイマー)
+                }else{
+                  vrControllEnd()
+                  if(trigger_on){
+                    vrControllStart()
+                  }
+                }
+              }else{
+                tool_menu_idx = save_tool_menu_idx
+                vrControllEnd()
+                if(trigger_on){
+                  vrControllStart()
+                }
+              }
+            }else{
+              if(trigger_on){
+                vrControllEnd()
+              }
+              save_tool_menu_idx = tool_menu_idx
+              vrControllStart()
+            }
+            tool_menu_on = !tool_menu_on
+            set_update((flg)=>!flg)
           });
-          this.el.addEventListener('abuttonup', (evt) => {
+          this.el.addEventListener('thumbstickup', (evt) => {
             tool_change_value = undefined
+            set_update((flg)=>!flg)
           });
-          this.el.addEventListener('bbuttondown', (evt) => {
-            tool_change_value = 2
-          });
-          this.el.addEventListener('bbuttonup', (evt) => {
-            tool_change_value = undefined
+          this.el.addEventListener('thumbstickmoved', (evt) => {
+            if(tool_menu_on){
+              if(evt.detail.y === 0 || Math.abs(evt.detail.y)>0.85){
+                if(save_thumbstickmoved === 0 && evt.detail.y !== 0){
+                  if(evt.detail.y > 0){
+                    tool_menu_idx = tool_menu_idx + 1
+                    if(tool_menu_idx >= 3) tool_menu_idx = 2
+                  }else{
+                    tool_menu_idx = tool_menu_idx - 1
+                    if(tool_menu_idx < 0) tool_menu_idx = 0
+                  }
+                }else
+                if(save_thumbstickmoved < 0 && evt.detail.y > 0){
+                  tool_menu_idx = tool_menu_idx + 1
+                  if(tool_menu_idx >= 3) tool_menu_idx = 2
+                }else
+                if(save_thumbstickmoved > 0 && evt.detail.y < 0){
+                  tool_menu_idx = tool_menu_idx - 1
+                  if(tool_menu_idx < 0) tool_menu_idx = 0
+                }
+                save_thumbstickmoved = evt.detail.y
+              }
+            }
+            set_update((flg)=>!flg)
           });
         },
         tick: function (time) {
@@ -1079,7 +1174,7 @@ export default function Home(props) {
               move = true
             }
             if(move){
-              set_vrcontroller_move((flg)=>!flg)
+              set_update((flg)=>!flg)
             }
           }
         }
@@ -1181,6 +1276,53 @@ export default function Home(props) {
     toolNameList, toolName, cursor_vis, box_vis, edit_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error
   }
 
+  const Toolmenu = (props)=> {
+    const button_pos_tbl = [0.35, 0.2, 0.05] 
+    if(tool_menu_on){
+      return(
+        <a-entity position="0.5 1 -0.5">
+          <a-plane width="1" height="1" color="#222" opacity="0.8"></a-plane>
+          <a-entity
+            geometry="primitive: plane; width: 0.81; height: 0.11;"
+            material="color: #00ff00;"
+            position={`0 ${button_pos_tbl[tool_menu_idx]} 0.01`}>
+          </a-entity>
+          <a-entity
+            geometry="primitive: plane; width: 0.8; height: 0.1;"
+            material="color: #2196F3"
+            position={`0 ${button_pos_tbl[0]} 0.01`}
+            class="menu-button"
+            text="value: TOOL-1; align: center; color: white;">
+          </a-entity>
+          <a-entity
+            geometry="primitive: plane; width: 0.8; height: 0.1;"
+            material="color: #2196F3"
+            position={`0 ${button_pos_tbl[1]} 0.01`}
+            class="menu-button"
+            text="value: TOOL-2; align: center; color: white;">
+          </a-entity>
+          <a-entity
+            geometry="primitive: plane; width: 0.8; height: 0.1;"
+            material="color: #2196F3"
+            position={`0 ${button_pos_tbl[2]} 0.01`}
+            class="menu-button"
+            text="value: CANCEL; align: center; color: white;">
+          </a-entity>
+        </a-entity>)
+    }else
+    if(tool_load_operation){
+      return(
+        <a-entity
+          geometry="primitive: plane; width: 0.5; height: 0.5;"
+          material="color: #000000"
+          position="0 0.35 0.2"
+          text="value: TOOL LOADING!!; align: center; color: yellow; wrap-count: 10;">
+        </a-entity>)
+    }else{
+      return null
+    }
+  }
+
   if(rendered){
     return (
     <>
@@ -1209,6 +1351,7 @@ export default function Home(props) {
         <Line pos1={{x:1,y:0.0001,z:0}} pos2={{x:-1,y:0.0001,z:0}} visible={cursor_vis} color="white"></Line>
         <Line pos1={{x:0,y:0.0001,z:1}} pos2={{x:0,y:0.0001,z:-1}} visible={cursor_vis} color="white"></Line>
         {/*<a-cylinder j_id="51" color="green" height="0.1" radius="0.005" position={edit_pos({x:0.3,y:0.3,z:0.3})}></a-cylinder>*/}
+        <Toolmenu />
       </a-scene>
       <Controller {...controllerProps}/>
       <div className="footer" >
