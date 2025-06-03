@@ -62,6 +62,7 @@ let tickprev = 0
 let controller_object = new THREE.Object3D()
 const controller_object_position = new THREE.Vector3()
 const controller_object_rotation = new THREE.Euler(0,0,0,order)
+let xrSession = undefined
 
 const Toolpos1 = {rot:{x:90,y:0,z:0},pos:{x:-0.1,y:-0.02,z:0.4},toolrot:0}
 const Toolpos2 = {rot:{x:90,y:0,z:0},pos:{x:-0.3,y:-0.02,z:0.4},toolrot:0}
@@ -233,7 +234,11 @@ export default function Home(props) {
     ToolChangeTbl.push({...Toolpos1,speedfacter:20})
     ToolChangeTbl.push({...Toolpos1front,speedfacter:10})
     ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:2})
-    requestAnimationFrame(toolChangeExec)
+    if(xrSession !== undefined){
+      xrSession.requestAnimationFrame(toolChangeExec)
+    }else{
+      requestAnimationFrame(toolChangeExec)
+    }
   }
 
   const toolChange2 = ()=>{
@@ -244,7 +249,11 @@ export default function Home(props) {
     ToolChangeTbl.push({...Toolpos2,speedfacter:20})
     ToolChangeTbl.push({...Toolpos2front,speedfacter:10})
     ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:2})
-    requestAnimationFrame(toolChangeExec)
+    if(xrSession !== undefined){
+      xrSession.requestAnimationFrame(toolChangeExec)
+    }else{
+      requestAnimationFrame(toolChangeExec)
+    }
   }
 
   const toolChangeExec = ()=>{
@@ -290,10 +299,18 @@ export default function Home(props) {
       }
     }
     if(raw_data > 0){
-      requestAnimationFrame(joint_slerp)
+      if(xrSession !== undefined){
+        xrSession.requestAnimationFrame(joint_slerp)
+      }else{
+        requestAnimationFrame(joint_slerp)
+      }
       //setTimeout(()=>{joint_slerp()},0)
     }else{
-      requestAnimationFrame(toolChangeExec)
+      if(xrSession !== undefined){
+        xrSession.requestAnimationFrame(toolChangeExec)
+      }else{
+        requestAnimationFrame(toolChangeExec)
+      }
     }
   }
   //}, [now])
@@ -341,7 +358,11 @@ export default function Home(props) {
   }, [j6_rotate])
 
   React.useEffect(() => {
-    requestAnimationFrame(joint_slerp)
+    if(xrSession !== undefined){
+      xrSession.requestAnimationFrame(joint_slerp)
+    }else{
+      requestAnimationFrame(joint_slerp)
+    }
     //setTimeout(()=>{joint_slerp()},0)
     if(!props.viewer){
       const new_rotate = [
@@ -1198,7 +1219,8 @@ export default function Home(props) {
             }
 
             // ここからMQTT Start
-            let xrSession = this.el.renderer.xr.getSession();
+            //let xrSession = this.el.renderer.xr.getSession();
+            xrSession = this.el.renderer.xr.getSession();
             xrSession.requestAnimationFrame(onXRFrameMQTT);
 
             if(!props.viewer){
@@ -1213,6 +1235,7 @@ export default function Home(props) {
             
           });
           this.el.addEventListener('exit-vr', ()=>{
+            xrSession = undefined
             vrModeRef.current = false;
 //            set_vr_mode(false)
             console.log('exit-vr')
