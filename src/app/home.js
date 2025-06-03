@@ -1303,7 +1303,7 @@ export default function Home(props) {
     const button_pos_tbl = [0.35, 0.2, 0.05] 
     if(tool_menu_on){
       return(
-        <a-entity position="0.5 1 -0.5">
+        <a-entity position="0.5 0.5 -0.5">
           <a-plane width="1" height="1" color="#222" opacity="0.8"></a-plane>
           <a-entity
             geometry="primitive: plane; width: 0.81; height: 0.11;"
@@ -1336,10 +1336,10 @@ export default function Home(props) {
     if(tool_load_operation){
       return(
         <a-entity
-          geometry="primitive: plane; width: 0.5; height: 0.5;"
+          geometry="primitive: plane; width: 0.5; height: 0.15;"
           material="color: #000000"
-          position="0 0.35 0.2"
-          text="value: TOOL LOADING!!; align: center; color: yellow; wrap-count: 10;">
+          position="0 0.15 0.2"
+          text="value: TOOL LOADING!!; align: center; color: yellow; wrap-count: 15;">
         </a-entity>)
     }else{
       return null
