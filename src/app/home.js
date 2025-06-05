@@ -45,7 +45,7 @@ let target_move_distance = 0
 const target_move_speed = (1000/1.8)
 let real_target = {x:0.4,y:0.5,z:-0.4}
 
-const j1_Correct_value = 0.0
+const j1_Correct_value = 180.0
 const j2_Correct_value = 0.0
 const j3_Correct_value = 0.0
 const j4_Correct_value = 0.0
@@ -366,12 +366,12 @@ export default function Home(props) {
     //setTimeout(()=>{joint_slerp()},0)
     if(!props.viewer){
       const new_rotate = [
-        round(j1_rotate+j1_Correct_value,3),
-        round(j2_rotate+j2_Correct_value,3),
-        round(j3_rotate+j3_Correct_value,3),
-        round(j4_rotate+j4_Correct_value,3),
-        round(j5_rotate+j5_Correct_value,3),
-        round(j6_rotate+j6_Correct_value,3),
+        round(normalize180(j1_rotate+j1_Correct_value),3),
+        round(normalize180(j2_rotate+j2_Correct_value),3),
+        round(normalize180(j3_rotate+j3_Correct_value),3),
+        round(normalize180(j4_rotate+j4_Correct_value),3),
+        round(normalize180(j5_rotate+j5_Correct_value),3),
+        round(normalize180(j6_rotate+j6_Correct_value),3),
         round(j7_rotate,3)
       ]
       //set_rotate(new_rotate)
@@ -482,7 +482,7 @@ export default function Home(props) {
           }else if (topic == "control/"+robotIDRef.current){
             let data = JSON.parse(message.toString())
             if (data.joints != undefined) {
-              set_input_rotate(data.joints) // 同時に targetRef の変更も必要
+              //set_input_rotate(data.joints) // 同時に targetRef の変更も必要
                       // target 位置の計算！
                       // forward kinematics をすべき。。。
               // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
@@ -1095,7 +1095,7 @@ export default function Home(props) {
                 if(tool_current_value !== 1){
                   tool_change_value = 1
                   tool_current_value = 1
-                  set_toolName(toolNameList[1])
+                  set_toolName(toolNameList[1]) //"Gripper"
                   tool_load_operation = true
 
                   setTimeout(()=>{
@@ -1117,7 +1117,29 @@ export default function Home(props) {
                 if(tool_current_value !== 2){
                   tool_change_value = 2
                   tool_current_value = 2
-                  set_toolName(toolNameList[2])
+                  set_toolName(toolNameList[2]) //"vgc10-1"
+                  tool_load_operation = true
+
+                  setTimeout(()=>{
+                    tool_load_operation = false
+                    vrControllEnd()
+                    if(trigger_on){
+                      vrControllStart()
+                    }
+                    set_update((flg)=>!flg)
+                  },30000) // 30秒間は操作しない(暫定タイマー)
+                }else{
+                  vrControllEnd()
+                  if(trigger_on){
+                    vrControllStart()
+                  }
+                }
+              }else
+              if(tool_menu_idx === 2){
+                if(tool_current_value !== 3){
+                  tool_change_value = 3
+                  tool_current_value = 3
+                  set_toolName(toolNameList[3]) //"vgc10-4"
                   tool_load_operation = true
 
                   setTimeout(()=>{
@@ -1161,7 +1183,7 @@ export default function Home(props) {
                 if(save_thumbstickmoved === 0 && evt.detail.y !== 0){
                   if(evt.detail.y > 0){
                     tool_menu_idx = tool_menu_idx + 1
-                    if(tool_menu_idx >= 3) tool_menu_idx = 2
+                    if(tool_menu_idx >= 4) tool_menu_idx = 3
                   }else{
                     tool_menu_idx = tool_menu_idx - 1
                     if(tool_menu_idx < 0) tool_menu_idx = 0
@@ -1169,7 +1191,7 @@ export default function Home(props) {
                 }else
                 if(save_thumbstickmoved < 0 && evt.detail.y > 0){
                   tool_menu_idx = tool_menu_idx + 1
-                  if(tool_menu_idx >= 3) tool_menu_idx = 2
+                  if(tool_menu_idx >= 4) tool_menu_idx = 3
                 }else
                 if(save_thumbstickmoved > 0 && evt.detail.y < 0){
                   tool_menu_idx = tool_menu_idx - 1
@@ -1300,7 +1322,7 @@ export default function Home(props) {
   }
 
   const Toolmenu = (props)=> {
-    const button_pos_tbl = [0.35, 0.2, 0.05] 
+    const button_pos_tbl = [0.35, 0.2, 0.05, -0.1] 
     if(tool_menu_on){
       return(
         <a-entity position="0.5 0.5 -0.5">
@@ -1328,6 +1350,13 @@ export default function Home(props) {
             geometry="primitive: plane; width: 0.8; height: 0.1;"
             material="color: #2196F3"
             position={`0 ${button_pos_tbl[2]} 0.01`}
+            class="menu-button"
+            text="value: TOOL-3; align: center; color: white;">
+          </a-entity>
+          <a-entity
+            geometry="primitive: plane; width: 0.8; height: 0.1;"
+            material="color: #2196F3"
+            position={`0 ${button_pos_tbl[3]} 0.01`}
             class="menu-button"
             text="value: CANCEL; align: center; color: white;">
           </a-entity>
