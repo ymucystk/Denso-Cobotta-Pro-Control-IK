@@ -892,18 +892,7 @@ export default function Home(props) {
   }
 
   const normalize180 = (angle)=>{
-    if(Math.abs(angle) <= 180){
-      return angle
-    }
-    const amari = angle % 180
-    if(amari === 0){
-      return amari
-    }else
-    if(amari < 0){
-      return (180 + amari)
-    }else{
-      return (-180 + amari)
-    }
+    return ((angle + 180) % 360 + 360) % 360 - 180
   }
 
   const toAngle = (radian)=>{
@@ -1246,13 +1235,13 @@ export default function Home(props) {
             xrSession.requestAnimationFrame(onXRFrameMQTT);
 
             if(!props.viewer){
-              // ここでカメラ位置を変更します
               set_c_pos_x(0)
-              set_c_pos_y(-0.6)
-              set_c_pos_z(0.95)
+              set_c_pos_y(-0.7) //ロボット設置高さ
+              set_c_pos_z(1.2) //ロボットの設置位置からの前後距離
               set_c_deg_x(0)
-              set_c_deg_y(0)
+              set_c_deg_y(0)  //カメラのデフォルトの向きを反転
               set_c_deg_z(0)
+              //ＶＲモード時のカメラ位置と角度は変更不可（座標はＶＲ内ワールド座標）
             }
             
           });
@@ -1435,6 +1424,7 @@ const Assets = (props)=>{
       <a-asset-items id="j7" src={`${path}link7.gltf`} ></a-asset-items>
       <a-asset-items id="j8_r" src={`${path}link8_r.gltf`} ></a-asset-items>
       <a-asset-items id="j8_l" src={`${path}link8_l.gltf`} ></a-asset-items>
+      <a-asset-items id="wingman" src={`${path}wingman.gltf`} ></a-asset-items>
       <a-asset-items id="vgc10-1" src={`${path}gripper_vgc10_1.gltf`} ></a-asset-items>
       <a-asset-items id="vgc10-4" src={`${path}gripper_vgc10_4.gltf`} ></a-asset-items>
     </a-assets>
@@ -1485,33 +1475,39 @@ const Model = (props)=>{
 
 const Model_Tool = (props)=>{
   const {j7_rotate, joint_pos:{j7:j7pos}, cursor_vis, box_vis, edit_pos} = props
-  const Spacer = 0.01
-  const Toolpos = [j7pos,{x:0,y:0,z:0.16+Spacer},{x:0,y:0,z:0.1712+Spacer},{x:0,y:0,z:0.1712+Spacer}]
+  const Spacer = 0.03
+  const Toolpos = [j7pos,{x:0,y:0,z:0.01725},{x:0,y:0,z:0.02845},{x:0,y:0,z:0.02845}]
   const p16pos = [j7pos,{...j7pos,z:j7pos.z+0.12+Spacer},{...j7pos,z:j7pos.z+0.16+Spacer},{...j7pos,z:j7pos.z+0.10+Spacer}]
   const x = 36/90
   const finger_pos = ((j7_rotate*x) / 1000)+0.0004
-  const j8_r_pos = { x: finger_pos, y:0, z:0.27+Spacer }
-  const j8_1_pos = { x: -finger_pos, y:0, z:0.27+Spacer }
+  const j8_r_pos = { x: finger_pos, y:0, z:0.11 }
+  const j8_1_pos = { x: -finger_pos, y:0, z:0.11 }
+  const wingman_spacer = {x:0, y:0, z:0.17275 }
 
   const return_table = [
     <>
       <Cursor3dp j_id="16" pos={p16pos[0]} visible={cursor_vis}/>
       <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[0])} visible={`${box_vis}`}></a-box>
     </>,
-    <>
-      <a-entity gltf-model="#j7" position={edit_pos(Toolpos[1])}></a-entity>
-      <a-entity gltf-model="#j8_r" position={edit_pos(j8_r_pos)}></a-entity>
-      <a-entity gltf-model="#j8_l" position={edit_pos(j8_1_pos)}></a-entity>
+    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
+      <a-entity gltf-model="#j7" position={edit_pos(Toolpos[1])}>
+        <a-entity gltf-model="#j8_r" position={edit_pos(j8_r_pos)}></a-entity>
+        <a-entity gltf-model="#j8_l" position={edit_pos(j8_1_pos)}></a-entity>
+      </a-entity>
       <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[1])} visible={`${box_vis}`}></a-box>
       <Cursor3dp j_id="16" pos={p16pos[1]} visible={cursor_vis}/>
-    </>,
-    <a-entity gltf-model="#vgc10-1" position={edit_pos(Toolpos[2])} rotation={`0 0 0`}>
-      <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${box_vis}`}></a-box>
-      <Cursor3dp j_id="16" pos={p16pos[2]} visible={cursor_vis}/>
     </a-entity>,
-    <a-entity gltf-model="#vgc10-4" position={edit_pos(Toolpos[3])} rotation={`0 0 0`}>
-      <Cursor3dp j_id="16" pos={p16pos[3]} visible={cursor_vis}/>
-      <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
+    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
+      <a-entity gltf-model="#vgc10-1" position={edit_pos(Toolpos[2])} rotation={`0 0 0`}>
+        <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${box_vis}`}></a-box>
+        <Cursor3dp j_id="16" pos={p16pos[2]} visible={cursor_vis}/>
+      </a-entity>
+    </a-entity>,
+    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
+      <a-entity gltf-model="#vgc10-4" position={edit_pos(Toolpos[3])} rotation={`0 0 0`}>
+        <Cursor3dp j_id="16" pos={p16pos[3]} visible={cursor_vis}/>
+        <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
+      </a-entity>
     </a-entity>
   ]
   const {toolNameList, toolName} = props
