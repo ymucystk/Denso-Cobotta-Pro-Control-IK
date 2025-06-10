@@ -367,7 +367,7 @@ export default function Home(props) {
     //setTimeout(()=>{joint_slerp()},0)
     if(!props.viewer){
       const new_rotate = [
-        round(normalize180(j1_rotate+j1_Correct_value),3),
+        round(normalize180_2(j1_rotate+j1_Correct_value),3),
         round(normalize180(j2_rotate+j2_Correct_value),3),
         round(normalize180(j3_rotate+j3_Correct_value),3),
         round(normalize180(j4_rotate+j4_Correct_value),3),
@@ -377,6 +377,7 @@ export default function Home(props) {
       ]
       //set_rotate(new_rotate)
       rotateRef.current = [...new_rotate]
+      console.log("Real Rotate:",new_rotate)
     }
   }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
 
@@ -461,10 +462,12 @@ export default function Home(props) {
   React.useEffect(() => {
     if (typeof window.mqttClient === 'undefined') {
       //サブスクライブするトピックの登録
+      console.log("Start connectMQTT!!")
       window.mqttClient = connectMQTT();
       subscribeMQTT([
         MQTT_DEVICE_TOPIC
       ]);
+      console.log("Subscribe:",MQTT_DEVICE_TOPIC);
       //        MQTT_CTRL_TOPIC  // MQTT Version5 なので、 noLocal が効くはず
 
       if(props.viewer){
@@ -487,6 +490,7 @@ export default function Home(props) {
                       // target 位置の計算！
                       // forward kinematics をすべき。。。
               // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
+              console.log("Viewer!!!", data.joints)
               requestAnimationFrame(()=>{
                 const wpos = new THREE.Vector3();
                 targetRef.current.getWorldPosition(wpos);              
@@ -499,7 +503,7 @@ export default function Home(props) {
             }
           }
         })
-      }else{
+      }else{ // not viewer
         //自分向けメッセージサブスクライブ処理
         window.mqttClient.on('message', (topic, message) => {
           if (topic === MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
@@ -527,6 +531,8 @@ export default function Home(props) {
             // target 位置の計算！
             // forward kinematics をすべき。。。
             // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
+
+            /*
             requestAnimationFrame(()=>{
               requestAnimationFrame(()=>{
                 const inp_rotate = {j1_rotate:joints[0],j2_rotate:joints[1],j3_rotate:joints[2],
@@ -546,11 +552,13 @@ export default function Home(props) {
                 set_j7_rotate(joints[6]) // 指用
               })
             })
-            window.setTimeout(()=>{
+            */
 
+            window.setTimeout(()=>{
+              console.log("Start to send movement!")
               receive_state = true; //
               publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
-            }, 500);
+            }, 1000);
           }
   
         })
@@ -896,6 +904,16 @@ export default function Home(props) {
     return ((angle + 180) % 360 + 360) % 360 - 180
   }
 
+  const normalize180_2 = (angle)=>{
+    return ((angle + 180) % 360 + 360) % 360 - 180;	  
+  }
+
+  const clip270 = (angle) =>{
+    if (angle > 270) return 270;
+    if (angle < -270) return -270;
+    return angle;
+  }
+
   const toAngle = (radian)=>{
     return normalize180(radian*(180/Math.PI))
   }
@@ -1228,7 +1246,7 @@ export default function Home(props) {
       }
     }
 
-    if ((mqttclient != null) && publish ) {// 状態を受信していないと、送信しない
+    if ((mqttclient != null) && publish && receive_state ) {// 状態を受信していないと、送信しない
       const addKey = {}
       if(tool_change_value !== undefined){
         addKey.tool_change = tool_change_value
