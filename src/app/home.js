@@ -100,7 +100,7 @@ export default function Home(props) {
   //const [rotate, set_rotate] = React.useState([0,0,0,0,0,0,0])  //出力用
   const rotateRef = React.useRef([0,0,0,0,0,0,0]); // ref を使って rotate を保持する
 
-  const [input_rotate, set_input_rotate] = React.useState([0,0,0,0,0,0,0])  //入力用
+  const [input_rotate, set_input_rotate] = React.useState([undefined,0,0,0,0,0,0])  //入力用
 
   const [p11_object,set_p11_object] = React.useState()
   const [p12_object,set_p12_object] = React.useState()
@@ -142,7 +142,7 @@ export default function Home(props) {
   const [dsp_message,set_dsp_message] = React.useState("")
 
   const toolNameList = ["No tool","Gripper","vgc10-1","vgc10-4","cutter","boxLiftUp"]
-  const [toolName,set_toolName] = React.useState(toolNameList[0])
+  const [toolName,set_toolName] = React.useState(toolNameList[1])
 
   const [target,set_target_org] = React.useState(real_target)
   const [p15_16_len,set_p15_16_len] = React.useState(joint_pos.j7.z+0.14)
@@ -366,7 +366,7 @@ export default function Home(props) {
     }
     //setTimeout(()=>{joint_slerp()},0)
       const new_rotate = [
-        round(normalize180_2(j1_rotate+j1_Correct_value),3),
+        round(normalize180(j1_rotate+j1_Correct_value),3),
         round(normalize180(j2_rotate+j2_Correct_value),3),
         round(normalize180(j3_rotate+j3_Correct_value),3),
         round(normalize180(j4_rotate+j4_Correct_value),3),
@@ -380,59 +380,28 @@ export default function Home(props) {
   }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
 
   React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[0]-j1_Correct_value))
-      set_j1_rotate(rotate_value)
+    if(input_rotate[0] === undefined) return
+    const robot_rotate = {
+      j1_rotate:round(normalize180(input_rotate[0]-j1_Correct_value)),
+      j2_rotate:round(normalize180(input_rotate[1]-j2_Correct_value)),
+      j3_rotate:round(normalize180(input_rotate[2]-j3_Correct_value)),
+      j4_rotate:round(normalize180(input_rotate[3]-j4_Correct_value)),
+      j5_rotate:round(normalize180(input_rotate[4]-j5_Correct_value)),
+      j6_rotate:round(normalize180(input_rotate[5]-j6_Correct_value))
     }
-  }, [input_rotate[0]])
+    console.log("rec_joints",robot_rotate)
+    const {target_pos, wrist_euler} = getReaultPosRot(robot_rotate) // これで target_pos が計算される
+    set_wrist_rot_org(
+      {x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))}
+    ) // 手首の相対
+    set_target_org((vr)=>{
+          target_move_distance = distance({x:vr.x,y:vr.y,z:vr.z},{x:target_pos.x,y:target_pos.y,z:target_pos.z}) // 位置の差分を計算
+          vr.x = round(target_pos.x); vr.y = round(target_pos.y); vr.z = round(target_pos.z);
+          return vr
+    }); // これだと場所だけ (手首の相対もやるべし！)
+    set_j7_rotate(input_rotate[6]) // 指用
 
-  React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[1]-j2_Correct_value))
-      set_j2_rotate(rotate_value)
-    }
-  }, [input_rotate[1]])
-
-  React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[2]-j3_Correct_value))
-      set_j3_rotate(rotate_value)
-    }
-  }, [input_rotate[2]])
-
-  React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[3]-j4_Correct_value))
-      set_j4_rotate(rotate_value)
-    }
-  }, [input_rotate[3]])
-
-  React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[4]-j5_Correct_value))
-      set_j5_rotate(rotate_value)
-    }
-  }, [input_rotate[4]])
-
-  React.useEffect(() => {
-    if (props.viewer && rendered) {
-      target_move_distance = 0.1
-      const rotate_value = round(normalize180(input_rotate[5]-j6_Correct_value))
-      set_j6_rotate(rotate_value)
-    }
-  }, [input_rotate[5]])
-
-  React.useEffect(() => {
-    if(props.viewer && rendered) {
-      const rotate_value = input_rotate[6]
-      set_j7_rotate(rotate_value)
-    }
-  }, [input_rotate[6]])
+  },[input_rotate[0],input_rotate[1],input_rotate[2],input_rotate[3],input_rotate[4],input_rotate[5],input_rotate[6]])
 
   const get_j5_quaternion = (rot_x=wrist_rot.x,rot_y=wrist_rot.y,rot_z=wrist_rot.z)=>{
     return new THREE.Quaternion().setFromEuler(
@@ -498,6 +467,7 @@ export default function Home(props) {
             if (data.joints != undefined) {
               // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
               console.log("Viewer!!!", data.joints)
+              set_input_rotate([...data.joints])
 //              // to Yamauchiさん、まずここを動くようにしてください。
               //set_input_rotate(data.joints) // 同時に targetRef の変更も必要
                       // target 位置の計算！
@@ -539,6 +509,7 @@ export default function Home(props) {
             // ここで、joints の安全チェックをすべき
             mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) // これでロボット姿勢の受信は終わり
             console.log("receive joints",joints)
+            set_input_rotate([...joints])
 
             // YAMAUCHI　さんここを作ってください！
 
@@ -781,7 +752,7 @@ export default function Home(props) {
       set_j3_rotate(round(result_rotate.j3_rotate))
       set_j4_rotate(round(result_rotate.j4_rotate))
       set_j5_rotate(round(result_rotate.j5_rotate))
-      set_j6_rotate(normalize180(round(result_rotate.j6_rotate + tool_rotate)))
+      set_j6_rotate(round(normalize180(result_rotate.j6_rotate + tool_rotate)))
       real_target = {...save_target}
     }else{
       set_target_error(true)
@@ -918,10 +889,6 @@ export default function Home(props) {
 
   const normalize180 = (angle)=>{
     return ((angle + 180) % 360 + 360) % 360 - 180
-  }
-
-  const normalize180_2 = (angle)=>{
-    return ((angle + 180) % 360 + 360) % 360 - 180;	  
   }
 
   const clip270 = (angle) =>{
