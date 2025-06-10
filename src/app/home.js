@@ -4,7 +4,7 @@ import * as React from 'react'
 const THREE = window.AFRAME.THREE; // これで　AFRAME と　THREEを同時に使える
 
 import Controller from './controller.js'
-import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT } from '../lib/MetaworkMQTT'
+import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT, codeType } from '../lib/MetaworkMQTT'
 
 const MQTT_REQUEST_TOPIC = "mgr/request";
 const MQTT_DEVICE_TOPIC = "dev/"+idtopic;
@@ -365,7 +365,6 @@ export default function Home(props) {
       requestAnimationFrame(joint_slerp)
     }
     //setTimeout(()=>{joint_slerp()},0)
-    if(!props.viewer){
       const new_rotate = [
         round(normalize180_2(j1_rotate+j1_Correct_value),3),
         round(normalize180(j2_rotate+j2_Correct_value),3),
@@ -377,8 +376,7 @@ export default function Home(props) {
       ]
       //set_rotate(new_rotate)
       rotateRef.current = [...new_rotate]
-      console.log("Real Rotate:",new_rotate)
-    }
+//      console.log("Real Rotate:",new_rotate)
   }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
 
   React.useEffect(() => {
@@ -458,19 +456,31 @@ export default function Home(props) {
   },[do_target_update])
 
 // MetaworkMQTT protocol
+  
+// MQTT connected request
+  const requestRobot = (mqclient) =>{
+        // 制御対象のロボットを探索（表示された時点で実施）
+        const requestInfo = {
+          devId: idtopic, // 自分のID
+          type: codeType,  //  コードタイプ（Request でマッチングに利用)
+        }
+        console.log("Publish request",requestInfo)
+        publishMQTT(MQTT_REQUEST_TOPIC, JSON.stringify(requestInfo));
+  }
+
   // register to MQTT
   React.useEffect(() => {
     if (typeof window.mqttClient === 'undefined') {
       //サブスクライブするトピックの登録
       console.log("Start connectMQTT!!")
-      window.mqttClient = connectMQTT();
+      window.mqttClient = connectMQTT(requestRobot);
       subscribeMQTT([
         MQTT_DEVICE_TOPIC
       ]);
-      console.log("Subscribe:",MQTT_DEVICE_TOPIC);
+//      console.log("Subscribe:",MQTT_DEVICE_TOPIC);
       //        MQTT_CTRL_TOPIC  // MQTT Version5 なので、 noLocal が効くはず
 
-      if(props.viewer){
+      if(props.viewer){// Viewer の場合
         //サブスクライブ時の処理
         window.mqttClient.on('message', (topic, message) => {
           if (topic == MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
@@ -486,12 +496,14 @@ export default function Home(props) {
           }else if (topic == "control/"+robotIDRef.current){
             let data = JSON.parse(message.toString())
             if (data.joints != undefined) {
+              // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
+              console.log("Viewer!!!", data.joints)
+//              // to Yamauchiさん、まずここを動くようにしてください。
               //set_input_rotate(data.joints) // 同時に targetRef の変更も必要
                       // target 位置の計算！
                       // forward kinematics をすべき。。。
-              // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
-              console.log("Viewer!!!", data.joints)
-              requestAnimationFrame(()=>{
+
+/*              requestAnimationFrame(()=>{ // 動かない。。。
                 const wpos = new THREE.Vector3();
                 targetRef.current.getWorldPosition(wpos);              
                 set_target_org((vr)=>{
@@ -500,6 +512,7 @@ export default function Home(props) {
                               return vr
                           }); // これだと場所だけ
               })
+     */
             }
           }
         })
@@ -526,6 +539,9 @@ export default function Home(props) {
             // ここで、joints の安全チェックをすべき
             mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) // これでロボット姿勢の受信は終わり
             console.log("receive joints",joints)
+
+            // YAMAUCHI　さんここを作ってください！
+
             //set_input_rotate(joints)
             // すぐに制御を開始したくないので、少し待ってから送付
             // target 位置の計算！
@@ -1190,20 +1206,13 @@ export default function Home(props) {
       AFRAME.registerComponent('scene', {
         schema: {type: 'string', default: ''},
         init: function () {
-          //this.el.enterVR();
+          if (props.viewer){// viewer は VR モードじゃなくても requestする
+            window.requestAnimationFrame(onAnimationMQTT);
+          }
           this.el.addEventListener('enter-vr', ()=>{
             vrModeRef.current = true;
 //            set_vr_mode(true)
             console.log('enter-vr')
-
-            if(!props.viewer){
-              // VR mode に入ったタイミングで、利用したい robot のID を取得すべし
-              const requestInfo = {
-                devId: idtopic, // 自分のID
-                type: "cobotta-pro-real",  // とりあえず　Browser の Viwer が欲しい
-              }
-              publishMQTT(MQTT_REQUEST_TOPIC, JSON.stringify(requestInfo));
-            }
 
             // ここからMQTT Start
             //let xrSession = this.el.renderer.xr.getSession();
@@ -1234,6 +1243,19 @@ export default function Home(props) {
       });
     }
   }, [])
+
+  
+  // ロボット姿勢を定常的に送信 (for Viewer)
+  const onAnimationMQTT = (time) =>{
+    const robot_state_json = JSON.stringify({
+      time: time,
+      joints: rotateRef.current,
+      grip: gripRef.current
+//        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
+    });
+    publishMQTT(MQTT_ROBOT_STATE_TOPIC+idtopic , robot_state_json);
+    window.requestAnimationFrame(onAnimationMQTT);
+  }
 
   // XR のレンダリングフレーム毎に MQTTを呼び出したい
   const onXRFrameMQTT = (time, frame) => {

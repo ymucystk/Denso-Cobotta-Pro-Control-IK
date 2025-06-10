@@ -1,9 +1,11 @@
 "use client";
 import mqtt from 'mqtt'
-import {version} from '../../package.json' // load version
+import package_info from '../../package.json' // load version
 
-
-//const MetworkMQTT_URL = "https://sora2.uclab.jp/menroll"; 
+console.log("Package_Info",package_info.name, package_info.version);
+// package.json からバージョン情報、ソフトウェア名を取得
+export const codeType = package_info.name; // software name
+const version = package_info.version; // version number
 
 const MQTT_BROKER_URL = "wss://sora2.uclab.jp/mqws"; // For Nagoya-U UCLab Development
 
@@ -14,7 +16,7 @@ export var mqttclient = null;
 export var idtopic = userUUID;
 
 // 本来であれば、デバイスIDなどを設定したい。（しかしブラウザは厳しい。Cookieでやるべき）
-export const connectMQTT = () => {
+export const connectMQTT = (callback) => {
     if (mqttclient == null) {
         const client = new mqtt.connect(MQTT_BROKER_URL, {protocolVersion: 5}); // noLocal を指定するため Version5 で接続
         client.on("connect", () => {
@@ -24,7 +26,11 @@ export const connectMQTT = () => {
             var devType = "browser";
             if(window.location.pathname.endsWith("/viewer/")) {
                 devType = "robot";
+            }else if(window.location.pathname.endsWith("/simrobot/")) {
+                devType = "simulator";
             }
+
+            // 以下はレジストレーション手続き
             const info = {
                 date: date.toLocaleString(),
                 device: {
@@ -35,7 +41,7 @@ export const connectMQTT = () => {
                     cookie: navigator.cookieEnabled
                 },
                 devType: devType,
-                type: 'cobotta-pro',
+                type: package_info.name,
                 version: version,
                 devId: userUUID
             }
@@ -48,6 +54,7 @@ export const connectMQTT = () => {
                     console.error('MQTT Subscription error: ', err);
                 }
             });
+            callback && callback(client);
 
         });
         client.on('error', function (err) {
