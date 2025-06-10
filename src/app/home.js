@@ -77,6 +77,7 @@ let tool_current_value = undefined
 let tool_menu_on = false
 let tool_load_operation = false
 let tool_menu_idx = 0
+const tool_menu_list = ["Gripper","vgc10-1","cutter","boxLiftUp"]
 let save_tool_menu_idx = 0
 let save_thumbstickmoved = 0
 
@@ -140,7 +141,7 @@ export default function Home(props) {
   const [wrist_degree,set_wrist_degree] = React.useState({direction:0,angle:0})
   const [dsp_message,set_dsp_message] = React.useState("")
 
-  const toolNameList = ["No tool","Gripper","vgc10-1","vgc10-4"]
+  const toolNameList = ["No tool","Gripper","vgc10-1","vgc10-4","cutter","boxLiftUp"]
   const [toolName,set_toolName] = React.useState(toolNameList[0])
 
   const [target,set_target_org] = React.useState(real_target)
@@ -1079,56 +1080,13 @@ export default function Home(props) {
           });
 
           this.el.addEventListener('thumbstickdown', (evt) => {
+            if(tool_load_operation) return
             if(tool_menu_on){
-              if(tool_menu_idx === 0){
-                if(tool_current_value !== 1){
-                  tool_change_value = 1
-                  tool_current_value = 1
-                  set_toolName(toolNameList[1]) //"Gripper"
-                  tool_load_operation = true
-
-                  setTimeout(()=>{
-                    tool_load_operation = false
-                    vrControllEnd()
-                    if(trigger_on){
-                      vrControllStart()
-                    }
-                    set_update((flg)=>!flg)
-                  },30000) // 30秒間は操作しない(暫定タイマー)
-                }else{
-                  vrControllEnd()
-                  if(trigger_on){
-                    vrControllStart()
-                  }
-                }
-              }else
-              if(tool_menu_idx === 1){
-                if(tool_current_value !== 2){
-                  tool_change_value = 2
-                  tool_current_value = 2
-                  set_toolName(toolNameList[2]) //"vgc10-1"
-                  tool_load_operation = true
-
-                  setTimeout(()=>{
-                    tool_load_operation = false
-                    vrControllEnd()
-                    if(trigger_on){
-                      vrControllStart()
-                    }
-                    set_update((flg)=>!flg)
-                  },30000) // 30秒間は操作しない(暫定タイマー)
-                }else{
-                  vrControllEnd()
-                  if(trigger_on){
-                    vrControllStart()
-                  }
-                }
-              }else
-              if(tool_menu_idx === 2){
-                if(tool_current_value !== 3){
-                  tool_change_value = 3
-                  tool_current_value = 3
-                  set_toolName(toolNameList[3]) //"vgc10-4"
+              if(tool_menu_idx < tool_menu_list.length){
+                if((tool_menu_idx + 1) !== tool_current_value){
+                  tool_change_value = (tool_menu_idx + 1)
+                  tool_current_value = (tool_menu_idx + 1)
+                  set_toolName(tool_menu_list[tool_menu_idx])
                   tool_load_operation = true
 
                   setTimeout(()=>{
@@ -1172,7 +1130,7 @@ export default function Home(props) {
                 if(save_thumbstickmoved === 0 && evt.detail.y !== 0){
                   if(evt.detail.y > 0){
                     tool_menu_idx = tool_menu_idx + 1
-                    if(tool_menu_idx >= 4) tool_menu_idx = 3
+                    if(tool_menu_idx >= (tool_menu_list.length+1)) tool_menu_idx = (tool_menu_list.length)
                   }else{
                     tool_menu_idx = tool_menu_idx - 1
                     if(tool_menu_idx < 0) tool_menu_idx = 0
@@ -1180,7 +1138,7 @@ export default function Home(props) {
                 }else
                 if(save_thumbstickmoved < 0 && evt.detail.y > 0){
                   tool_menu_idx = tool_menu_idx + 1
-                  if(tool_menu_idx >= 4) tool_menu_idx = 3
+                  if(tool_menu_idx >= (tool_menu_list.length+1)) tool_menu_idx = (tool_menu_list.length)
                 }else
                 if(save_thumbstickmoved > 0 && evt.detail.y < 0){
                   tool_menu_idx = tool_menu_idx - 1
@@ -1236,7 +1194,7 @@ export default function Home(props) {
 
             if(!props.viewer){
               set_c_pos_x(0)
-              set_c_pos_y(-0.7) //ロボット設置高さ
+              set_c_pos_y(-0.775) //ロボット設置高さ
               set_c_pos_z(1.2) //ロボットの設置位置からの前後距離
               set_c_deg_x(0)
               set_c_deg_y(0)  //カメラのデフォルトの向きを反転
@@ -1311,7 +1269,8 @@ export default function Home(props) {
   }
 
   const Toolmenu = (props)=> {
-    const button_pos_tbl = [0.35, 0.2, 0.05, -0.1] 
+    const refpos = 0.35
+    const interval = 0.15
     if(tool_menu_on){
       return(
         <a-entity position="0.5 0.5 -0.5">
@@ -1319,33 +1278,23 @@ export default function Home(props) {
           <a-entity
             geometry="primitive: plane; width: 0.81; height: 0.11;"
             material="color: #00ff00;"
-            position={`0 ${button_pos_tbl[tool_menu_idx]} 0.01`}>
+            position={`0 ${refpos - (tool_menu_idx*interval)} 0.009`}>
           </a-entity>
+          { tool_menu_list.map((tool, idx) => {
+            return(
+              <a-entity key={idx}
+                geometry="primitive: plane; width: 0.8; height: 0.1;"
+                material="color: #2196F3"
+                position={`0 ${refpos - (idx*interval)} 0.01`}
+                class="menu-button"
+                text={`value: TOOL-${idx+1}; align: center; color: white;`}>
+              </a-entity>
+            )
+          })}
           <a-entity
             geometry="primitive: plane; width: 0.8; height: 0.1;"
             material="color: #2196F3"
-            position={`0 ${button_pos_tbl[0]} 0.01`}
-            class="menu-button"
-            text="value: TOOL-1; align: center; color: white;">
-          </a-entity>
-          <a-entity
-            geometry="primitive: plane; width: 0.8; height: 0.1;"
-            material="color: #2196F3"
-            position={`0 ${button_pos_tbl[1]} 0.01`}
-            class="menu-button"
-            text="value: TOOL-2; align: center; color: white;">
-          </a-entity>
-          <a-entity
-            geometry="primitive: plane; width: 0.8; height: 0.1;"
-            material="color: #2196F3"
-            position={`0 ${button_pos_tbl[2]} 0.01`}
-            class="menu-button"
-            text="value: TOOL-3; align: center; color: white;">
-          </a-entity>
-          <a-entity
-            geometry="primitive: plane; width: 0.8; height: 0.1;"
-            material="color: #2196F3"
-            position={`0 ${button_pos_tbl[3]} 0.01`}
+            position={`0 ${refpos - (tool_menu_list.length*interval)} 0.01`}
             class="menu-button"
             text="value: CANCEL; align: center; color: white;">
           </a-entity>
@@ -1427,6 +1376,8 @@ const Assets = (props)=>{
       <a-asset-items id="wingman" src={`${path}wingman.gltf`} ></a-asset-items>
       <a-asset-items id="vgc10-1" src={`${path}gripper_vgc10_1.gltf`} ></a-asset-items>
       <a-asset-items id="vgc10-4" src={`${path}gripper_vgc10_4.gltf`} ></a-asset-items>
+      <a-asset-items id="cutter" src={`${path}ss-cutter2-end.gltf`} ></a-asset-items>
+      <a-asset-items id="boxLiftUp" src={`${path}sanko_box_lift_up_end.gltf`} ></a-asset-items>
     </a-assets>
   )
 }
@@ -1476,8 +1427,9 @@ const Model = (props)=>{
 const Model_Tool = (props)=>{
   const {j7_rotate, joint_pos:{j7:j7pos}, cursor_vis, box_vis, edit_pos} = props
   const Spacer = 0.03
-  const Toolpos = [j7pos,{x:0,y:0,z:0.01725},{x:0,y:0,z:0.02845},{x:0,y:0,z:0.02845}]
-  const p16pos = [j7pos,{...j7pos,z:j7pos.z+0.12+Spacer},{...j7pos,z:j7pos.z+0.16+Spacer},{...j7pos,z:j7pos.z+0.10+Spacer}]
+  const Toolpos = [j7pos,{x:0,y:0,z:0.01725},{x:0,y:0,z:0.02845},{x:0,y:0,z:0.02845},{x:0,y:0,z:0.01725},{x:0,y:0,z:0.0218}]
+  const p16pos = [j7pos,{...j7pos,z:j7pos.z+0.12+Spacer},{...j7pos,z:j7pos.z+0.16+Spacer},
+    {...j7pos,z:j7pos.z+0.10+Spacer},{...j7pos,z:j7pos.z+0.02+Spacer},{...j7pos,z:j7pos.z+0+Spacer}]
   const x = 36/90
   const finger_pos = ((j7_rotate*x) / 1000)+0.0004
   const j8_r_pos = { x: finger_pos, y:0, z:0.11 }
@@ -1506,6 +1458,20 @@ const Model_Tool = (props)=>{
     <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
       <a-entity gltf-model="#vgc10-4" position={edit_pos(Toolpos[3])} rotation={`0 0 0`}>
         <Cursor3dp j_id="16" pos={p16pos[3]} visible={cursor_vis}/>
+        <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
+      </a-entity>
+    </a-entity>,
+    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
+      <a-entity gltf-model="#cutter" position={edit_pos(Toolpos[4])} rotation={`0 0 0`}>
+        <a-entity></a-entity>
+        <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
+        <Cursor3dp j_id="16" pos={p16pos[4]} visible={cursor_vis}/>
+      </a-entity>
+    </a-entity>,
+    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
+      <a-entity gltf-model="#boxLiftUp" position={edit_pos(Toolpos[5])} rotation={`0 0 0`}>
+        <a-entity></a-entity>
+        <Cursor3dp j_id="16" pos={p16pos[5]} visible={cursor_vis}/>
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
       </a-entity>
     </a-entity>
