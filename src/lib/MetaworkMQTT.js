@@ -16,7 +16,7 @@ export var mqttclient = null;
 export var idtopic = userUUID;
 
 // 本来であれば、デバイスIDなどを設定したい。（しかしブラウザは厳しい。Cookieでやるべき）
-export const connectMQTT = () => {
+export const connectMQTT = (callback) => {
     if (mqttclient == null) {
         const client = new mqtt.connect(MQTT_BROKER_URL, {protocolVersion: 5}); // noLocal を指定するため Version5 で接続
         client.on("connect", () => {
@@ -54,6 +54,7 @@ export const connectMQTT = () => {
                     console.error('MQTT Subscription error: ', err);
                 }
             });
+            callback && callback(client);
 
         });
         client.on('error', function (err) {
