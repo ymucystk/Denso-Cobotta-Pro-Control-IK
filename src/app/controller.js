@@ -5,7 +5,7 @@ import "./controller.css";
 export default function Controller(props) {
   const {toolNameList, toolName} = props
   const {target} = props
-  const {j1_rotate, j2_rotate, j3_rotate, j4_rotate, j5_rotate, j6_rotate, j7_rotate} = props
+  const {j1_rotate, j2_rotate, j3_rotate, j4_rotate, j5_rotate, j6_rotate_org:j6_rotate, j7_rotate} = props
   const {c_pos_x, c_pos_y, c_pos_z} = props
   const {c_deg_x, c_deg_y, c_deg_z} = props
   const {wrist_rot} = props
@@ -62,7 +62,7 @@ export default function Controller(props) {
     if(Math.abs(value)===180){
       value = value * -1
     }
-    props.set_j6_rotate(value)
+    props.set_j6_rotate_org(value)
   }
 
   const set_j7_rotate = (e)=>{

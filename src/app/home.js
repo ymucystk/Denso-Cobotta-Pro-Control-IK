@@ -57,6 +57,7 @@ let j2_error = false
 let j3_error = false
 let j4_error = false
 let j5_error = false
+let j6_error = false
 
 let tickprev = 0
 let controller_object = new THREE.Object3D()
@@ -97,26 +98,28 @@ export default function Home(props) {
   const [j6_rotate,set_j6_rotate] = React.useState(0)
   const [j7_rotate,set_j7_rotate] = React.useState(0) //指用
 
+  const [j6_rotate_org,set_j6_rotate_org] = React.useState(0)
+
   //const [rotate, set_rotate] = React.useState([0,0,0,0,0,0,0])  //出力用
   const rotateRef = React.useRef([0,0,0,0,0,0,0]); // ref を使って rotate を保持する
 
   const [input_rotate, set_input_rotate] = React.useState([undefined,0,0,0,0,0,0])  //入力用
 
-  const [p11_object,set_p11_object] = React.useState()
-  const [p12_object,set_p12_object] = React.useState()
-  const [p13_object,set_p13_object] = React.useState()
-  const [p14_object,set_p14_object] = React.useState()
+  //const [p11_object,set_p11_object] = React.useState()
+  //const [p12_object,set_p12_object] = React.useState()
+  //const [p13_object,set_p13_object] = React.useState()
+  //const [p14_object,set_p14_object] = React.useState()
   const [p15_object,set_p15_object] = React.useState(new THREE.Object3D())
   const [p16_object,set_p16_object] = React.useState(new THREE.Object3D())
   const targetRef = React.useRef(null); // target 位置
 
-  const [p20_object,set_p20_object] = React.useState()
-  const [p21_object,set_p21_object] = React.useState()
-  const [p22_object,set_p22_object] = React.useState()
+  //const [p20_object,set_p20_object] = React.useState()
+  //const [p21_object,set_p21_object] = React.useState()
+  //const [p22_object,set_p22_object] = React.useState()
   const [p51_object,set_p51_object] = React.useState(new THREE.Object3D())
 
-  const [p15_pos,set_p15_pos] = React.useState({x:0,y:0,z:0})
-  const [p16_pos,set_p16_pos] = React.useState({x:0,y:0,z:0})
+  //const [p15_pos,set_p15_pos] = React.useState({x:0,y:0,z:0})
+  //const [p16_pos,set_p16_pos] = React.useState({x:0,y:0,z:0})
 
 //  const [trigger_on,set_trigger_on] = React.useState(false)
   const gripRef = React.useRef(false);
@@ -359,24 +362,68 @@ export default function Home(props) {
   }, [j6_rotate])
 
   React.useEffect(() => {
+    set_j6_rotate(round(normalize180(j6_rotate_org + tool_rotate)))
+  }, [tool_rotate,j6_rotate_org])
+
+  function shortestAngleDiffSigned(angle_1, angle_2) {
+    const wk_angle_1 = normalize180(angle_1)
+    const wk_angle_2 = normalize180(angle_2)
+    let diff = round(wk_angle_1 - wk_angle_2);
+    // -180〜180度の範囲に正規化
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+    return diff; // プラスならaはbより反時計回り、マイナスなら時計回り
+  }
+
+  const outRotateConv = (rotate)=>{
+    const base_rot = [rotate.j1_rotate,rotate.j2_rotate,rotate.j3_rotate,rotate.j4_rotate,rotate.j5_rotate,rotate.j6_rotate]
+    const Correct_value = [j1_Correct_value,j2_Correct_value,j3_Correct_value,j4_Correct_value,j5_Correct_value,j6_Correct_value]
+    const new_rot = base_rot.map((base, idx) => round(normalize180(base + Correct_value[idx])))
+    const diff = new_rot.map((rot,idx)=>shortestAngleDiffSigned(rot,rotateRef.current[idx]))
+    const result_rot = new_rot.map((rot,idx)=>{
+      const result_value = rotateRef.current[idx] + diff[idx]
+      if(Math.abs(result_value) < 360){
+        if(result_value >= 180){
+          return round((rot + 360) % 360)
+        }else if(result_value <= -180){
+          return round((rot - 360) % 360)
+        }
+      }
+      return round(result_value)
+    })
+    return {
+      j1_rotate:result_rot[0],
+      j2_rotate:result_rot[1],
+      j3_rotate:result_rot[2],
+      j4_rotate:result_rot[3],
+      j5_rotate:result_rot[4],
+      j6_rotate:result_rot[5]
+    }
+  }
+
+  React.useEffect(() => {
     if(xrSession !== undefined){
       xrSession.requestAnimationFrame(joint_slerp)
     }else{
       requestAnimationFrame(joint_slerp)
     }
     //setTimeout(()=>{joint_slerp()},0)
-      const new_rotate = [
-        round(normalize180(j1_rotate+j1_Correct_value),3),
-        round(normalize180(j2_rotate+j2_Correct_value),3),
-        round(normalize180(j3_rotate+j3_Correct_value),3),
-        round(normalize180(j4_rotate+j4_Correct_value),3),
-        round(normalize180(j5_rotate+j5_Correct_value),3),
-        round(normalize180(j6_rotate+j6_Correct_value),3),
-        round(j7_rotate,3)
-      ]
-      //set_rotate(new_rotate)
-      rotateRef.current = [...new_rotate]
-//      console.log("Real Rotate:",new_rotate)
+
+    const conv_result = outRotateConv(
+      {j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate:normalize180(j6_rotate+tool_rotate)})
+
+    const new_rotate = [
+      conv_result.j1_rotate,
+      conv_result.j2_rotate,
+      conv_result.j3_rotate,
+      conv_result.j4_rotate,
+      conv_result.j5_rotate,
+      conv_result.j6_rotate,
+      round(j7_rotate)
+    ]
+    //set_rotate(new_rotate)
+    rotateRef.current = [...new_rotate]
+    console.log("Real Rotate:",new_rotate)
   }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
 
   React.useEffect(() => {
@@ -679,6 +726,7 @@ export default function Home(props) {
     j3_error = false
     j4_error = false
     j5_error = false
+    j6_error = false
 
     for(let i=0; i<10; i=i+1){
       set_test_pos({...shift_target})
@@ -728,20 +776,30 @@ export default function Home(props) {
     }
 
     if(dsp_message === ""){
-      const wk_j2_rotate = result_rotate.j2_rotate + j2_Correct_value
-      if(wk_j2_rotate<-150 || wk_j2_rotate>150){
-        dsp_message = `j2_rotate 指定可能範囲外！:(${result_rotate.j2_rotate})`
+      const check_result = outRotateConv(result_rotate)
+      if(check_result.j1_rotate<-270 || check_result.j1_rotate>270){
+        dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
+        j1_error = true
+      }
+      if(check_result.j2_rotate<-150 || check_result.j2_rotate>150){
+        dsp_message = `j2_rotate 指定可能範囲外！:(${check_result.j2_rotate})`
         j2_error = true
       }
-      const wk_j3_rotate = result_rotate.j3_rotate + j3_Correct_value
-      if(wk_j3_rotate<-150 || wk_j3_rotate>150){
-        dsp_message = `j3_rotate 指定可能範囲外！:(${result_rotate.j3_rotate})`
+      if(check_result.j3_rotate<-150 || check_result.j3_rotate>150){
+        dsp_message = `j3_rotate 指定可能範囲外！:(${check_result.j3_rotate})`
         j3_error = true
       }
-      const wk_j5_rotate = result_rotate.j5_rotate + j5_Correct_value
-      if(wk_j5_rotate<-150 || wk_j5_rotate>150){
-        dsp_message = `j5_rotate 指定可能範囲外！:(${result_rotate.j5_rotate})`
+      if(check_result.j4_rotate<-270 || check_result.j4_rotate>270){
+        dsp_message = `j4_rotate 指定可能範囲外！:(${check_result.j4_rotate})`
+        j4_error = true
+      }
+      if(check_result.j5_rotate<-150 || check_result.j5_rotate>150){
+        dsp_message = `j5_rotate 指定可能範囲外！:(${check_result.j5_rotate})`
         j5_error = true
+      }
+      if(check_result.j6_rotate<-360 || check_result.j6_rotate>360){
+        dsp_message = `j6_rotate 指定可能範囲外！:(${check_result.j6_rotate})`
+        j6_error = true
       }
     }
 
@@ -752,7 +810,8 @@ export default function Home(props) {
       set_j3_rotate(round(result_rotate.j3_rotate))
       set_j4_rotate(round(result_rotate.j4_rotate))
       set_j5_rotate(round(result_rotate.j5_rotate))
-      set_j6_rotate(round(normalize180(result_rotate.j6_rotate + tool_rotate)))
+      set_j6_rotate_org(round(result_rotate.j6_rotate))
+      //set_j6_rotate(round(normalize180(result_rotate.j6_rotate + tool_rotate)))
       real_target = {...save_target}
     }else{
       set_target_error(true)
@@ -1017,16 +1076,16 @@ export default function Home(props) {
             object3D_table[5] = this.el.object3D
           }else
           if(this.data === 11){
-            set_p11_object(this.el.object3D)
+            //set_p11_object(this.el.object3D)
           }else
           if(this.data === 12){
-            set_p12_object(this.el.object3D)
+            //set_p12_object(this.el.object3D)
           }else
           if(this.data === 13){
-            set_p13_object(this.el.object3D)
+            //set_p13_object(this.el.object3D)
           }else
           if(this.data === 14){
-            set_p14_object(this.el.object3D)
+            //set_p14_object(this.el.object3D)
           }else
           if(this.data === 15){
             set_p15_object(this.el.object3D)
@@ -1037,13 +1096,13 @@ export default function Home(props) {
             targetRef.current = this.el.object3D; // ここで Target のref を取得
           }else
           if(this.data === 20){
-            set_p20_object(this.el.object3D)
+            //set_p20_object(this.el.object3D)
           }else
           if(this.data === 21){
-            set_p21_object(this.el.object3D)
+            //set_p21_object(this.el.object3D)
           }else
           if(this.data === 22){
-            set_p22_object(this.el.object3D)
+            //set_p22_object(this.el.object3D)
           }else
           if(this.data === 51){
             set_p51_object(this.el.object3D)
@@ -1262,7 +1321,7 @@ export default function Home(props) {
     target, set_target,
     toolName, toolNameList, set_toolName,
     j1_rotate,set_j1_rotate,j2_rotate,set_j2_rotate,j3_rotate,set_j3_rotate,
-    j4_rotate,set_j4_rotate,j5_rotate,set_j5_rotate,j6_rotate,set_j6_rotate,j7_rotate,set_j7_rotate,
+    j4_rotate,set_j4_rotate,j5_rotate,set_j5_rotate,j6_rotate_org,set_j6_rotate_org,j7_rotate,set_j7_rotate,
     c_pos_x,set_c_pos_x,c_pos_y,set_c_pos_y,c_pos_z,set_c_pos_z,
     c_deg_x,set_c_deg_x,c_deg_y,set_c_deg_y,c_deg_z,set_c_deg_z,
     wrist_rot,set_wrist_rot,
@@ -1272,7 +1331,7 @@ export default function Home(props) {
 
   const robotProps = {
     robotNameList, robotName, joint_pos, j2_rotate, j3_rotate, j4_rotate, j5_rotate, j6_rotate, j7_rotate,
-    toolNameList, toolName, cursor_vis, box_vis, edit_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error
+    toolNameList, toolName, cursor_vis, box_vis, edit_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error, j6_error
   }
 
   const Toolmenu = (props)=> {
@@ -1323,7 +1382,7 @@ export default function Home(props) {
   if(rendered){
     return (
     <>
-      <a-scene scene xr-mode-ui="XRMode: ar">
+      <a-scene scene xr-mode-ui={`enabled: ${!props.viewer?'true':'false'}; XRMode: xr`}>
         <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${false}`}></a-entity>
         <a-plane position="0 0 0" rotation="-90 0 0" width="0.4" height="0.4" color={target_error?"#ff7f50":"#7BC8A4"} opacity="0.5"></a-plane>
 
@@ -1358,7 +1417,7 @@ export default function Home(props) {
     );
   }else{
     return(
-      <a-scene xr-mode-ui="XRMode: xr">
+      <a-scene xr-mode-ui={`enabled: ${!props.viewer?'true':'false'}; XRMode: xr`}>
         <Assets viewer={props.viewer}/>
       </a-scene>
     )
@@ -1390,10 +1449,15 @@ const Assets = (props)=>{
 }
 
 const Model = (props)=>{
-  const {visible, cursor_vis, edit_pos, joint_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error} = props
+  const {visible, cursor_vis, edit_pos, joint_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error, j6_error} = props
   return (<>{visible?
     <a-entity robot-click="" gltf-model="#base" position={edit_pos(joint_pos.base)} visible={`${visible}`}>
+      <a-entity geometry="primitive: circle; radius: 0.16;" material="color: #00FFFF" position="0 0.1 0" rotation="-90 0 0" visible={`${j1_error}`}></a-entity>
+      <a-entity geometry="primitive: circle; radius: 0.16;" material="color: #00FFFF" position="0 0.1 0" rotation="90 0 0" visible={`${j1_error}`}></a-entity>
       <a-entity j_id="1" gltf-model="#j1" position={edit_pos(joint_pos.j1)}>
+        <a-entity position="0 0.1 0" rotation="90 0 0" visible={`${j1_error}`}>
+          <a-cylinder position="0 0.08 0" rotation="0 0 0" radius="0.003" height="0.16" color="#FF0000"></a-cylinder>
+        </a-entity>
         <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j2,{x:-0.08,y:0,z:0}))} rotation="0 90 0" visible={`${j2_error}`}></a-entity>
         <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j2,{x:-0.08,y:0,z:0}))} rotation="0 -90 0" visible={`${j2_error}`}></a-entity>
         <a-entity j_id="2" gltf-model="#j2" position={edit_pos(joint_pos.j2)}>
@@ -1406,14 +1470,24 @@ const Model = (props)=>{
             <a-entity position="-0.09 0 0" rotation="0 0 0" visible={`${j3_error}`}>
               <a-cylinder position="0 0.05 0" rotation="0 0 0" radius="0.003" height="0.1" color="#FF0000"></a-cylinder>
             </a-entity>
+            <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF" position="-0.03 0.302 0" rotation="-90 0 0" visible={`${j4_error}`}></a-entity>
+            <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF" position="-0.03 0.302 0" rotation="90 0 0" visible={`${j4_error}`}></a-entity>
             <a-entity j_id="4" gltf-model="#j4" position={edit_pos(joint_pos.j4)}>
+              <a-entity position="0 -0.087 0" rotation="90 0 0" visible={`${j4_error}`}>
+                <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
+              </a-entity>
               <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j5,{x:0.077,y:0,z:0}))} rotation="0 90 0" visible={`${j5_error}`}></a-entity>
               <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j5,{x:0.077,y:0,z:0}))} rotation="0 -90 0" visible={`${j5_error}`}></a-entity>
               <a-entity j_id="5" gltf-model="#j5" position={edit_pos(joint_pos.j5)}>
                 <a-entity position="0.077 0 0" rotation="90 0 0" visible={`${j5_error}`}>
                   <a-cylinder position="0 0.05 0" rotation="0 0 0" radius="0.003" height="0.1" color="#FF0000"></a-cylinder>
                 </a-entity>
+                <a-entity geometry="primitive: circle; radius: 0.1;" material="color: #00FFFF" position="0.15 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}></a-entity>
+                <a-entity geometry="primitive: circle; radius: 0.1;" material="color: #00FFFF" position="0.15 0 0.0805" rotation="0 180 0" visible={`${j6_error}`}></a-entity>
                 <a-entity j_id="6" gltf-model="#j6" position={edit_pos(joint_pos.j6)}>
+                  <a-entity position="0 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}>
+                    <a-cylinder position="0 0.05 0" rotation="0 0 0" radius="0.003" height="0.1" color="#FF0000"></a-cylinder>
+                  </a-entity>
                   <Model_Tool {...props}/>
                   {/*<a-cylinder color="crimson" height="0.1" radius="0.005" position={edit_pos(joint_pos.j7)}></a-cylinder>*/}
                   <Cursor3dp j_id="15" visible={cursor_vis}/>
