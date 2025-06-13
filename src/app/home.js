@@ -37,12 +37,12 @@ const z_vec_base = new THREE.Vector3(0,0,1).normalize()
 let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
-const max_move_unit = (1/360)
+const max_move_unit = (1/180)
 const rotate_table = [[],[],[],[],[],[]]
 const object3D_table = []
 const rotvec_table = [y_vec_base,x_vec_base,x_vec_base,y_vec_base,x_vec_base,z_vec_base]
 let target_move_distance = 0
-const target_move_speed = (1000/1.8)
+const target_move_speed = (1000/0.5)
 let real_target = {x:0.4,y:0.5,z:-0.4}
 
 const j1_Correct_value = 180.0
@@ -81,6 +81,8 @@ let tool_menu_idx = 0
 const tool_menu_list = ["Gripper","vgc10-1","cutter","boxLiftUp"]
 let save_tool_menu_idx = 0
 let save_thumbstickmoved = 0
+let firstReceiveJoint = true
+let viewer_tool_change = false
 
 export default function Home(props) {
   //const [tick, setTick] = React.useState(0)
@@ -90,15 +92,63 @@ export default function Home(props) {
   const [robotName,set_robotName] = React.useState(robotNameList[0])
   const [target_error,set_target_error] = React.useState(false)
 
-  const [j1_rotate,set_j1_rotate] = React.useState(0)
-  const [j2_rotate,set_j2_rotate] = React.useState(0)
-  const [j3_rotate,set_j3_rotate] = React.useState(0)
-  const [j4_rotate,set_j4_rotate] = React.useState(0)
-  const [j5_rotate,set_j5_rotate] = React.useState(0)
-  const [j6_rotate,set_j6_rotate] = React.useState(0)
-  const [j7_rotate,set_j7_rotate] = React.useState(0) //指用
+  //const [j1_rotate,set_j1_rotate] = React.useState(0)
+  const j1_rotate_ref = React.useRef(0)
+  let j1_rotate = j1_rotate_ref.current
+  const set_j1_rotate = (new_rot)=>{
+    j1_rotate = j1_rotate_ref.current = new_rot
+    set_update((flg)=>!flg)
+  }
+  //const [j2_rotate,set_j2_rotate] = React.useState(0)
+  const j2_rotate_ref = React.useRef(0)
+  let j2_rotate = j2_rotate_ref.current
+  const set_j2_rotate = (new_rot)=>{
+    j2_rotate = j2_rotate_ref.current = new_rot
+    set_update((flg)=>!flg)
+  }
+  //const [j3_rotate,set_j3_rotate] = React.useState(0)
+  const j3_rotate_ref = React.useRef(0)
+  let j3_rotate = j3_rotate_ref.current
+  const set_j3_rotate = (new_rot)=>{
+    j3_rotate = j3_rotate_ref.current = new_rot
+    set_update((flg)=>!flg)
+  }
+  //const [j4_rotate,set_j4_rotate] = React.useState(0)
+  const j4_rotate_ref = React.useRef(0)
+  let j4_rotate = j4_rotate_ref.current
+  const set_j4_rotate = (new_rot)=>{
+    j4_rotate = j4_rotate_ref.current = new_rot
+    set_update((flg)=>!flg)
+  }
+  //const [j5_rotate,set_j5_rotate] = React.useState(0)
+  const j5_rotate_ref = React.useRef(0)
+  let j5_rotate = j5_rotate_ref.current
+  const set_j5_rotate = (new_rot)=>{
+    j5_rotate = j5_rotate_ref.current = new_rot
+    set_update((flg)=>!flg)
+  }
+  //const [j6_rotate,set_j6_rotate] = React.useState(0)
+  const j6_rotate_ref = React.useRef(0)
+  let j6_rotate = j6_rotate_ref.current
+  const set_j6_rotate = (new_rot)=>{
+    j6_rotate = j6_rotate_ref.current = new_rot
+    set_update((flg)=>!flg)
+  }
+  //const [j7_rotate,set_j7_rotate] = React.useState(0) //指用
+  const j7_rotate_ref = React.useRef(0)
+  let j7_rotate = j7_rotate_ref.current
+  const set_j7_rotate = (new_rot)=>{
+    j7_rotate = j7_rotate_ref.current = new_rot
+    set_update((flg)=>!flg)
+  }
 
-  const [j6_rotate_org,set_j6_rotate_org] = React.useState(0)
+  //const [j6_rotate_org,set_j6_rotate_org] = React.useState(0)
+  const j6_rotate_org_ref = React.useRef(0)
+  let j6_rotate_org = j6_rotate_org_ref.current
+  const set_j6_rotate_org = (new_rot)=>{
+    j6_rotate_org = j6_rotate_org_ref.current = new_rot
+    set_update((flg)=>!flg)
+  }
 
   //const [rotate, set_rotate] = React.useState([0,0,0,0,0,0,0])  //出力用
   const rotateRef = React.useRef([0,0,0,0,0,0,0]); // ref を使って rotate を保持する
@@ -153,7 +203,37 @@ export default function Home(props) {
 
   const [do_target_update, set_do_target_update] = React.useState(0) // count up for each target_update call
   const [update, set_update] = React.useState(false)
-  
+
+  React.useEffect(() => {
+    requestAnimationFrame(get_real_joint_rot)
+  },[])
+
+  const get_real_joint_rot = ()=>{
+    if(object3D_table.length === 6){
+      const axis_tbl = ['y','x','x','y','x','z']
+      const new_rotate = object3D_table.map((obj3d,idx)=>{
+        return round(toAngle(obj3d.rotation[axis_tbl[idx]]))
+      })
+      //console.log('new_rotate',new_rotate)
+
+
+      /*for(let i=0; i<object3D_table.length; i=i+1){
+        if(object3D_table[i] !== undefined){
+          outRotateConv
+          rotateRef.current[i]
+          console.log('j1',toAngle(object3D_table[i].rotation.y))
+        }
+
+      }*/
+
+    }
+    if(xrSession !== undefined){
+      xrSession.requestAnimationFrame(get_real_joint_rot)
+    }else{
+      requestAnimationFrame(get_real_joint_rot)
+    }
+  }
+
   const set_target = (new_pos)=>{
     target_move_distance = distance(real_target,new_pos)
     set_target_org(new_pos)
@@ -423,7 +503,7 @@ export default function Home(props) {
     ]
     //set_rotate(new_rotate)
     rotateRef.current = [...new_rotate]
-    console.log("Real Rotate:",new_rotate)
+    //console.log("Real Rotate:",new_rotate)
   }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
 
   React.useEffect(() => {
@@ -513,9 +593,15 @@ export default function Home(props) {
             let data = JSON.parse(message.toString())
             if (data.joints != undefined) {
               // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
-              console.log("Viewer!!!", data.joints)
-              set_input_rotate([...data.joints])
-
+              if(!viewer_tool_change){
+                console.log("Viewer!!!", data.joints)
+                set_input_rotate([...data.joints])
+                if(data.tool_change !== undefined){
+                  console.log("tool_change!",data.tool_change)
+                  viewer_tool_change = true;
+                  setTimeout(()=>{viewer_tool_change = false},29000)
+                }
+              }
             }
           }
         })
@@ -540,15 +626,20 @@ export default function Home(props) {
             let data = JSON.parse(message.toString()) ///
             const joints = data.joints
             // ここで、joints の安全チェックをすべき
-            mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) // これでロボット姿勢の受信は終わり
-            console.log("receive joints",joints)
-            set_input_rotate([...joints])
+            //mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) // これでロボット姿勢の受信は終わり
+            if(firstReceiveJoint || tool_load_operation){
+              console.log("receive joints",joints)
+              set_input_rotate([...joints])
+            }
 
-            window.setTimeout(()=>{
-              console.log("Start to send movement!")
-              receive_state = true; //
-              publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
-            }, 1000);
+            if(firstReceiveJoint){
+              firstReceiveJoint = false
+              window.setTimeout(()=>{
+                console.log("Start to send movement!")
+                receive_state = true; //
+                publishMQTT("dev/"+robotIDRef.current, JSON.stringify({controller: "browser", devId: idtopic})) // 自分の topic を教える
+              }, 1000);
+            }
           }
   
         })
@@ -1200,6 +1291,9 @@ export default function Home(props) {
             //let xrSession = this.el.renderer.xr.getSession();
             xrSession = this.el.renderer.xr.getSession();
             xrSession.requestAnimationFrame(onXRFrameMQTT);
+            xrSession.addEventListener("end", ()=>{
+              requestAnimationFrame(get_real_joint_rot)
+            })
 
             if(!props.viewer){
               set_c_pos_x(0)
@@ -1414,17 +1508,17 @@ const Model = (props)=>{
         <a-entity position="0 0.1 0" rotation="90 0 0" visible={`${j1_error}`}>
           <a-cylinder position="0 0.08 0" rotation="0 0 0" radius="0.003" height="0.16" color="#FF0000"></a-cylinder>
         </a-entity>
-        <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j2,{x:-0.08,y:0,z:0}))} rotation="0 90 0" visible={`${j2_error}`}></a-entity>
-        <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j2,{x:-0.08,y:0,z:0}))} rotation="0 -90 0" visible={`${j2_error}`}></a-entity>
+        <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j2,{x:-0.08,y:0,z:0}))} rotation="0 90 0" visible={`${j2_error}`}></a-entity>
+        <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j2,{x:-0.08,y:0,z:0}))} rotation="0 -90 0" visible={`${j2_error}`}></a-entity>
         <a-entity j_id="2" gltf-model="#j2" position={edit_pos(joint_pos.j2)}>
           <a-entity position="-0.08 0 0" rotation="0 0 0" visible={`${j2_error}`}>
-            <a-cylinder position="0 0.05 0" rotation="0 0 0" radius="0.003" height="0.1" color="#FF0000"></a-cylinder>
+            <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
           </a-entity>
-          <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j3,{x:-0.09,y:0,z:0}))} rotation="0 90 0" visible={`${j3_error}`}></a-entity>
-          <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j3,{x:-0.09,y:0,z:0}))} rotation="0 -90 0" visible={`${j3_error}`}></a-entity>
+          <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j3,{x:-0.09,y:0,z:0}))} rotation="0 90 0" visible={`${j3_error}`}></a-entity>
+          <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j3,{x:-0.09,y:0,z:0}))} rotation="0 -90 0" visible={`${j3_error}`}></a-entity>
           <a-entity j_id="3" gltf-model="#j3" position={edit_pos(joint_pos.j3)}>
             <a-entity position="-0.09 0 0" rotation="0 0 0" visible={`${j3_error}`}>
-              <a-cylinder position="0 0.05 0" rotation="0 0 0" radius="0.003" height="0.1" color="#FF0000"></a-cylinder>
+              <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
             </a-entity>
             <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF" position="-0.03 0.302 0" rotation="-90 0 0" visible={`${j4_error}`}></a-entity>
             <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF" position="-0.03 0.302 0" rotation="90 0 0" visible={`${j4_error}`}></a-entity>
@@ -1432,17 +1526,17 @@ const Model = (props)=>{
               <a-entity position="0 -0.087 0" rotation="90 0 0" visible={`${j4_error}`}>
                 <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
               </a-entity>
-              <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j5,{x:0.077,y:0,z:0}))} rotation="0 90 0" visible={`${j5_error}`}></a-entity>
-              <a-entity geometry="primitive: circle; radius: 0.1; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j5,{x:0.077,y:0,z:0}))} rotation="0 -90 0" visible={`${j5_error}`}></a-entity>
+              <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j5,{x:0.077,y:0,z:0}))} rotation="0 90 0" visible={`${j5_error}`}></a-entity>
+              <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j5,{x:0.077,y:0,z:0}))} rotation="0 -90 0" visible={`${j5_error}`}></a-entity>
               <a-entity j_id="5" gltf-model="#j5" position={edit_pos(joint_pos.j5)}>
                 <a-entity position="0.077 0 0" rotation="90 0 0" visible={`${j5_error}`}>
-                  <a-cylinder position="0 0.05 0" rotation="0 0 0" radius="0.003" height="0.1" color="#FF0000"></a-cylinder>
+                  <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
                 </a-entity>
-                <a-entity geometry="primitive: circle; radius: 0.1;" material="color: #00FFFF" position="0.15 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}></a-entity>
-                <a-entity geometry="primitive: circle; radius: 0.1;" material="color: #00FFFF" position="0.15 0 0.0805" rotation="0 180 0" visible={`${j6_error}`}></a-entity>
+                <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF" position="0.15 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}></a-entity>
+                <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF" position="0.15 0 0.0805" rotation="0 180 0" visible={`${j6_error}`}></a-entity>
                 <a-entity j_id="6" gltf-model="#j6" position={edit_pos(joint_pos.j6)}>
                   <a-entity position="0 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}>
-                    <a-cylinder position="0 0.05 0" rotation="0 0 0" radius="0.003" height="0.1" color="#FF0000"></a-cylinder>
+                    <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
                   </a-entity>
                   <Model_Tool {...props}/>
                   {/*<a-cylinder color="crimson" height="0.1" radius="0.005" position={edit_pos(joint_pos.j7)}></a-cylinder>*/}
