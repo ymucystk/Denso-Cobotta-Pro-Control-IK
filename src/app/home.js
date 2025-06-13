@@ -34,6 +34,7 @@ const x_vec_base = new THREE.Vector3(1,0,0).normalize()
 const y_vec_base = new THREE.Vector3(0,1,0).normalize()
 const z_vec_base = new THREE.Vector3(0,0,1).normalize()
 
+let start_robot_rotation = new THREE.Euler(0,0,0,order)
 let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
@@ -277,6 +278,17 @@ export default function Home(props) {
       current_rotation = new THREE.Euler().setFromQuaternion(wk_mtx,controller_object_rotation.order)
 
       wk_mtx.multiply(
+        new THREE.Quaternion().setFromEuler(start_robot_rotation)
+      ).multiply(
+        new THREE.Quaternion().setFromEuler(
+          new THREE.Euler(
+            (0.6654549523360951*1),  //x
+            0,  //y
+            0,  //z
+            controller_object_rotation.order
+          )
+        )
+      ).multiply(
         new THREE.Quaternion().setFromEuler(
           new THREE.Euler(
             (0.6654549523360951*-1),  //x
@@ -1072,6 +1084,7 @@ export default function Home(props) {
 
   const vrControllStart = ()=>{
     start_rotation = controller_object.rotation.clone()
+    start_robot_rotation = new THREE.Euler(wrist_rot.x,wrist_rot.y,wrist_rot.z,order)
     const wk_start_pos = new THREE.Vector3().applyMatrix4(controller_object.matrix)
     set_start_pos(wk_start_pos)
   }
