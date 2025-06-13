@@ -1289,6 +1289,37 @@ export default function Home(props) {
           }
         }
       });
+
+
+      if (!('model-opacity' in AFRAME.components)) { // モデルを透明にするための仕組み
+            console.log("Second register");
+            //S} else {
+            AFRAME.registerComponent("model-opacity", {
+                schema: {
+                    opacity: { type: "number", default: 0.5 }
+                },
+                init: function () {
+                    this.el.addEventListener("model-loaded", this.update.bind(this));
+                },
+                update: function () {
+                    var mesh = this.el.getObject3D("mesh");
+                    var data = this.data;
+                    if (!mesh) {
+                        return;
+                    }
+                    mesh.traverse(function (node) {
+                        if (node.isMesh) {
+                            node.material.opacity = data.opacity;
+                            node.material.transparent = data.opacity < 1.0;
+                            node.material.needsUpdate = true;
+                            //                  node.material.format = THREE.RGBAFormat;
+                        }
+                    });
+                }
+            });
+      }
+
+
       AFRAME.registerComponent('scene', {
         schema: {type: 'string', default: ''},
         init: function () {
@@ -1517,37 +1548,37 @@ const Model = (props)=>{
     <a-entity robot-click="" gltf-model="#base" position={edit_pos(joint_pos.base)} visible={`${visible}`}>
       <a-entity geometry="primitive: circle; radius: 0.16;" material="color: #00FFFF" position="0 0.1 0" rotation="-90 0 0" visible={`${j1_error}`}></a-entity>
       <a-entity geometry="primitive: circle; radius: 0.16;" material="color: #00FFFF" position="0 0.1 0" rotation="90 0 0" visible={`${j1_error}`}></a-entity>
-      <a-entity j_id="1" gltf-model="#j1" position={edit_pos(joint_pos.j1)}>
+      <a-entity j_id="1" gltf-model="#j1" position={edit_pos(joint_pos.j1)} model-opacity="0.8">
         <a-entity position="0 0.1 0" rotation="90 0 0" visible={`${j1_error}`}>
           <a-cylinder position="0 0.08 0" rotation="0 0 0" radius="0.003" height="0.16" color="#FF0000"></a-cylinder>
         </a-entity>
         <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j2,{x:-0.08,y:0,z:0}))} rotation="0 90 0" visible={`${j2_error}`}></a-entity>
         <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j2,{x:-0.08,y:0,z:0}))} rotation="0 -90 0" visible={`${j2_error}`}></a-entity>
-        <a-entity j_id="2" gltf-model="#j2" position={edit_pos(joint_pos.j2)}>
+        <a-entity j_id="2" gltf-model="#j2" position={edit_pos(joint_pos.j2)} model-opacity="0.8">
           <a-entity position="-0.08 0 0" rotation="0 0 0" visible={`${j2_error}`}>
             <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
           </a-entity>
           <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j3,{x:-0.09,y:0,z:0}))} rotation="0 90 0" visible={`${j3_error}`}></a-entity>
           <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j3,{x:-0.09,y:0,z:0}))} rotation="0 -90 0" visible={`${j3_error}`}></a-entity>
-          <a-entity j_id="3" gltf-model="#j3" position={edit_pos(joint_pos.j3)}>
+          <a-entity j_id="3" gltf-model="#j3" position={edit_pos(joint_pos.j3)} model-opacity="0.8">
             <a-entity position="-0.09 0 0" rotation="0 0 0" visible={`${j3_error}`}>
               <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
             </a-entity>
             <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF" position="-0.03 0.302 0" rotation="-90 0 0" visible={`${j4_error}`}></a-entity>
             <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF" position="-0.03 0.302 0" rotation="90 0 0" visible={`${j4_error}`}></a-entity>
-            <a-entity j_id="4" gltf-model="#j4" position={edit_pos(joint_pos.j4)}>
+            <a-entity j_id="4" gltf-model="#j4" position={edit_pos(joint_pos.j4)} model-opacity="0.8">
               <a-entity position="0 -0.087 0" rotation="90 0 0" visible={`${j4_error}`}>
                 <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
               </a-entity>
               <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j5,{x:0.077,y:0,z:0}))} rotation="0 90 0" visible={`${j5_error}`}></a-entity>
               <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF" position={edit_pos(pos_add(joint_pos.j5,{x:0.077,y:0,z:0}))} rotation="0 -90 0" visible={`${j5_error}`}></a-entity>
-              <a-entity j_id="5" gltf-model="#j5" position={edit_pos(joint_pos.j5)}>
+              <a-entity j_id="5" gltf-model="#j5" position={edit_pos(joint_pos.j5)} model-opacity="0.8">
                 <a-entity position="0.077 0 0" rotation="90 0 0" visible={`${j5_error}`}>
                   <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
                 </a-entity>
                 <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF" position="0.15 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}></a-entity>
                 <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF" position="0.15 0 0.0805" rotation="0 180 0" visible={`${j6_error}`}></a-entity>
-                <a-entity j_id="6" gltf-model="#j6" position={edit_pos(joint_pos.j6)}>
+                <a-entity j_id="6" gltf-model="#j6" position={edit_pos(joint_pos.j6)} model-opacity="0.8">
                   <a-entity position="0 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}>
                     <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
                   </a-entity>
@@ -1585,35 +1616,35 @@ const Model_Tool = (props)=>{
       <Cursor3dp j_id="16" pos={p16pos[0]} visible={cursor_vis}/>
       <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[0])} visible={`${box_vis}`}></a-box>
     </>,
-    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
-      <a-entity gltf-model="#j7" position={edit_pos(Toolpos[1])}>
-        <a-entity gltf-model="#j8_r" position={edit_pos(j8_r_pos)}></a-entity>
-        <a-entity gltf-model="#j8_l" position={edit_pos(j8_1_pos)}></a-entity>
+    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
+      <a-entity gltf-model="#j7" position={edit_pos(Toolpos[1])} model-opacity="0.8">
+        <a-entity gltf-model="#j8_r" position={edit_pos(j8_r_pos)} model-opacity="0.8"></a-entity>
+        <a-entity gltf-model="#j8_l" position={edit_pos(j8_1_pos)} model-opacity="0.8"></a-entity>
       </a-entity>
       <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[1])} visible={`${box_vis}`}></a-box>
       <Cursor3dp j_id="16" pos={p16pos[1]} visible={cursor_vis}/>
     </a-entity>,
-    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
-      <a-entity gltf-model="#vgc10-1" position={edit_pos(Toolpos[2])} rotation={`0 0 0`}>
+    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
+      <a-entity gltf-model="#vgc10-1" position={edit_pos(Toolpos[2])} rotation={`0 0 0`} model-opacity="0.8">
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${box_vis}`}></a-box>
         <Cursor3dp j_id="16" pos={p16pos[2]} visible={cursor_vis}/>
       </a-entity>
     </a-entity>,
-    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
-      <a-entity gltf-model="#vgc10-4" position={edit_pos(Toolpos[3])} rotation={`0 0 0`}>
+    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
+      <a-entity gltf-model="#vgc10-4" position={edit_pos(Toolpos[3])} rotation={`0 0 0`} model-opacity="0.8">
         <Cursor3dp j_id="16" pos={p16pos[3]} visible={cursor_vis}/>
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
       </a-entity>
     </a-entity>,
-    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
-      <a-entity gltf-model="#cutter" position={edit_pos(Toolpos[4])} rotation={`0 0 0`}>
+    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
+      <a-entity gltf-model="#cutter" position={edit_pos(Toolpos[4])} rotation={`0 0 0`} model-opacity="0.8">
         <a-entity></a-entity>
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
         <Cursor3dp j_id="16" pos={p16pos[4]} visible={cursor_vis}/>
       </a-entity>
     </a-entity>,
-    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`}>
-      <a-entity gltf-model="#boxLiftUp" position={edit_pos(Toolpos[5])} rotation={`0 0 0`}>
+    <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
+      <a-entity gltf-model="#boxLiftUp" position={edit_pos(Toolpos[5])} rotation={`0 0 0`} model-opacity="0.8">
         <a-entity></a-entity>
         <Cursor3dp j_id="16" pos={p16pos[5]} visible={cursor_vis}/>
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
