@@ -154,6 +154,8 @@ export default function Home(props) {
   //const [rotate, set_rotate] = React.useState([0,0,0,0,0,0,0])  //出力用
   const rotateRef = React.useRef([0,0,0,0,0,0,0]); // ref を使って rotate を保持する
 
+  const prevRotateRef = React.useRef([0,0,0,0,0,0,0]) //前回の関節角度
+
   const [input_rotate, set_input_rotate] = React.useState([undefined,0,0,0,0,0,0])  //入力用
 
   //const [p11_object,set_p11_object] = React.useState()
@@ -206,32 +208,63 @@ export default function Home(props) {
   const [update, set_update] = React.useState(false)
 
   React.useEffect(() => {
-    requestAnimationFrame(get_real_joint_rot)
+    if(!props.viewer){
+      requestAnimationFrame(get_real_joint_rot)
+    }
   },[])
 
   const get_real_joint_rot = ()=>{
-    if(object3D_table.length === 6){
-      const axis_tbl = ['y','x','x','y','x','z']
-      const new_rotate = object3D_table.map((obj3d,idx)=>{
-        return round(toAngle(obj3d.rotation[axis_tbl[idx]]))
-      })
-      //console.log('new_rotate',new_rotate)
+    if(!props.viewer){
+      if(object3D_table.length === 6){
+        const axis_tbl = ['y','x','x','y','x','z']
+        const new_rotate = object3D_table.map((obj3d,idx)=>{
+          //return round(toAngle(obj3d.rotation[axis_tbl[idx]]))
+          const qk_q_a = quaternionToAngle(obj3d.quaternion)
+          const flg = qk_q_a.axis[axis_tbl[idx]] < 0
+          return round(qk_q_a.angle * (flg ? -1 : 1))
+        })
+        new_rotate[6] = round(j7_rotate_ref.current)
+        //console.log('new_rotate',new_rotate)
 
+        const prev_rotate = prevRotateRef.current
 
-      /*for(let i=0; i<object3D_table.length; i=i+1){
-        if(object3D_table[i] !== undefined){
-          outRotateConv
-          rotateRef.current[i]
-          console.log('j1',toAngle(object3D_table[i].rotation.y))
+        if(prev_rotate[0] !== new_rotate[0] ||
+          prev_rotate[1] !== new_rotate[1] ||
+          prev_rotate[2] !== new_rotate[2] ||
+          prev_rotate[3] !== new_rotate[3] ||
+          prev_rotate[4] !== new_rotate[4] ||
+          prev_rotate[5] !== new_rotate[5] ||
+          prev_rotate[6] !== new_rotate[6]){
+          //console.log('new_rotate',new_rotate)
+
+          const conv_result = outRotateConv({
+            j1_rotate:new_rotate[0],
+            j2_rotate:new_rotate[1],
+            j3_rotate:new_rotate[2],
+            j4_rotate:new_rotate[3],
+            j5_rotate:new_rotate[4],
+            j6_rotate:new_rotate[5]
+          },[...rotateRef.current])
+
+          const robot_rotate = [
+            conv_result.j1_rotate,
+            conv_result.j2_rotate,
+            conv_result.j3_rotate,
+            conv_result.j4_rotate,
+            conv_result.j5_rotate,
+            conv_result.j6_rotate,
+            new_rotate[6]
+          ]
+          //console.log('robot_rotate',robot_rotate)
+          rotateRef.current = [...robot_rotate]
         }
-
-      }*/
-
-    }
-    if(xrSession !== undefined){
-      xrSession.requestAnimationFrame(get_real_joint_rot)
-    }else{
-      requestAnimationFrame(get_real_joint_rot)
+        prevRotateRef.current = [...new_rotate]
+      }
+      if(xrSession !== undefined){
+        xrSession.requestAnimationFrame(get_real_joint_rot)
+      }else{
+        requestAnimationFrame(get_real_joint_rot)
+      }
     }
   }
 
@@ -278,17 +311,6 @@ export default function Home(props) {
       current_rotation = new THREE.Euler().setFromQuaternion(wk_mtx,controller_object_rotation.order)
 
       wk_mtx.multiply(
-        new THREE.Quaternion().setFromEuler(start_robot_rotation)
-      ).multiply(
-        new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(
-            (0.6654549523360951*1),  //x
-            0,  //y
-            0,  //z
-            controller_object_rotation.order
-          )
-        )
-      ).multiply(
         new THREE.Quaternion().setFromEuler(
           new THREE.Euler(
             (0.6654549523360951*-1),  //x
@@ -467,13 +489,13 @@ export default function Home(props) {
     return diff; // プラスならaはbより反時計回り、マイナスなら時計回り
   }
 
-  const outRotateConv = (rotate)=>{
+  const outRotateConv = (rotate,prevRotate)=>{
     const base_rot = [rotate.j1_rotate,rotate.j2_rotate,rotate.j3_rotate,rotate.j4_rotate,rotate.j5_rotate,rotate.j6_rotate]
     const Correct_value = [j1_Correct_value,j2_Correct_value,j3_Correct_value,j4_Correct_value,j5_Correct_value,j6_Correct_value]
     const new_rot = base_rot.map((base, idx) => round(normalize180(base + Correct_value[idx])))
-    const diff = new_rot.map((rot,idx)=>shortestAngleDiffSigned(rot,rotateRef.current[idx]))
+    const diff = new_rot.map((rot,idx)=>shortestAngleDiffSigned(rot,prevRotate[idx]))
     const result_rot = new_rot.map((rot,idx)=>{
-      const result_value = rotateRef.current[idx] + diff[idx]
+      const result_value = prevRotate[idx] + diff[idx]
       if(Math.abs(result_value) < 360){
         if(result_value >= 180){
           return round((rot + 360) % 360)
@@ -501,21 +523,25 @@ export default function Home(props) {
     }
     //setTimeout(()=>{joint_slerp()},0)
 
-    const conv_result = outRotateConv(
-      {j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate:normalize180(j6_rotate+tool_rotate)})
+    if(props.viewer){
+      const conv_result = outRotateConv(
+        {j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate:normalize180(j6_rotate+tool_rotate)},
+        [...rotateRef.current]
+      )
 
-    const new_rotate = [
-      conv_result.j1_rotate,
-      conv_result.j2_rotate,
-      conv_result.j3_rotate,
-      conv_result.j4_rotate,
-      conv_result.j5_rotate,
-      conv_result.j6_rotate,
-      round(j7_rotate)
-    ]
-    //set_rotate(new_rotate)
-    rotateRef.current = [...new_rotate]
-    //console.log("Real Rotate:",new_rotate)
+      const new_rotate = [
+        conv_result.j1_rotate,
+        conv_result.j2_rotate,
+        conv_result.j3_rotate,
+        conv_result.j4_rotate,
+        conv_result.j5_rotate,
+        conv_result.j6_rotate,
+        round(j7_rotate)
+      ]
+      //set_rotate(new_rotate)
+      rotateRef.current = [...new_rotate]
+      //console.log("Real Rotate:",new_rotate)
+    }
   }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
 
   React.useEffect(() => {
@@ -528,7 +554,8 @@ export default function Home(props) {
       j5_rotate:round(normalize180(input_rotate[4]-j5_Correct_value)),
       j6_rotate:round(normalize180(input_rotate[5]-j6_Correct_value))
     }
-    console.log("rec_joints",robot_rotate)
+    //console.log("rec_joints",robot_rotate)
+    //console.log("j3_rotate",input_rotate[2])
     const {target_pos, wrist_euler} = getReaultPosRot(robot_rotate) // これで target_pos が計算される
     set_wrist_rot_org(
       {x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))}
@@ -835,7 +862,7 @@ export default function Home(props) {
     }
 
     if(dsp_message === ""){
-      const check_result = outRotateConv(result_rotate)
+      const check_result = outRotateConv(result_rotate,[...rotateRef.current])
       if(check_result.j1_rotate<-270 || check_result.j1_rotate>270){
         dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
         j1_error = true
