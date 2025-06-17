@@ -34,7 +34,6 @@ const x_vec_base = new THREE.Vector3(1,0,0).normalize()
 const y_vec_base = new THREE.Vector3(0,1,0).normalize()
 const z_vec_base = new THREE.Vector3(0,0,1).normalize()
 
-let start_robot_rotation = new THREE.Euler(0,0,0,order)
 let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
@@ -193,6 +192,7 @@ export default function Home(props) {
   const [c_deg_z,set_c_deg_z] = React.useState(0)
 
   const [wrist_rot,set_wrist_rot_org] = React.useState({x:180,y:0,z:0})
+  const wristRotRef = React.useRef(wrist_rot);
   const [tool_rotate,set_tool_rotate] = React.useState(0)
   const [wrist_degree,set_wrist_degree] = React.useState({direction:0,angle:0})
   const [dsp_message,set_dsp_message] = React.useState("")
@@ -275,6 +275,7 @@ export default function Home(props) {
 
   const set_wrist_rot = (new_rot)=>{
     target_move_distance = 0
+    wristRotRef.current = {...new_rot}
     set_wrist_rot_org({...new_rot})
   }
 
@@ -557,9 +558,8 @@ export default function Home(props) {
     //console.log("rec_joints",robot_rotate)
     //console.log("j3_rotate",input_rotate[2])
     const {target_pos, wrist_euler} = getReaultPosRot(robot_rotate) // これで target_pos が計算される
-    set_wrist_rot_org(
-      {x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))}
-    ) // 手首の相対
+    wristRotRef.current = {x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))}
+    set_wrist_rot_org({...wristRotRef.current}) // 手首の相対
     set_target_org((vr)=>{
           target_move_distance = distance({x:vr.x,y:vr.y,z:vr.z},{x:target_pos.x,y:target_pos.y,z:target_pos.z}) // 位置の差分を計算
           vr.x = round(target_pos.x); vr.y = round(target_pos.y); vr.z = round(target_pos.z);
@@ -1111,7 +1111,6 @@ export default function Home(props) {
 
   const vrControllStart = ()=>{
     start_rotation = controller_object.rotation.clone()
-    start_robot_rotation = new THREE.Euler(wrist_rot.x,wrist_rot.y,wrist_rot.z,order)
     const wk_start_pos = new THREE.Vector3().applyMatrix4(controller_object.matrix)
     set_start_pos(wk_start_pos)
   }
@@ -1357,6 +1356,20 @@ export default function Home(props) {
             vrModeRef.current = true;
 //            set_vr_mode(true)
             console.log('enter-vr')
+
+            const rot = {...wristRotRef.current}
+            const q = new THREE.Quaternion().setFromEuler(
+              new THREE.Euler(
+                toRadian(rot.x), toRadian(rot.y), toRadian(rot.z), order
+              )
+            ).multiply(
+              new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(180)) 
+            )
+            const e = new THREE.Euler().setFromQuaternion(q,order)
+            console.log("wrist_rot",toAngle(e.x),toAngle(e.y),toAngle(e.z))
+            save_rotation = new THREE.Euler(
+              e.x + 0.6654549523360951, e.y, e.z, order
+            )
 
             // ここからMQTT Start
             //let xrSession = this.el.renderer.xr.getSession();
