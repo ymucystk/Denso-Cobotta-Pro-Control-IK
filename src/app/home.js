@@ -37,7 +37,7 @@ const z_vec_base = new THREE.Vector3(0,0,1).normalize()
 let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
-const max_move_unit = (1/180)
+const max_move_unit = [(1/120),(1/100),(1/120),(1/150),(1/150),(1/240)]
 const rotate_table = [[],[],[],[],[],[]]
 const object3D_table = []
 const rotvec_table = [y_vec_base,x_vec_base,x_vec_base,y_vec_base,x_vec_base,z_vec_base]
@@ -402,7 +402,7 @@ export default function Home(props) {
           const move_time_1 = target_move_distance*target_move_speed
           const wk_euler = new THREE.Quaternion().angleTo(
             current_data.start_quaternion.clone().invert().multiply(current_data.end_quaternion))
-          const move_time_2 = (toAngle(wk_euler)*max_move_unit)*1000
+          const move_time_2 = (toAngle(wk_euler)*max_move_unit[i])*1000
           current_data.move_time = Math.max(move_time_1,move_time_2)
           current_data.endtime = current_data.starttime + current_data.move_time
         }
