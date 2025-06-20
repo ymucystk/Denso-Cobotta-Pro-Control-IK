@@ -419,11 +419,15 @@ export default function Home(props) {
           current_data.starttime = performance.now()
           current_data.start_quaternion = current_object3D.quaternion.clone()
           current_data.end_quaternion = new THREE.Quaternion().setFromAxisAngle(rotvec_table[i],toRadian(current_data.rot))
-          const move_time_1 = target_move_distance*target_move_speed
-          const wk_euler = new THREE.Quaternion().angleTo(
-            current_data.start_quaternion.clone().invert().multiply(current_data.end_quaternion))
-          const move_time_2 = (toAngle(wk_euler)*max_move_unit[i])*1000
-          current_data.move_time = Math.max(move_time_1,move_time_2)
+          if(switchingVrMode){
+            current_data.move_time = 0
+          }else{
+            const move_time_1 = target_move_distance*target_move_speed
+            const wk_euler = new THREE.Quaternion().angleTo(
+              current_data.start_quaternion.clone().invert().multiply(current_data.end_quaternion))
+            const move_time_2 = (toAngle(wk_euler)*max_move_unit[i])*1000
+            current_data.move_time = Math.max(move_time_1,move_time_2)
+          }
           current_data.endtime = current_data.starttime + current_data.move_time
         }
         const current_time = performance.now()
