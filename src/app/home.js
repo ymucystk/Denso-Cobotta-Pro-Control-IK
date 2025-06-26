@@ -126,7 +126,9 @@ export default function Home(props) {
   const [j7_rotate,set_j7_rotate,j7_rotate_ref] = useRefState(set_update,0)
   const [j6_rotate_org,set_j6_rotate_org,j6_rotate_org_ref] = useRefState(set_update,0)
 
-  const rotateRef = React.useRef([0,0,0,0,0,0,0]); // ref を使って rotate を保持する
+  const rotateRef = React.useRef(
+    [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
+  ); // ref を使って rotate を保持する
 
   const prevRotateRef = React.useRef([0,0,0,0,0,0,0]) //前回の関節角度
 
