@@ -1279,7 +1279,7 @@ export default function Home(props) {
           });
         },
         tick: function (time) {
-          if((tickprev + 30) < time){
+          if((tickprev + 50) < time){
             tickprev = time
             let move = false
             const obj = this.el.object3D
