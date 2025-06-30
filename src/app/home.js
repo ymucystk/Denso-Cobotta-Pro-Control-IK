@@ -126,13 +126,16 @@ export default function Home(props) {
   const [j7_rotate,set_j7_rotate,j7_rotate_ref] = useRefState(set_update,0)
   const [j6_rotate_org,set_j6_rotate_org,j6_rotate_org_ref] = useRefState(set_update,0)
 
-  const rotateRef = React.useRef(
+  /*const rotateRef = React.useRef(
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
-  ); // ref を使って rotate を保持する
+  );*/ // ref を使って rotate を保持する
+  const [rotate,set_rotate,rotateRef] = useRefState(set_update,
+    [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
+  )
 
   const prevRotateRef = React.useRef([0,0,0,0,0,0,0]) //前回の関節角度
 
-  const [input_rotate,set_input_rotate] = useRefState(set_update,[undefined,0,0,0,0,0,0])
+  const [input_rotate,set_input_rotate,input_rotateRef] = useRefState(set_update,[undefined,0,0,0,0,0,0])
 
   const [p15_object,set_p15_object] = useRefState(set_update,new THREE.Object3D())
   const [p16_object,set_p16_object] = useRefState(set_update,new THREE.Object3D())
@@ -230,7 +233,8 @@ export default function Home(props) {
             new_rotate[6]
           ]
           //console.log('robot_rotate',robot_rotate)
-          rotateRef.current = [...robot_rotate]
+          //rotateRef.current = [...robot_rotate]
+          set_rotate([...robot_rotate])
         }
         prevRotateRef.current = [...new_rotate]
       }
@@ -530,8 +534,8 @@ export default function Home(props) {
         conv_result.j6_rotate,
         round(j7_rotate)
       ]
-      //set_rotate(new_rotate)
-      rotateRef.current = [...new_rotate]
+      set_rotate([...new_rotate])
+      //rotateRef.current = [...new_rotate]
       //console.log("Real Rotate:",new_rotate)
     }
   }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
@@ -854,7 +858,7 @@ export default function Home(props) {
       shift_target.z = shift_target.z + sabun_pos.z
     }
 
-    if(dsp_message === ""){
+    if(dsp_message === "" && !props.viewer){
       const check_result = outRotateConv(result_rotate,[...rotateRef.current])
       if(check_result.j1_rotate<-270 || check_result.j1_rotate>270){
         dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
@@ -1555,7 +1559,8 @@ export default function Home(props) {
           {`${props.viewer?'viewer mode / ':''}`}
           {`wrist_degree:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}`}
           {` ${dsp_message}`}
-          {/*!props.viewer?<>{` output rot:${rotateRef.current.map((el,i)=>` j${i+1}:${round(el)}`)}`}</>:null*/}
+          {props.viewer?<>{` input rot:[${input_rotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
+          {!props.viewer?<>{` output rot:[${rotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
         </div>
       </div>
     </>
