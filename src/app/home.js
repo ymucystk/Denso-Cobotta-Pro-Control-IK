@@ -1030,6 +1030,9 @@ export default function Home(props) {
   }
 
   const normalize180 = (angle)=>{
+    if(Math.abs(angle) === 180){
+      return angle
+    }
     return ((angle + 180) % 360 + 360) % 360 - 180
   }
 
