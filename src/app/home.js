@@ -478,7 +478,7 @@ export default function Home(props) {
     const new_rot = base_rot.map((base, idx) => normalize180(base + Correct_value[idx]))
     const diff = new_rot.map((rot,idx)=>shortestAngleDiffSigned(rot,prevRotate[idx]))
     const result_rot = new_rot.map((rot,idx)=>{
-      const result_value = prevRotate[idx] + diff[idx]
+      const result_value = round(prevRotate[idx] + diff[idx])
       if(Math.abs(result_value) < 360){
         let rtn_rot = rot
         if(result_value >= 180){
