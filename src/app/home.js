@@ -148,7 +148,8 @@ export default function Home(props) {
   const [start_pos,set_start_pos] = useRefState(set_update,new THREE.Object3D())
   const [save_target,set_save_target] = useRefState(set_update)
 
-  const vrModeRef = React.useRef(false); // vr_mode はref のほうが使いやすい
+  //const vrModeRef = React.useRef(false); // vr_mode はref のほうが使いやすい
+  const [vr_mode,set_vr_mode,vrModeRef] = useRefState(set_update,false)
   const robotIDRef = React.useRef("none");
 
   const [test_pos,set_test_pos] = useRefState(set_update,{x:0,y:0,z:0})
@@ -185,10 +186,16 @@ export default function Home(props) {
   React.useEffect(() => {
     const wk_vrModeAngle = getCookie('vrModeAngle')
     set_vrModeAngle(wk_vrModeAngle?parseFloat(wk_vrModeAngle):0)
-    if(!props.viewer){
+    /*if(!props.viewer){
+      requestAnimationFrame(get_real_joint_rot)
+    }*/
+  },[])
+
+  React.useEffect(() => {
+    if(!props.viewer && !vr_mode){
       requestAnimationFrame(get_real_joint_rot)
     }
-  },[])
+  },[vr_mode])
 
   const get_real_joint_rot = ()=>{
     if(!props.viewer){
@@ -1342,8 +1349,8 @@ export default function Home(props) {
             window.requestAnimationFrame(onAnimationMQTT);
           }
           this.el.addEventListener('enter-vr', ()=>{
-            vrModeRef.current = true;
-//            set_vr_mode(true)
+            //vrModeRef.current = true;
+            set_vr_mode(true)
             console.log('enter-vr')
 
             switchingVrMode = true
@@ -1386,8 +1393,9 @@ export default function Home(props) {
             xrSession = this.el.renderer.xr.getSession();
             xrSession.requestAnimationFrame(onXRFrameMQTT);
             xrSession.addEventListener("end", ()=>{
-              requestAnimationFrame(get_real_joint_rot)
+              window.requestAnimationFrame(get_real_joint_rot)
             })
+            xrSession.requestAnimationFrame(get_real_joint_rot);
 
             if(!props.viewer){
               set_c_pos_x(0)
@@ -1402,8 +1410,8 @@ export default function Home(props) {
           });
           this.el.addEventListener('exit-vr', ()=>{
             xrSession = undefined
-            vrModeRef.current = false;
-//            set_vr_mode(false)
+            //vrModeRef.current = false;
+            set_vr_mode(false)
             console.log('exit-vr')
           });
         /*},
