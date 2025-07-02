@@ -1419,6 +1419,7 @@ export default function Home(props) {
             //vrModeRef.current = false;
             set_vr_mode(false)
             console.log('exit-vr')
+            baseObject3D.rotateY(toRadian(-vrModeAngle_ref.current))
           });
         /*},
         tick: function (t) {*/
