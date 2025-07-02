@@ -1377,14 +1377,16 @@ export default function Home(props) {
               switchingVrMode = false
             },3000)
             baseObject3D.rotateY(toRadian(vrModeAngle_ref.current))
-            const wrist_qua = new THREE.Quaternion().setFromEuler(
-              new THREE.Euler(
-                toRadian(wrist_rot_ref.current.x),
-                toRadian(wrist_rot_ref.current.y),
-                toRadian(wrist_rot_ref.current.z), order
-              )
+            const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
+              y_vec_base,toRadian(vrModeAngle_ref.current)
             ).multiply(
-              new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(vrModeAngle_ref.current * -1)) 
+              new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(
+                  toRadian(wrist_rot_ref.current.x),
+                  toRadian(wrist_rot_ref.current.y),
+                  toRadian(wrist_rot_ref.current.z), order
+                )
+              )
             )
             const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua,order)
             set_wrist_rot({x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))})
@@ -1443,14 +1445,16 @@ export default function Home(props) {
             console.log('exit-vr')
 
             baseObject3D.rotateY(toRadian(vrModeAngle_ref.current * -1))
-            const wrist_qua = new THREE.Quaternion().setFromEuler(
-              new THREE.Euler(
-                toRadian(wrist_rot_ref.current.x),
-                toRadian(wrist_rot_ref.current.y),
-                toRadian(wrist_rot_ref.current.z), order
-              )
+            const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
+              y_vec_base,toRadian(vrModeAngle_ref.current * -1)
             ).multiply(
-              new THREE.Quaternion().setFromAxisAngle(y_vec_base,toRadian(vrModeAngle_ref.current)) 
+              new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(
+                  toRadian(wrist_rot_ref.current.x),
+                  toRadian(wrist_rot_ref.current.y),
+                  toRadian(wrist_rot_ref.current.z), order
+                )
+              )
             )
             const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua,order)
             set_wrist_rot({x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))})
