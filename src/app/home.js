@@ -1257,7 +1257,7 @@ export default function Home(props) {
                       vrControllStart()
                     }
                     set_update((v)=>v=v+1)
-                  },30000) // 30秒間は操作しない(暫定タイマー)
+                  },60000) // 60秒間は操作しない(暫定タイマー)
                 }else{
                   vrControllEnd()
                   if(trigger_on){
