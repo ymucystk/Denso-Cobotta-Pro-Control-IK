@@ -168,7 +168,11 @@ export default function Home(props) {
   const [dsp_message,set_dsp_message] = useRefState(set_update,"")
 
   const toolNameList = ["No tool","Gripper","vgc10-1","vgc10-4","cutter","boxLiftUp"]
-  const [toolName,set_toolName] = useRefState(set_update,toolNameList[1])
+  const [toolName,set_toolName_org] = useRefState(set_update,toolNameList[1])
+  const set_toolName = (newTool)=>{
+    document.cookie = `toolName=${newTool}; path=/; max-age=31536000;`
+    set_toolName_org(newTool)
+  }
 
   const [target,set_target_org] = useRefState(set_update,real_target)
   const [p15_16_len,set_p15_16_len] = useRefState(set_update,joint_pos.j7.z+0.14)
@@ -186,6 +190,8 @@ export default function Home(props) {
   React.useEffect(() => {
     const wk_vrModeAngle = getCookie('vrModeAngle')
     set_vrModeAngle(wk_vrModeAngle?parseFloat(wk_vrModeAngle):0)
+    const wk_toolName = getCookie('toolName')
+    set_toolName(wk_toolName?wk_toolName:"Gripper")
     /*if(!props.viewer){
       requestAnimationFrame(get_real_joint_rot)
     }*/
