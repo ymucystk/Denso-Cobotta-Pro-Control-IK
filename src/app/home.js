@@ -23,6 +23,12 @@ const joint_pos = {
   j6:{x:0.15,y:0,z:0},
   j7:{x:0,y:0,z:0.18},
 }
+const j1_limit = 270-10
+const j2_limit = 150-10
+const j3_limit = 150-10
+const j4_limit = 270-10
+const j5_limit = 150-10
+const j6_limit = 360-10
 
 let registered = false
 let trigger_on = false
@@ -495,7 +501,7 @@ export default function Home(props) {
     const base_rot = [rotate.j1_rotate,rotate.j2_rotate,rotate.j3_rotate,rotate.j4_rotate,rotate.j5_rotate,rotate.j6_rotate]
     const wk_j1_Correct_value =  normalize180(j1_Correct_value - (vrModeRef.current?vrModeAngle_ref.current:0))
     const Correct_value = [wk_j1_Correct_value,j2_Correct_value,j3_Correct_value,j4_Correct_value,j5_Correct_value,j6_Correct_value]
-    const check_value = [270,150,150,270,150,360]
+    const check_value = [j1_limit,j2_limit,j3_limit,j4_limit,j5_limit,j6_limit]
     const new_rot = base_rot.map((base, idx) => normalize180(base + Correct_value[idx]))
     const diff = new_rot.map((rot,idx)=>shortestAngleDiffSigned(rot,prevRotate[idx]))
     const result_rot = new_rot.map((rot,idx)=>{
@@ -904,27 +910,27 @@ export default function Home(props) {
 
     if(dsp_message === "" && !props.viewer){
       const check_result = outRotateConv(result_rotate,[...rotateRef.current])
-      if(check_result.j1_rotate<-270 || check_result.j1_rotate>270){
+      if(check_result.j1_rotate<-j1_limit || check_result.j1_rotate>j1_limit){
         dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
         j1_error = true
       }
-      if(check_result.j2_rotate<-150 || check_result.j2_rotate>150){
+      if(check_result.j2_rotate<-j2_limit || check_result.j2_rotate>j2_limit){
         dsp_message = `j2_rotate 指定可能範囲外！:(${check_result.j2_rotate})`
         j2_error = true
       }
-      if(check_result.j3_rotate<-150 || check_result.j3_rotate>150){
+      if(check_result.j3_rotate<-j3_limit || check_result.j3_rotate>j3_limit){
         dsp_message = `j3_rotate 指定可能範囲外！:(${check_result.j3_rotate})`
         j3_error = true
       }
-      if(check_result.j4_rotate<-270 || check_result.j4_rotate>270){
+      if(check_result.j4_rotate<-j4_limit || check_result.j4_rotate>j4_limit){
         dsp_message = `j4_rotate 指定可能範囲外！:(${check_result.j4_rotate})`
         j4_error = true
       }
-      if(check_result.j5_rotate<-150 || check_result.j5_rotate>150){
+      if(check_result.j5_rotate<-j5_limit || check_result.j5_rotate>j5_limit){
         dsp_message = `j5_rotate 指定可能範囲外！:(${check_result.j5_rotate})`
         j5_error = true
       }
-      if(check_result.j6_rotate<-360 || check_result.j6_rotate>360){
+      if(check_result.j6_rotate<-j6_limit || check_result.j6_rotate>j6_limit){
         dsp_message = `j6_rotate 指定可能範囲外！:(${check_result.j6_rotate})`
         j6_error = true
       }
