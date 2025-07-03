@@ -168,6 +168,11 @@ export default function Home(props) {
   const toolNameList = ["No tool","Gripper","vgc10-1","vgc10-4","cutter","boxLiftUp"]
   const [toolName,set_toolName_org] = useRefState(set_update,toolNameList[1])
   const set_toolName = (newTool)=>{
+    const wk_tool_value = tool_menu_list.indexOf(newTool)
+    if(wk_tool_value >= 0){
+      tool_menu_idx = wk_tool_value
+      tool_current_value = wk_tool_value + 1
+    }
     document.cookie = `toolName=${newTool}; path=/; max-age=31536000;`
     set_toolName_org(newTool)
   }
@@ -642,7 +647,7 @@ export default function Home(props) {
                 if(data.tool_change !== undefined){
                   console.log("tool_change!",data.tool_change)
                   viewer_tool_change = true;
-                  setTimeout(()=>{viewer_tool_change = false},29000)
+                  setTimeout(()=>{viewer_tool_change = false},59000)  // 59秒後にリセット
                 }
               }
             }
