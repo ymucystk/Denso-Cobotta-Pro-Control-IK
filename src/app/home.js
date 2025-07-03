@@ -48,7 +48,7 @@ const object3D_table = []
 const rotvec_table = [y_vec_base,x_vec_base,x_vec_base,y_vec_base,x_vec_base,z_vec_base]
 let target_move_distance = 0
 const target_move_speed = (1000/0.5)
-let real_target = {x:0.4,y:0.5,z:-0.4}
+let real_target = {x:0.4,y:0.8,z:-0.4}
 let baseObject3D = new THREE.Object3D()
 
 const j1_Correct_value = 180.0
