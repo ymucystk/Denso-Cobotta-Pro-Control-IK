@@ -74,16 +74,23 @@ const Toolpos2upper = {rot:{x:90,y:0,z:0},pos:{x:-0.3,y:0.07,z:0.4},toolrot:0}
 const ToolChangeTbl = []
 let ToolChangeMove = false
 
+let put_down_box_value = undefined
 let tool_change_value = undefined
 let tool_current_value = undefined
 let tool_menu_on = false
 let tool_load_operation = false
+let put_down_box_operation = false
+let put_down_box_timeout_id = 0
 let tool_menu_idx = 0
 const tool_menu_list = ["Gripper","vgc10-1","cutter","boxLiftUp"]
+const add_menu_1 = tool_menu_list.length
+const tool_menu_max = tool_menu_list.length + 1
 let save_tool_menu_idx = 0
 let save_thumbstickmoved = 0
 let firstReceiveJoint = true
 let viewer_tool_change = false
+let viewer_put_down_box = false
+let viewer_put_down_box_end = undefined
 
 let switchingVrMode = false
 
@@ -275,7 +282,7 @@ export default function Home(props) {
   }
 
   React.useEffect(() => {
-    if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !switchingVrMode){
+    if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
       const move_pos = pos_sub(start_pos,controller_object_position)
       move_pos.x = move_pos.x/2
       move_pos.y = move_pos.y/2
@@ -295,7 +302,7 @@ export default function Home(props) {
   },[controller_object_position.x,controller_object_position.y,controller_object_position.z])
 
   React.useEffect(() => {
-    if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !switchingVrMode){
+    if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
       const quat_start = new THREE.Quaternion().setFromEuler(start_rotation);
       const quat_controller = new THREE.Quaternion().setFromEuler(controller_object_rotation);
       const quatDifference1 = quat_start.clone().invert().multiply(quat_controller);
@@ -641,13 +648,24 @@ export default function Home(props) {
             let data = JSON.parse(message.toString())
             if (data.joints != undefined) {
               // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
-              if(!viewer_tool_change){
-                console.log("Viewer!!!", data.joints)
+              if(!viewer_tool_change && !viewer_put_down_box){
+                if(input_rotateRef.current.some((e,i)=>e!==data.joints[i])){
+                  console.log("Viewer!!!", data.joints)
+                }
                 set_input_rotate([...data.joints])
                 if(data.tool_change !== undefined){
                   console.log("tool_change!",data.tool_change)
                   viewer_tool_change = true;
                   setTimeout(()=>{viewer_tool_change = false},59000)  // 59秒後にリセット
+                }
+                if(data.put_down_box !== undefined){
+                  console.log("put_down_box!",data.put_down_box)
+                  viewer_put_down_box = true;
+                  setTimeout(()=>{
+                    // put_down_box 終了通知
+                    viewer_put_down_box_end = true
+                    viewer_put_down_box = false
+                  },19000)
                 }
               }
             }
@@ -675,9 +693,22 @@ export default function Home(props) {
             const joints = data.joints
             // ここで、joints の安全チェックをすべき
             //mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) // これでロボット姿勢の受信は終わり
-            if(firstReceiveJoint || tool_load_operation){
-              console.log("receive joints",joints)
-              set_input_rotate([...joints])
+            if(firstReceiveJoint || tool_load_operation || put_down_box_operation){
+              if(input_rotateRef.current.some((e,i)=>e!==joints[i])){
+                console.log("receive joints",joints)
+              }
+              if(put_down_box_operation && data.put_down_box !== undefined){
+                console.log("receive put_down_box!",data.put_down_box)
+                clearTimeout(put_down_box_timeout_id)
+                put_down_box_operation = false
+                vrControllEnd()
+                if(trigger_on){
+                  vrControllStart()
+                }
+                set_update((v)=>v=v+1)
+              }else{
+                set_input_rotate([...joints])
+              }
             }
 
             if(firstReceiveJoint){
@@ -1246,7 +1277,7 @@ export default function Home(props) {
           });
 
           this.el.addEventListener('thumbstickdown', (evt) => {
-            if(tool_load_operation) return
+            if(tool_load_operation || put_down_box_operation) return
             if(tool_menu_on){
               if(tool_menu_idx < tool_menu_list.length){
                 if((tool_menu_idx + 1) !== tool_current_value){
@@ -1264,19 +1295,36 @@ export default function Home(props) {
                     set_update((v)=>v=v+1)
                   },60000) // 60秒間は操作しない(暫定タイマー)
                 }else{
+                  //ツール変更なし
                   vrControllEnd()
                   if(trigger_on){
                     vrControllStart()
                   }
                 }
+              }else
+              if(tool_menu_idx === add_menu_1){
+                console.log("putDownBox")
+                put_down_box_value = 1
+                put_down_box_operation = true
+                tool_menu_idx = save_tool_menu_idx
+
+                put_down_box_timeout_id = setTimeout(()=>{
+                  put_down_box_operation = false
+                  vrControllEnd()
+                  if(trigger_on){
+                    vrControllStart()
+                  }
+                  set_update((v)=>v=v+1)
+                },60000) // 60秒間は操作しない
               }else{
+                console.log("cancel tool menu")
                 tool_menu_idx = save_tool_menu_idx
                 vrControllEnd()
                 if(trigger_on){
                   vrControllStart()
                 }
               }
-            }else{
+            }else{  // tool_menu_off
               if(trigger_on){
                 vrControllEnd()
               }
@@ -1288,6 +1336,7 @@ export default function Home(props) {
           });
           this.el.addEventListener('thumbstickup', (evt) => {
             tool_change_value = undefined
+            put_down_box_value = undefined
             set_update((v)=>v=v+1)
           });
           this.el.addEventListener('thumbstickmoved', (evt) => {
@@ -1296,7 +1345,7 @@ export default function Home(props) {
                 if(save_thumbstickmoved === 0 && evt.detail.y !== 0){
                   if(evt.detail.y > 0){
                     tool_menu_idx = tool_menu_idx + 1
-                    if(tool_menu_idx >= (tool_menu_list.length+1)) tool_menu_idx = (tool_menu_list.length)
+                    if(tool_menu_idx > tool_menu_max) tool_menu_idx = tool_menu_max
                   }else{
                     tool_menu_idx = tool_menu_idx - 1
                     if(tool_menu_idx < 0) tool_menu_idx = 0
@@ -1304,7 +1353,7 @@ export default function Home(props) {
                 }else
                 if(save_thumbstickmoved < 0 && evt.detail.y > 0){
                   tool_menu_idx = tool_menu_idx + 1
-                  if(tool_menu_idx >= (tool_menu_list.length+1)) tool_menu_idx = (tool_menu_list.length)
+                  if(tool_menu_idx > tool_menu_max) tool_menu_idx = tool_menu_max
                 }else
                 if(save_thumbstickmoved > 0 && evt.detail.y < 0){
                   tool_menu_idx = tool_menu_idx - 1
@@ -1420,7 +1469,7 @@ export default function Home(props) {
             )
 
             const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
-            console.log("wrist_rot",toAngle(vrcon_euler.x),toAngle(vrcon_euler.y),toAngle(vrcon_euler.z))
+            //console.log("wrist_rot",toAngle(vrcon_euler.x),toAngle(vrcon_euler.y),toAngle(vrcon_euler.z))
             save_rotation.copy(vrcon_euler)
 
             // ここからMQTT Start
@@ -1487,11 +1536,18 @@ export default function Home(props) {
   
   // ロボット姿勢を定常的に送信 (for Viewer)
   const onAnimationMQTT = (time) =>{
+    const addKey = {}
+    if(viewer_put_down_box_end !== undefined){
+      console.log("viewer_put_down_box_end",viewer_put_down_box_end)
+      addKey.put_down_box = viewer_put_down_box_end
+      viewer_put_down_box_end = undefined
+    }
     const robot_state_json = JSON.stringify({
       time: time,
       joints: rotateRef.current,
-      grip: gripRef.current
+      grip: gripRef.current,
 //        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
+      ...addKey
     });
     publishMQTT(MQTT_ROBOT_STATE_TOPIC+idtopic , robot_state_json);
     window.requestAnimationFrame(onAnimationMQTT);
@@ -1512,6 +1568,9 @@ export default function Home(props) {
       const addKey = {}
       if(tool_change_value !== undefined){
         addKey.tool_change = tool_change_value
+      }
+      if(put_down_box_value !== undefined){
+        addKey.put_down_box = put_down_box_value
       }
       // MQTT 送信
       const ctl_json = JSON.stringify({
@@ -1550,12 +1609,12 @@ export default function Home(props) {
   }
 
   const Toolmenu = (props)=> {
-    const refpos = 0.35
+    const refpos = 0.38
     const interval = 0.15
     if(tool_menu_on){
       return(
         <a-entity position="0.5 0.5 -0.5">
-          <a-plane width="1" height="1" color="#222" opacity="0.8"></a-plane>
+          <a-plane width="1" height="1.03" color="#222" opacity="0.8"></a-plane>
           <a-entity
             geometry="primitive: plane; width: 0.81; height: 0.11;"
             material="color: #00ff00;"
@@ -1577,6 +1636,13 @@ export default function Home(props) {
             material="color: #2196F3"
             position={`0 ${refpos - (tool_menu_list.length*interval)} 0.01`}
             class="menu-button"
+            text="value: PUT DOWN BOX; align: center; color: white;">
+          </a-entity>
+          <a-entity
+            geometry="primitive: plane; width: 0.8; height: 0.1;"
+            material="color: #2196F3"
+            position={`0 ${refpos - (tool_menu_max*interval)} 0.01`}
+            class="menu-button"
             text="value: CANCEL; align: center; color: white;">
           </a-entity>
         </a-entity>)
@@ -1588,6 +1654,15 @@ export default function Home(props) {
           material="color: #000000"
           position="0 0.15 0.2"
           text="value: TOOL LOADING!!; align: center; color: yellow; wrap-count: 15;">
+        </a-entity>)
+    }else
+    if(put_down_box_operation){
+      return(
+        <a-entity
+          geometry="primitive: plane; width: 0.5; height: 0.15;"
+          material="color: #000000"
+          position="0 0.15 0.2"
+          text="value: PUT DOWN BOX!!; align: center; color: yellow; wrap-count: 15;">
         </a-entity>)
     }else{
       return null
