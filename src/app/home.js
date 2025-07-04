@@ -85,6 +85,7 @@ let tool_change_value = undefined
 let tool_current_value = undefined
 let tool_menu_on = false
 let tool_load_operation = false
+let tool_load_timeout_id = 0
 let put_down_box_operation = false
 let put_down_box_timeout_id = 0
 let tool_menu_idx = 0
@@ -95,6 +96,7 @@ let save_tool_menu_idx = 0
 let save_thumbstickmoved = 0
 let firstReceiveJoint = true
 let viewer_tool_change = false
+let viewer_tool_change_end = undefined
 let viewer_put_down_box = false
 let viewer_put_down_box_end = undefined
 
@@ -179,12 +181,15 @@ export default function Home(props) {
   const [dsp_message,set_dsp_message] = useRefState(set_update,"")
 
   const toolNameList = ["No tool","Gripper","vgc10-1","vgc10-4","cutter","boxLiftUp"]
-  const [toolName,set_toolName_org] = useRefState(set_update,toolNameList[1])
+  const [toolName,set_toolName_org,toolNameRef] = useRefState(set_update,toolNameList[1])
   const set_toolName = (newTool)=>{
     const wk_tool_value = tool_menu_list.indexOf(newTool)
     if(wk_tool_value >= 0){
       tool_menu_idx = wk_tool_value
       tool_current_value = wk_tool_value + 1
+    }else{
+      tool_menu_idx = 0
+      tool_current_value = undefined
     }
     document.cookie = `toolName=${newTool}; path=/; max-age=31536000;`
     set_toolName_org(newTool)
@@ -657,12 +662,18 @@ export default function Home(props) {
               if(!viewer_tool_change && !viewer_put_down_box){
                 if(input_rotateRef.current.some((e,i)=>e!==data.joints[i])){
                   console.log("Viewer!!!", data.joints)
+                  set_input_rotate([...data.joints])
                 }
-                set_input_rotate([...data.joints])
                 if(data.tool_change !== undefined){
                   console.log("tool_change!",data.tool_change)
                   viewer_tool_change = true;
-                  setTimeout(()=>{viewer_tool_change = false},59000)  // 59秒後にリセット
+                  setTimeout(()=>{
+                    set_toolName(tool_menu_list[convertInt(data.tool_change) - 1])
+                  },10000)
+                  setTimeout(()=>{
+                    viewer_tool_change_end = true
+                    viewer_tool_change = false
+                  },20000)
                 }
                 if(data.put_down_box !== undefined){
                   console.log("put_down_box!",data.put_down_box)
@@ -671,7 +682,7 @@ export default function Home(props) {
                     // put_down_box 終了通知
                     viewer_put_down_box_end = true
                     viewer_put_down_box = false
-                  },19000)
+                  },20000)
                 }
               }
             }
@@ -700,8 +711,25 @@ export default function Home(props) {
             // ここで、joints の安全チェックをすべき
             //mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) // これでロボット姿勢の受信は終わり
             if(firstReceiveJoint || tool_load_operation || put_down_box_operation){
-              if(input_rotateRef.current.some((e,i)=>e!==joints[i])){
-                console.log("receive joints",joints)
+              if(data.tool_id !== undefined){
+                const tool_id = convertInt(data.tool_id)
+                if(tool_id >= 1 && tool_id <= tool_menu_list.length){
+                  const tool_name = tool_menu_list[tool_id - 1]
+                  if(toolNameRef.current !== tool_name){
+                    console.log("receive tool_id!",tool_name,data.tool_id)
+                    set_toolName(tool_name)
+                  }
+                }
+              }
+              if(tool_load_operation && data.tool_change !== undefined && data.tool_change === true){
+                console.log("receive tool_change!",data.tool_change)
+                clearTimeout(tool_load_timeout_id)
+                tool_load_operation = false
+                vrControllEnd()
+                if(trigger_on){
+                  vrControllStart()
+                }
+                set_update((v)=>v=v+1)
               }
               if(put_down_box_operation && data.put_down_box !== undefined){
                 console.log("receive put_down_box!",data.put_down_box)
@@ -712,8 +740,12 @@ export default function Home(props) {
                   vrControllStart()
                 }
                 set_update((v)=>v=v+1)
-              }else{
-                set_input_rotate([...joints])
+              }
+              if(firstReceiveJoint || tool_load_operation || put_down_box_operation){
+                if(input_rotateRef.current.some((e,i)=>e!==joints[i])){
+                  console.log("receive joints",joints)
+                  set_input_rotate([...joints])
+                }
               }
             }
 
@@ -782,6 +814,14 @@ export default function Home(props) {
     const y_vector = new THREE.Vector3(vec.x,vec.y,vec.z).normalize()
     const angle = (toAngle(Math.acos(y_vector.dot(y_vec_base))))
     return {direction,angle}
+  }
+
+  const convertInt = (x)=>{
+    const parsed = Number.parseInt(x, 10);
+    if (Number.isNaN(parsed)) {
+      return 0;
+    }
+    return parsed;
   }
 
   const pos_add = (pos1, pos2)=>{
@@ -1289,10 +1329,10 @@ export default function Home(props) {
                 if((tool_menu_idx + 1) !== tool_current_value){
                   tool_change_value = (tool_menu_idx + 1)
                   tool_current_value = (tool_menu_idx + 1)
-                  set_toolName(tool_menu_list[tool_menu_idx])
+                  //set_toolName(tool_menu_list[tool_menu_idx])
                   tool_load_operation = true
 
-                  setTimeout(()=>{
+                  tool_load_timeout_id = setTimeout(()=>{
                     tool_load_operation = false
                     vrControllEnd()
                     if(trigger_on){
@@ -1543,10 +1583,18 @@ export default function Home(props) {
   // ロボット姿勢を定常的に送信 (for Viewer)
   const onAnimationMQTT = (time) =>{
     const addKey = {}
+    if(viewer_tool_change_end !== undefined){
+      console.log("viewer_tool_change_end",viewer_tool_change_end)
+      addKey.tool_change = viewer_tool_change_end
+      viewer_tool_change_end = undefined
+    }
     if(viewer_put_down_box_end !== undefined){
       console.log("viewer_put_down_box_end",viewer_put_down_box_end)
       addKey.put_down_box = viewer_put_down_box_end
       viewer_put_down_box_end = undefined
+    }
+    if(tool_current_value !== undefined){
+      addKey.tool_id = tool_current_value
     }
     const robot_state_json = JSON.stringify({
       time: time,
