@@ -391,7 +391,7 @@ export default function Home(props) {
         setTimeout(()=>{
           viewer_tool_change_end = true
           viewer_tool_change = false
-        },500)
+        },5000)
       }
     }
   }
