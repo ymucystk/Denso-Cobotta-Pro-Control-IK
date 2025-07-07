@@ -23,6 +23,12 @@ const joint_pos = {
   j6:{x:0.15,y:0,z:0},
   j7:{x:0,y:0,z:0.18},
 }
+const j1_limit = 270-10
+const j2_limit = 150-10
+const j3_limit = 150-10
+const j4_limit = 270-10
+const j5_limit = 150-10
+const j6_limit = 360-10
 
 let registered = false
 let trigger_on = false
@@ -36,14 +42,13 @@ const z_vec_base = new THREE.Vector3(0,0,1).normalize()
 
 let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
-let current_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
 const max_move_unit = [(1/120),(1/100),(1/120),(1/150),(1/150),(1/240)]
 const rotate_table = [[],[],[],[],[],[]]
 const object3D_table = []
 const rotvec_table = [y_vec_base,x_vec_base,x_vec_base,y_vec_base,x_vec_base,z_vec_base]
 let target_move_distance = 0
 const target_move_speed = (1000/0.5)
-let real_target = {x:0.4,y:0.5,z:-0.4}
+let real_target = {x:0.4,y:0.8,z:-0.4}
 let baseObject3D = new THREE.Object3D()
 
 const j1_Correct_value = 180.0
@@ -75,31 +80,39 @@ const Toolpos2upper = {rot:{x:90,y:0,z:0},pos:{x:-0.3,y:0.07,z:0.4},toolrot:0}
 const ToolChangeTbl = []
 let ToolChangeMove = false
 
+let put_down_box_value = undefined
 let tool_change_value = undefined
 let tool_current_value = undefined
 let tool_menu_on = false
 let tool_load_operation = false
+let tool_load_timeout_id = 0
+let put_down_box_operation = false
+let put_down_box_timeout_id = 0
 let tool_menu_idx = 0
 const tool_menu_list = ["Gripper","vgc10-1","cutter","boxLiftUp"]
+const add_menu_1 = tool_menu_list.length
+const tool_menu_max = tool_menu_list.length + 1
 let save_tool_menu_idx = 0
 let save_thumbstickmoved = 0
 let firstReceiveJoint = true
 let viewer_tool_change = false
+let viewer_tool_change_end = undefined
+let viewer_put_down_box = false
+let viewer_put_down_box_end = undefined
 
 let switchingVrMode = false
 
 function useRefState(updateFunc,initialValue=undefined) {
   const ref = React.useRef(initialValue);
-  let value = ref.current
   function setValue(arg){
     if (typeof arg === 'function') {
-      value = ref.current = arg(value)
+      ref.current = arg(ref.current)
     }else{
-      value = ref.current = arg
+      ref.current = arg
     }
     updateFunc((v)=>v=v+1)
   }
-  return [value, setValue, ref];
+  return [ref.current, setValue, ref];
 }
 
 export default function Home(props) {
@@ -161,16 +174,27 @@ export default function Home(props) {
   const [c_deg_y,set_c_deg_y] = useRefState(set_update,0)
   const [c_deg_z,set_c_deg_z] = useRefState(set_update,0)
 
-  const [wrist_rot,set_wrist_rot_org] = useRefState(set_update,{x:180,y:0,z:0})
-  const wristRotRef = React.useRef(wrist_rot);
+  const [wrist_rot,set_wrist_rot_org,wrist_rot_ref] = useRefState(set_update,{x:180,y:0,z:0})
   const [tool_rotate,set_tool_rotate] = useRefState(set_update,0)
   const [wrist_degree,set_wrist_degree] = useRefState(set_update,{direction:0,angle:0})
   const [dsp_message,set_dsp_message] = useRefState(set_update,"")
 
   const toolNameList = ["No tool","Gripper","vgc10-1","vgc10-4","cutter","boxLiftUp"]
-  const [toolName,set_toolName] = useRefState(set_update,toolNameList[1])
+  const [toolName,set_toolName_org,toolNameRef] = useRefState(set_update,toolNameList[1])
+  const set_toolName = (newTool)=>{
+    const wk_tool_value = tool_menu_list.indexOf(newTool)
+    if(wk_tool_value >= 0){
+      tool_menu_idx = wk_tool_value
+      tool_current_value = wk_tool_value + 1
+    }else{
+      tool_menu_idx = 0
+      tool_current_value = undefined
+    }
+    document.cookie = `toolName=${newTool}; path=/; max-age=31536000;`
+    set_toolName_org(newTool)
+  }
 
-  const [target,set_target_org] = useRefState(set_update,real_target)
+  const [target,set_target_org,target_ref] = useRefState(set_update,real_target)
   const [p15_16_len,set_p15_16_len] = useRefState(set_update,joint_pos.j7.z+0.14)
   const [p14_maxlen,set_p14_maxlen] = useRefState(set_update,0)
 
@@ -186,6 +210,8 @@ export default function Home(props) {
   React.useEffect(() => {
     const wk_vrModeAngle = getCookie('vrModeAngle')
     set_vrModeAngle(wk_vrModeAngle?parseFloat(wk_vrModeAngle):0)
+    const wk_toolName = getCookie('toolName')
+    set_toolName(wk_toolName?wk_toolName:"Gripper")
     /*if(!props.viewer){
       requestAnimationFrame(get_real_joint_rot)
     }*/
@@ -262,12 +288,11 @@ export default function Home(props) {
 
   const set_wrist_rot = (new_rot)=>{
     target_move_distance = 0
-    wristRotRef.current = {...new_rot}
     set_wrist_rot_org({...new_rot})
   }
 
   React.useEffect(() => {
-    if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !switchingVrMode){
+    if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
       const move_pos = pos_sub(start_pos,controller_object_position)
       move_pos.x = move_pos.x/2
       move_pos.y = move_pos.y/2
@@ -287,7 +312,7 @@ export default function Home(props) {
   },[controller_object_position.x,controller_object_position.y,controller_object_position.z])
 
   React.useEffect(() => {
-    if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !switchingVrMode){
+    if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
       const quat_start = new THREE.Quaternion().setFromEuler(start_rotation);
       const quat_controller = new THREE.Quaternion().setFromEuler(controller_object_rotation);
       const quatDifference1 = quat_start.clone().invert().multiply(quat_controller);
@@ -296,7 +321,6 @@ export default function Home(props) {
       const quatDifference2 = quat_start.clone().invert().multiply(quat_save);
 
       const wk_mtx = quat_start.clone().multiply(quatDifference1).multiply(quatDifference2)
-      current_rotation = new THREE.Euler().setFromQuaternion(wk_mtx,controller_object_rotation.order)
 
       wk_mtx.multiply(
         new THREE.Quaternion().setFromEuler(
@@ -326,13 +350,13 @@ export default function Home(props) {
   }
 
   const toolChange1 = ()=>{
-    ToolChangeTbl.push({...Toolpos2front,speedfacter:2})
+    ToolChangeTbl.push({...Toolpos2front,speedfacter:1})
     ToolChangeTbl.push({...Toolpos2,speedfacter:10})
     ToolChangeTbl.push({...Toolpos2upper,speedfacter:20})
     ToolChangeTbl.push({...Toolpos1upper,speedfacter:10})
     ToolChangeTbl.push({...Toolpos1,speedfacter:20})
     ToolChangeTbl.push({...Toolpos1front,speedfacter:10})
-    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:2})
+    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:1})
     if(xrSession !== undefined){
       xrSession.requestAnimationFrame(toolChangeExec)
     }else{
@@ -363,6 +387,12 @@ export default function Home(props) {
       set_target(ToolChangeTbl[0].pos)
       target_move_distance*= ToolChangeTbl[0].speedfacter
       ToolChangeTbl.shift()
+      if(props.viewer && viewer_tool_change === true && ToolChangeTbl.length === 0){
+        setTimeout(()=>{
+          viewer_tool_change_end = true
+          viewer_tool_change = false
+        },5000)
+      }
     }
   }
 
@@ -481,7 +511,7 @@ export default function Home(props) {
     const base_rot = [rotate.j1_rotate,rotate.j2_rotate,rotate.j3_rotate,rotate.j4_rotate,rotate.j5_rotate,rotate.j6_rotate]
     const wk_j1_Correct_value =  normalize180(j1_Correct_value - (vrModeRef.current?vrModeAngle_ref.current:0))
     const Correct_value = [wk_j1_Correct_value,j2_Correct_value,j3_Correct_value,j4_Correct_value,j5_Correct_value,j6_Correct_value]
-    const check_value = [270,150,150,270,150,360]
+    const check_value = [j1_limit,j2_limit,j3_limit,j4_limit,j5_limit,j6_limit]
     const new_rot = base_rot.map((base, idx) => normalize180(base + Correct_value[idx]))
     const diff = new_rot.map((rot,idx)=>shortestAngleDiffSigned(rot,prevRotate[idx]))
     const result_rot = new_rot.map((rot,idx)=>{
@@ -561,8 +591,7 @@ export default function Home(props) {
     //console.log("rec_joints",robot_rotate)
     //console.log("j3_rotate",input_rotate[2])
     const {target_pos, wrist_euler} = getReaultPosRot(robot_rotate) // これで target_pos が計算される
-    wristRotRef.current = {x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))}
-    set_wrist_rot_org({...wristRotRef.current}) // 手首の相対
+    set_wrist_rot_org({x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))}) // 手首の相対
     set_target_org((vr)=>{
           target_move_distance = distance({x:vr.x,y:vr.y,z:vr.z},{x:target_pos.x,y:target_pos.y,z:target_pos.z}) // 位置の差分を計算
           vr.x = round(target_pos.x); vr.y = round(target_pos.y); vr.z = round(target_pos.z);
@@ -635,13 +664,31 @@ export default function Home(props) {
             let data = JSON.parse(message.toString())
             if (data.joints != undefined) {
               // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
-              if(!viewer_tool_change){
-                console.log("Viewer!!!", data.joints)
-                set_input_rotate([...data.joints])
+              if(!viewer_tool_change && !viewer_put_down_box){
+                if(input_rotateRef.current.some((e,i)=>e!==data.joints[i])){
+                  console.log("Viewer!!!", data.joints)
+                  set_input_rotate([...data.joints])
+                }
                 if(data.tool_change !== undefined){
                   console.log("tool_change!",data.tool_change)
                   viewer_tool_change = true;
-                  setTimeout(()=>{viewer_tool_change = false},29000)
+                  toolChange1()
+                  setTimeout(()=>{
+                    set_toolName(tool_menu_list[convertInt(data.tool_change) - 1])
+                  },10000)
+                  setTimeout(()=>{
+                    //viewer_tool_change_end = true
+                    //viewer_tool_change = false
+                  },20000)
+                }
+                if(data.put_down_box !== undefined){
+                  console.log("put_down_box!",data.put_down_box)
+                  viewer_put_down_box = true;
+                  setTimeout(()=>{
+                    // put_down_box 終了通知
+                    viewer_put_down_box_end = true
+                    viewer_put_down_box = false
+                  },20000)
                 }
               }
             }
@@ -669,9 +716,43 @@ export default function Home(props) {
             const joints = data.joints
             // ここで、joints の安全チェックをすべき
             //mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) // これでロボット姿勢の受信は終わり
-            if(firstReceiveJoint || tool_load_operation){
-              console.log("receive joints",joints)
-              set_input_rotate([...joints])
+            if(firstReceiveJoint || tool_load_operation || put_down_box_operation){
+              if(data.tool_id !== undefined){
+                const tool_id = convertInt(data.tool_id)
+                if(tool_id >= 1 && tool_id <= tool_menu_list.length){
+                  const tool_name = tool_menu_list[tool_id - 1]
+                  if(toolNameRef.current !== tool_name){
+                    console.log("receive tool_id!",tool_name,data.tool_id)
+                    set_toolName(tool_name)
+                  }
+                }
+              }
+              if(tool_load_operation && data.tool_change !== undefined && data.tool_change === true){
+                console.log("receive tool_change!",data.tool_change)
+                clearTimeout(tool_load_timeout_id)
+                tool_load_operation = false
+                vrControllEnd()
+                if(trigger_on){
+                  vrControllStart()
+                }
+                set_update((v)=>v=v+1)
+              }
+              if(put_down_box_operation && data.put_down_box !== undefined){
+                console.log("receive put_down_box!",data.put_down_box)
+                clearTimeout(put_down_box_timeout_id)
+                put_down_box_operation = false
+                vrControllEnd()
+                if(trigger_on){
+                  vrControllStart()
+                }
+                set_update((v)=>v=v+1)
+              }
+              if(firstReceiveJoint || tool_load_operation || put_down_box_operation){
+                if(input_rotateRef.current.some((e,i)=>e!==joints[i])){
+                  console.log("receive joints",joints)
+                  set_input_rotate([...joints])
+                }
+              }
             }
 
             if(firstReceiveJoint){
@@ -739,6 +820,14 @@ export default function Home(props) {
     const y_vector = new THREE.Vector3(vec.x,vec.y,vec.z).normalize()
     const angle = (toAngle(Math.acos(y_vector.dot(y_vec_base))))
     return {direction,angle}
+  }
+
+  const convertInt = (x)=>{
+    const parsed = Number.parseInt(x, 10);
+    if (Number.isNaN(parsed)) {
+      return 0;
+    }
+    return parsed;
   }
 
   const pos_add = (pos1, pos2)=>{
@@ -867,27 +956,27 @@ export default function Home(props) {
 
     if(dsp_message === "" && !props.viewer){
       const check_result = outRotateConv(result_rotate,[...rotateRef.current])
-      if(check_result.j1_rotate<-270 || check_result.j1_rotate>270){
+      if(check_result.j1_rotate<-j1_limit || check_result.j1_rotate>j1_limit){
         dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
         j1_error = true
       }
-      if(check_result.j2_rotate<-150 || check_result.j2_rotate>150){
+      if(check_result.j2_rotate<-j2_limit || check_result.j2_rotate>j2_limit){
         dsp_message = `j2_rotate 指定可能範囲外！:(${check_result.j2_rotate})`
         j2_error = true
       }
-      if(check_result.j3_rotate<-150 || check_result.j3_rotate>150){
+      if(check_result.j3_rotate<-j3_limit || check_result.j3_rotate>j3_limit){
         dsp_message = `j3_rotate 指定可能範囲外！:(${check_result.j3_rotate})`
         j3_error = true
       }
-      if(check_result.j4_rotate<-270 || check_result.j4_rotate>270){
+      if(check_result.j4_rotate<-j4_limit || check_result.j4_rotate>j4_limit){
         dsp_message = `j4_rotate 指定可能範囲外！:(${check_result.j4_rotate})`
         j4_error = true
       }
-      if(check_result.j5_rotate<-150 || check_result.j5_rotate>150){
+      if(check_result.j5_rotate<-j5_limit || check_result.j5_rotate>j5_limit){
         dsp_message = `j5_rotate 指定可能範囲外！:(${check_result.j5_rotate})`
         j5_error = true
       }
-      if(check_result.j6_rotate<-360 || check_result.j6_rotate>360){
+      if(check_result.j6_rotate<-j6_limit || check_result.j6_rotate>j6_limit){
         dsp_message = `j6_rotate 指定可能範囲外！:(${check_result.j6_rotate})`
         j6_error = true
       }
@@ -1109,7 +1198,25 @@ export default function Home(props) {
   }
 
   const vrControllEnd = ()=>{
-    save_rotation = current_rotation.clone()
+    const wrist_qua = new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(
+        toRadian(wrist_rot_ref.current.x),
+        toRadian(wrist_rot_ref.current.y),
+        toRadian(wrist_rot_ref.current.z), order
+      )
+    )
+    const vrcon_qua = wrist_qua.clone().multiply(
+      new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(
+          (0.6654549523360951*-1),  //x
+          Math.PI,  //y
+          Math.PI,  //z
+          order
+        )
+      ).invert()
+    )
+    const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
+    save_rotation.copy(vrcon_euler)
     set_save_target(undefined)
   }
 
@@ -1222,37 +1329,54 @@ export default function Home(props) {
           });
 
           this.el.addEventListener('thumbstickdown', (evt) => {
-            if(tool_load_operation) return
+            if(tool_load_operation || put_down_box_operation) return
             if(tool_menu_on){
               if(tool_menu_idx < tool_menu_list.length){
                 if((tool_menu_idx + 1) !== tool_current_value){
                   tool_change_value = (tool_menu_idx + 1)
                   tool_current_value = (tool_menu_idx + 1)
-                  set_toolName(tool_menu_list[tool_menu_idx])
+                  //set_toolName(tool_menu_list[tool_menu_idx])
                   tool_load_operation = true
 
-                  setTimeout(()=>{
+                  tool_load_timeout_id = setTimeout(()=>{
                     tool_load_operation = false
                     vrControllEnd()
                     if(trigger_on){
                       vrControllStart()
                     }
                     set_update((v)=>v=v+1)
-                  },30000) // 30秒間は操作しない(暫定タイマー)
+                  },60000) // 60秒間は操作しない(暫定タイマー)
                 }else{
+                  //ツール変更なし
                   vrControllEnd()
                   if(trigger_on){
                     vrControllStart()
                   }
                 }
+              }else
+              if(tool_menu_idx === add_menu_1){
+                console.log("putDownBox")
+                put_down_box_value = 1
+                put_down_box_operation = true
+                tool_menu_idx = save_tool_menu_idx
+
+                put_down_box_timeout_id = setTimeout(()=>{
+                  put_down_box_operation = false
+                  vrControllEnd()
+                  if(trigger_on){
+                    vrControllStart()
+                  }
+                  set_update((v)=>v=v+1)
+                },60000) // 60秒間は操作しない
               }else{
+                console.log("cancel tool menu")
                 tool_menu_idx = save_tool_menu_idx
                 vrControllEnd()
                 if(trigger_on){
                   vrControllStart()
                 }
               }
-            }else{
+            }else{  // tool_menu_off
               if(trigger_on){
                 vrControllEnd()
               }
@@ -1264,6 +1388,7 @@ export default function Home(props) {
           });
           this.el.addEventListener('thumbstickup', (evt) => {
             tool_change_value = undefined
+            put_down_box_value = undefined
             set_update((v)=>v=v+1)
           });
           this.el.addEventListener('thumbstickmoved', (evt) => {
@@ -1272,7 +1397,7 @@ export default function Home(props) {
                 if(save_thumbstickmoved === 0 && evt.detail.y !== 0){
                   if(evt.detail.y > 0){
                     tool_menu_idx = tool_menu_idx + 1
-                    if(tool_menu_idx >= (tool_menu_list.length+1)) tool_menu_idx = (tool_menu_list.length)
+                    if(tool_menu_idx > tool_menu_max) tool_menu_idx = tool_menu_max
                   }else{
                     tool_menu_idx = tool_menu_idx - 1
                     if(tool_menu_idx < 0) tool_menu_idx = 0
@@ -1280,7 +1405,7 @@ export default function Home(props) {
                 }else
                 if(save_thumbstickmoved < 0 && evt.detail.y > 0){
                   tool_menu_idx = tool_menu_idx + 1
-                  if(tool_menu_idx >= (tool_menu_list.length+1)) tool_menu_idx = (tool_menu_list.length)
+                  if(tool_menu_idx > tool_menu_max) tool_menu_idx = tool_menu_max
                 }else
                 if(save_thumbstickmoved > 0 && evt.detail.y < 0){
                   tool_menu_idx = tool_menu_idx - 1
@@ -1358,35 +1483,46 @@ export default function Home(props) {
               switchingVrMode = false
             },3000)
             baseObject3D.rotateY(toRadian(vrModeAngle_ref.current))
-            const all_joint_rot = {
-              j1_rotate: normalize180(j1_rotate_ref.current + vrModeAngle_ref.current),
-              j2_rotate: j2_rotate_ref.current,
-              j3_rotate: j3_rotate_ref.current,
-              j4_rotate: j4_rotate_ref.current,
-              j5_rotate: j5_rotate_ref.current,
-              j6_rotate: j6_rotate_ref.current,
-            }
-            const {target_pos, wrist_euler} = getReaultPosRot(all_joint_rot)
+            const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
+              y_vec_base,toRadian(vrModeAngle_ref.current)
+            ).multiply(
+              new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(
+                  toRadian(wrist_rot_ref.current.x),
+                  toRadian(wrist_rot_ref.current.y),
+                  toRadian(wrist_rot_ref.current.z), order
+                )
+              )
+            )
+            const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua,order)
             set_wrist_rot({x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))})
+
+            const wk_m4 = new THREE.Matrix4().multiply(
+              new THREE.Matrix4().makeRotationY(toRadian(vrModeAngle_ref.current))
+            ).multiply(
+              new THREE.Matrix4().setPosition(target_ref.current.x,target_ref.current.y,target_ref.current.z)
+            )
+            const target_pos = new THREE.Vector3().applyMatrix4(wk_m4)
             set_target_org((vr)=>{
                   target_move_distance = 0
                   vr.x = round(target_pos.x); vr.y = round(target_pos.y); vr.z = round(target_pos.z);
                   return vr
             })
 
-            const rot = {...wristRotRef.current}
-            const q = new THREE.Quaternion().setFromEuler(
-              new THREE.Euler(
-                toRadian(rot.x), toRadian(rot.y), toRadian(rot.z), order
-              )
-            ).multiply(
-              new THREE.Quaternion().setFromAxisAngle(x_vec_base,toRadian(180)) 
+            const vrcon_qua = wrist_qua.clone().multiply(
+              new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(
+                  (0.6654549523360951*-1),  //x
+                  Math.PI,  //y
+                  Math.PI,  //z
+                  order
+                )
+              ).invert()
             )
-            const e = new THREE.Euler().setFromQuaternion(q,order)
-            console.log("wrist_rot",toAngle(e.x),toAngle(e.y),toAngle(e.z))
-            save_rotation = new THREE.Euler(
-              e.x + 0.6654549523360951, e.y, e.z, order
-            )
+
+            const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
+            //console.log("wrist_rot",toAngle(vrcon_euler.x),toAngle(vrcon_euler.y),toAngle(vrcon_euler.z))
+            save_rotation.copy(vrcon_euler)
 
             // ここからMQTT Start
             //let xrSession = this.el.renderer.xr.getSession();
@@ -1413,6 +1549,33 @@ export default function Home(props) {
             //vrModeRef.current = false;
             set_vr_mode(false)
             console.log('exit-vr')
+
+            baseObject3D.rotateY(toRadian(vrModeAngle_ref.current * -1))
+            const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
+              y_vec_base,toRadian(vrModeAngle_ref.current * -1)
+            ).multiply(
+              new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(
+                  toRadian(wrist_rot_ref.current.x),
+                  toRadian(wrist_rot_ref.current.y),
+                  toRadian(wrist_rot_ref.current.z), order
+                )
+              )
+            )
+            const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua,order)
+            set_wrist_rot({x:round(toAngle(wrist_euler.x)),y:round(toAngle(wrist_euler.y)),z:round(toAngle(wrist_euler.z))})
+
+            const wk_m4 = new THREE.Matrix4().multiply(
+              new THREE.Matrix4().makeRotationY(toRadian(vrModeAngle_ref.current * -1))
+            ).multiply(
+              new THREE.Matrix4().setPosition(target_ref.current.x,target_ref.current.y,target_ref.current.z)
+            )
+            const target_pos = new THREE.Vector3().applyMatrix4(wk_m4)
+            set_target_org((vr)=>{
+                  target_move_distance = 0
+                  vr.x = round(target_pos.x); vr.y = round(target_pos.y); vr.z = round(target_pos.z);
+                  return vr
+            })
           });
         /*},
         tick: function (t) {*/
@@ -1425,11 +1588,26 @@ export default function Home(props) {
   
   // ロボット姿勢を定常的に送信 (for Viewer)
   const onAnimationMQTT = (time) =>{
+    const addKey = {}
+    if(viewer_tool_change_end !== undefined){
+      console.log("viewer_tool_change_end",viewer_tool_change_end)
+      addKey.tool_change = viewer_tool_change_end
+      viewer_tool_change_end = undefined
+    }
+    if(viewer_put_down_box_end !== undefined){
+      console.log("viewer_put_down_box_end",viewer_put_down_box_end)
+      addKey.put_down_box = viewer_put_down_box_end
+      viewer_put_down_box_end = undefined
+    }
+    if(tool_current_value !== undefined){
+      addKey.tool_id = tool_current_value
+    }
     const robot_state_json = JSON.stringify({
       time: time,
       joints: rotateRef.current,
-      grip: gripRef.current
+      grip: gripRef.current,
 //        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
+      ...addKey
     });
     publishMQTT(MQTT_ROBOT_STATE_TOPIC+idtopic , robot_state_json);
     window.requestAnimationFrame(onAnimationMQTT);
@@ -1450,6 +1628,9 @@ export default function Home(props) {
       const addKey = {}
       if(tool_change_value !== undefined){
         addKey.tool_change = tool_change_value
+      }
+      if(put_down_box_value !== undefined){
+        addKey.put_down_box = put_down_box_value
       }
       // MQTT 送信
       const ctl_json = JSON.stringify({
@@ -1488,12 +1669,12 @@ export default function Home(props) {
   }
 
   const Toolmenu = (props)=> {
-    const refpos = 0.35
+    const refpos = 0.38
     const interval = 0.15
     if(tool_menu_on){
       return(
         <a-entity position="0.5 0.5 -0.5">
-          <a-plane width="1" height="1" color="#222" opacity="0.8"></a-plane>
+          <a-plane width="1" height="1.03" color="#222" opacity="0.8"></a-plane>
           <a-entity
             geometry="primitive: plane; width: 0.81; height: 0.11;"
             material="color: #00ff00;"
@@ -1515,6 +1696,13 @@ export default function Home(props) {
             material="color: #2196F3"
             position={`0 ${refpos - (tool_menu_list.length*interval)} 0.01`}
             class="menu-button"
+            text="value: PUT DOWN BOX; align: center; color: white;">
+          </a-entity>
+          <a-entity
+            geometry="primitive: plane; width: 0.8; height: 0.1;"
+            material="color: #2196F3"
+            position={`0 ${refpos - (tool_menu_max*interval)} 0.01`}
+            class="menu-button"
             text="value: CANCEL; align: center; color: white;">
           </a-entity>
         </a-entity>)
@@ -1526,6 +1714,15 @@ export default function Home(props) {
           material="color: #000000"
           position="0 0.15 0.2"
           text="value: TOOL LOADING!!; align: center; color: yellow; wrap-count: 15;">
+        </a-entity>)
+    }else
+    if(put_down_box_operation){
+      return(
+        <a-entity
+          geometry="primitive: plane; width: 0.5; height: 0.15;"
+          material="color: #000000"
+          position="0 0.15 0.2"
+          text="value: PUT DOWN BOX!!; align: center; color: yellow; wrap-count: 15;">
         </a-entity>)
     }else{
       return null
