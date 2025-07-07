@@ -104,16 +104,15 @@ let switchingVrMode = false
 
 function useRefState(updateFunc,initialValue=undefined) {
   const ref = React.useRef(initialValue);
-  let value = ref.current
   function setValue(arg){
     if (typeof arg === 'function') {
-      value = ref.current = arg(value)
+      ref.current = arg(ref.current)
     }else{
-      value = ref.current = arg
+      ref.current = arg
     }
     updateFunc((v)=>v=v+1)
   }
-  return [value, setValue, ref];
+  return [ref.current, setValue, ref];
 }
 
 export default function Home(props) {
@@ -351,13 +350,13 @@ export default function Home(props) {
   }
 
   const toolChange1 = ()=>{
-    ToolChangeTbl.push({...Toolpos2front,speedfacter:2})
+    ToolChangeTbl.push({...Toolpos2front,speedfacter:1})
     ToolChangeTbl.push({...Toolpos2,speedfacter:10})
     ToolChangeTbl.push({...Toolpos2upper,speedfacter:20})
     ToolChangeTbl.push({...Toolpos1upper,speedfacter:10})
     ToolChangeTbl.push({...Toolpos1,speedfacter:20})
     ToolChangeTbl.push({...Toolpos1front,speedfacter:10})
-    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:2})
+    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:1})
     if(xrSession !== undefined){
       xrSession.requestAnimationFrame(toolChangeExec)
     }else{
@@ -388,6 +387,12 @@ export default function Home(props) {
       set_target(ToolChangeTbl[0].pos)
       target_move_distance*= ToolChangeTbl[0].speedfacter
       ToolChangeTbl.shift()
+      if(props.viewer && viewer_tool_change === true && ToolChangeTbl.length === 0){
+        setTimeout(()=>{
+          viewer_tool_change_end = true
+          viewer_tool_change = false
+        },500)
+      }
     }
   }
 
@@ -667,12 +672,13 @@ export default function Home(props) {
                 if(data.tool_change !== undefined){
                   console.log("tool_change!",data.tool_change)
                   viewer_tool_change = true;
+                  toolChange1()
                   setTimeout(()=>{
                     set_toolName(tool_menu_list[convertInt(data.tool_change) - 1])
                   },10000)
                   setTimeout(()=>{
-                    viewer_tool_change_end = true
-                    viewer_tool_change = false
+                    //viewer_tool_change_end = true
+                    //viewer_tool_change = false
                   },20000)
                 }
                 if(data.put_down_box !== undefined){
