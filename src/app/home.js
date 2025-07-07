@@ -139,10 +139,10 @@ export default function Home(props) {
   const [j7_rotate,set_j7_rotate,j7_rotate_ref] = useRefState(set_update,0)
   const [j6_rotate_org,set_j6_rotate_org,j6_rotate_org_ref] = useRefState(set_update,0)
 
-  /*const rotateRef = React.useRef(
+  /*const outputRotateRef = React.useRef(
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
-  );*/ // ref を使って rotate を保持する
-  const [rotate,set_rotate,rotateRef] = useRefState(set_update,
+  );*/ // ref を使って outputRotate を保持する
+  const [outputRotate,set_outputRotate,outputRotateRef] = useRefState(set_update,
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
   )
 
@@ -175,7 +175,7 @@ export default function Home(props) {
   const [c_deg_z,set_c_deg_z] = useRefState(set_update,0)
 
   const [wrist_rot,set_wrist_rot_org,wrist_rot_ref] = useRefState(set_update,{x:180,y:0,z:0})
-  const [tool_rotate,set_tool_rotate] = useRefState(set_update,0)
+  const [tool_rotate,set_tool_rotate,tool_rotate_ref] = useRefState(set_update,0)
   const [wrist_degree,set_wrist_degree] = useRefState(set_update,{direction:0,angle:0})
   const [dsp_message,set_dsp_message] = useRefState(set_update,"")
 
@@ -254,7 +254,7 @@ export default function Home(props) {
             j4_rotate:new_rotate[3],
             j5_rotate:new_rotate[4],
             j6_rotate:new_rotate[5]
-          },[...rotateRef.current])
+          },[...outputRotateRef.current])
 
           const robot_rotate = [
             conv_result.j1_rotate,
@@ -266,8 +266,8 @@ export default function Home(props) {
             new_rotate[6]
           ]
           //console.log('robot_rotate',robot_rotate)
-          //rotateRef.current = [...robot_rotate]
-          set_rotate([...robot_rotate])
+          //outputRotateRef.current = [...robot_rotate]
+          set_outputRotate([...robot_rotate])
         }
         prevRotateRef.current = [...new_rotate]
       }
@@ -356,7 +356,8 @@ export default function Home(props) {
     ToolChangeTbl.push({...Toolpos1upper,speedfacter:10})
     ToolChangeTbl.push({...Toolpos1,speedfacter:20})
     ToolChangeTbl.push({...Toolpos1front,speedfacter:10})
-    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:1})
+    ToolChangeTbl.push({rot:wrist_rot_ref.current,pos:target_ref.current,toolrot:tool_rotate_ref.current,speedfacter:1})
+    console.log("target_ref.current",target_ref.current)
     if(xrSession !== undefined){
       xrSession.requestAnimationFrame(toolChangeExec)
     }else{
@@ -371,7 +372,7 @@ export default function Home(props) {
     ToolChangeTbl.push({...Toolpos2upper,speedfacter:10})
     ToolChangeTbl.push({...Toolpos2,speedfacter:20})
     ToolChangeTbl.push({...Toolpos2front,speedfacter:10})
-    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:2})
+    ToolChangeTbl.push({rot:wrist_rot_ref.current,pos:target_ref.current,toolrot:tool_rotate_ref.current,speedfacter:2})
     if(xrSession !== undefined){
       xrSession.requestAnimationFrame(toolChangeExec)
     }else{
@@ -559,7 +560,7 @@ export default function Home(props) {
     if(props.viewer){
       const conv_result = outRotateConv(
         {j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate:normalize180(j6_rotate+tool_rotate)},
-        [...rotateRef.current]
+        [...outputRotateRef.current]
       )
 
       const new_rotate = [
@@ -571,8 +572,8 @@ export default function Home(props) {
         conv_result.j6_rotate,
         round(j7_rotate)
       ]
-      set_rotate([...new_rotate])
-      //rotateRef.current = [...new_rotate]
+      set_outputRotate([...new_rotate])
+      //outputRotateRef.current = [...new_rotate]
       //console.log("Real Rotate:",new_rotate)
     }
   }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
@@ -650,7 +651,7 @@ export default function Home(props) {
       if(props.viewer){// Viewer の場合
         //サブスクライブ時の処理
         window.mqttClient.on('message', (topic, message) => {
-          if (topic == MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
+          if (topic === MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
             console.log(" MQTT Device Topic: ", message.toString());
               // ここでは Viewer の設定を実施！
             let data = JSON.parse(message.toString())
@@ -660,7 +661,7 @@ export default function Home(props) {
                 "control/"+data.devId
               ]);
             }
-          }else if (topic == "control/"+robotIDRef.current){
+          }else if (topic === "control/"+robotIDRef.current){
             let data = JSON.parse(message.toString())
             if (data.joints != undefined) {
               // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
@@ -704,7 +705,7 @@ export default function Home(props) {
               console.log("Can't find robot!")
             }else{
               robotIDRef.current = data.devId 
-              if (receive_state == false ){ // ロボットの姿勢を受け取るまで、スタートしない。
+              if (receive_state === false ){ // ロボットの姿勢を受け取るまで、スタートしない。
                 subscribeMQTT([
                   MQTT_ROBOT_STATE_TOPIC+robotIDRef.current // ロボットの姿勢を待つ
                 ])
@@ -751,6 +752,7 @@ export default function Home(props) {
                 if(input_rotateRef.current.some((e,i)=>e!==joints[i])){
                   console.log("receive joints",joints)
                   set_input_rotate([...joints])
+                  set_outputRotate([...joints])
                 }
               }
             }
@@ -955,7 +957,7 @@ export default function Home(props) {
     }
 
     if(dsp_message === "" && !props.viewer){
-      const check_result = outRotateConv(result_rotate,[...rotateRef.current])
+      const check_result = outRotateConv(result_rotate,[...outputRotateRef.current])
       if(check_result.j1_rotate<-j1_limit || check_result.j1_rotate>j1_limit){
         dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
         j1_error = true
@@ -1604,7 +1606,7 @@ export default function Home(props) {
     }
     const robot_state_json = JSON.stringify({
       time: time,
-      joints: rotateRef.current,
+      joints: outputRotateRef.current,
       grip: gripRef.current,
 //        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
       ...addKey
@@ -1635,7 +1637,7 @@ export default function Home(props) {
       // MQTT 送信
       const ctl_json = JSON.stringify({
         time: time,
-        joints: rotateRef.current,
+        joints: outputRotateRef.current,
         grip: gripRef.current,
 //        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
         ...addKey
@@ -1768,7 +1770,7 @@ export default function Home(props) {
           {`wrist_degree:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}`}
           {` ${dsp_message}`}
           {props.viewer?<>{` input rot:[${input_rotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
-          {!props.viewer?<>{` output rot:[${rotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
+          {!props.viewer?<>{` output rot:[${outputRotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
         </div>
       </div>
     </>
