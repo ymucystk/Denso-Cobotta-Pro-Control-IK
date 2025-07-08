@@ -145,10 +145,12 @@ export default function Home(props) {
   const [outputRotate,set_outputRotate,outputRotateRef] = useRefState(set_update,
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
   )
+  const [checkRotate,set_checkRotate,checkRotateRef] = useRefState(set_update,outputRotate)
 
   const prevRotateRef = React.useRef([0,0,0,0,0,0,0]) //前回の関節角度
 
   const [input_rotate,set_input_rotate,input_rotateRef] = useRefState(set_update,[undefined,0,0,0,0,0,0])
+  const inputRotateFlg = React.useRef(false)
 
   const [p15_object,set_p15_object] = useRefState(set_update,new THREE.Object3D())
   const [p16_object,set_p16_object] = useRefState(set_update,new THREE.Object3D())
@@ -280,15 +282,19 @@ export default function Home(props) {
   }
 
   const set_target = (new_pos)=>{
-    if(target.x !== new_pos.x || target.y !== new_pos.y || target.z !== new_pos.z){
-      target_move_distance = distance(real_target,new_pos)
-      set_target_org(new_pos)
+    if(!inputRotateFlg.current){
+      if(target.x !== new_pos.x || target.y !== new_pos.y || target.z !== new_pos.z){
+        target_move_distance = distance(real_target,new_pos)
+        set_target_org(new_pos)
+      }
     }
   }
 
   const set_wrist_rot = (new_rot)=>{
-    target_move_distance = 0
-    set_wrist_rot_org({...new_rot})
+    if(!inputRotateFlg.current){
+      target_move_distance = 0
+      set_wrist_rot_org({...new_rot})
+    }
   }
 
   React.useEffect(() => {
@@ -446,6 +452,11 @@ export default function Home(props) {
         xrSession.requestAnimationFrame(toolChangeExec)
       }else{
         requestAnimationFrame(toolChangeExec)
+      }
+      if(inputRotateFlg.current){
+        inputRotateFlg.current = false
+        set_outputRotate([...input_rotateRef.current])
+        set_checkRotate([...input_rotateRef.current])
       }
     }
   }
@@ -655,7 +666,7 @@ export default function Home(props) {
             console.log(" MQTT Device Topic: ", message.toString());
               // ここでは Viewer の設定を実施！
             let data = JSON.parse(message.toString())
-            if (data.controller != undefined) {// コントローラ情報ならば！
+            if (data.controller !== undefined) {// コントローラ情報ならば！
               robotIDRef.current = data.devId
               subscribeMQTT([
                 "control/"+data.devId
@@ -663,12 +674,13 @@ export default function Home(props) {
             }
           }else if (topic === "control/"+robotIDRef.current){
             let data = JSON.parse(message.toString())
-            if (data.joints != undefined) {
+            if (data.joints !== undefined) {
               // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
               if(!viewer_tool_change && !viewer_put_down_box){
                 if(input_rotateRef.current.some((e,i)=>e!==data.joints[i])){
                   console.log("Viewer!!!", data.joints)
                   set_input_rotate([...data.joints])
+                  inputRotateFlg.current = true
                 }
                 if(data.tool_change !== undefined){
                   console.log("tool_change!",data.tool_change)
@@ -752,7 +764,7 @@ export default function Home(props) {
                 if(input_rotateRef.current.some((e,i)=>e!==joints[i])){
                   console.log("receive joints",joints)
                   set_input_rotate([...joints])
-                  set_outputRotate([...joints])
+                  inputRotateFlg.current = true
                 }
               }
             }
@@ -778,7 +790,7 @@ export default function Home(props) {
   }, [])
 
   const handleBeforeUnload = () => {
-    if (mqttclient != undefined) {
+    if (mqttclient !== undefined) {
       publishMQTT("mgr/unregister", JSON.stringify({ devId: idtopic }));
     }
   }
@@ -956,8 +968,8 @@ export default function Home(props) {
       shift_target.z = shift_target.z + sabun_pos.z
     }
 
-    if(dsp_message === "" && !props.viewer){
-      const check_result = outRotateConv(result_rotate,[...outputRotateRef.current])
+    if(dsp_message === "" && !props.viewer && !inputRotateFlg.current){
+      const check_result = outRotateConv(result_rotate,[...checkRotateRef.current])
       if(check_result.j1_rotate<-j1_limit || check_result.j1_rotate>j1_limit){
         dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
         j1_error = true
@@ -981,6 +993,18 @@ export default function Home(props) {
       if(check_result.j6_rotate<-j6_limit || check_result.j6_rotate>j6_limit){
         dsp_message = `j6_rotate 指定可能範囲外！:(${check_result.j6_rotate})`
         j6_error = true
+      }
+      if(dsp_message === ""){
+        const check_rotate = [
+          check_result.j1_rotate,
+          check_result.j2_rotate,
+          check_result.j3_rotate,
+          check_result.j4_rotate,
+          check_result.j5_rotate,
+          check_result.j6_rotate,
+          checkRotateRef.current[6]
+        ]
+        set_checkRotate(check_rotate)
       }
     }
 
@@ -1626,7 +1650,7 @@ export default function Home(props) {
       }
     }
 
-    if ((mqttclient != null) && publish && receive_state ) {// 状態を受信していないと、送信しない
+    if ((mqttclient !== null) && publish && receive_state ) {// 状態を受信していないと、送信しない
       const addKey = {}
       if(tool_change_value !== undefined){
         addKey.tool_change = tool_change_value
