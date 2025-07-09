@@ -258,6 +258,22 @@ export default function Home(props) {
             j6_rotate:new_rotate[5]
           },[...outputRotateRef.current])
 
+          if(conv_result.error_info !== undefined){
+            const error_info = conv_result.error_info
+            for(let i=0; i<error_info.length; i++){
+              if(error_info[i].check_value >= 180){
+                console.log(`j${error_info[i].joint}_rotate`,error_info[i].rotate,normalize180(error_info[i].rotate))
+                conv_result[`j${error_info[i].joint}_rotate`] = normalize180(error_info[i].rotate)
+              }else{
+                const check_rot = normalize180(error_info[i].rotate)
+                if(Math.abs(check_rot) < error_info[i].check_value){
+                  console.log(`j${error_info[i].joint}_rotate`,error_info[i].rotate,check_rot)
+                  conv_result[`j${error_info[i].joint}_rotate`] = check_rot
+                }
+              }
+            }
+          }
+
           const robot_rotate = [
             conv_result.j1_rotate,
             conv_result.j2_rotate,
