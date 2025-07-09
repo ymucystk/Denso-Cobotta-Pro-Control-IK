@@ -471,6 +471,9 @@ export default function Home(props) {
       }
       if(inputRotateFlg.current){
         inputRotateFlg.current = false
+        console.log("before robot rotate ",outputRotateRef.current)
+        console.log("before check rotate ",outputRotateRef.current)
+        console.log("set robot rotate ",input_rotateRef.current)
         set_outputRotate([...input_rotateRef.current])
         set_checkRotate([...input_rotateRef.current])
       }
@@ -589,6 +592,22 @@ export default function Home(props) {
         {j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate:normalize180(j6_rotate+tool_rotate)},
         [...outputRotateRef.current]
       )
+
+      if(conv_result.error_info !== undefined){
+        const error_info = conv_result.error_info
+        for(let i=0; i<error_info.length; i++){
+          if(error_info[i].check_value >= 180){
+            console.log(`j${error_info[i].joint}_rotate`,error_info[i].rotate,normalize180(error_info[i].rotate))
+            conv_result[`j${error_info[i].joint}_rotate`] = normalize180(error_info[i].rotate)
+          }else{
+            const check_rot = normalize180(error_info[i].rotate)
+            if(Math.abs(check_rot) < error_info[i].check_value){
+              console.log(`j${error_info[i].joint}_rotate`,error_info[i].rotate,check_rot)
+              conv_result[`j${error_info[i].joint}_rotate`] = check_rot
+            }
+          }
+        }
+      }
 
       const new_rotate = [
         conv_result.j1_rotate,
