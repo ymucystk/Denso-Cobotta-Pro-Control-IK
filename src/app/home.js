@@ -1637,6 +1637,15 @@ export default function Home(props) {
                   vr.x = round(target_pos.x); vr.y = round(target_pos.y); vr.z = round(target_pos.z);
                   return vr
             })
+
+            if(!props.viewer){
+              set_c_pos_x(0)
+              set_c_pos_y(0.35) //ロボット設置高さ
+              set_c_pos_z(1.2) //ロボットの設置位置からの前後距離
+              set_c_deg_x(0)
+              set_c_deg_y(0)  //カメラのデフォルトの向きを反転
+              set_c_deg_z(0)
+            }
           });
         /*},
         tick: function (t) {*/
@@ -1811,7 +1820,7 @@ export default function Home(props) {
         <a-entity light="type: directional; color: #FFF; intensity: 0.25" position="1 1 -1"></a-entity>
         <a-entity light="type: directional; color: #EFE; intensity: 0.05" position="0 -1 0"></a-entity>
         <a-entity id="rig" position={`${c_pos_x} ${c_pos_y} ${c_pos_z}`} rotation={`${c_deg_x} ${c_deg_y} ${c_deg_z}`}>
-          <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0"></a-camera>
+          <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0" look-controls-enabled="false" wasd-controls-enabled="false"></a-camera>
         </a-entity>
         <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${!props.viewer}`}></a-sphere>
         <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box>
