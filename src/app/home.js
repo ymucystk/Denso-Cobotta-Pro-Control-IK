@@ -316,9 +316,12 @@ export default function Home(props) {
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
       const move_pos = pos_sub(start_pos,controller_object_position)
-      move_pos.x = move_pos.x/2
-      move_pos.y = move_pos.y/2
-      move_pos.z = move_pos.z/2
+      //move_pos.x = move_pos.x/2
+      //move_pos.y = move_pos.y/2
+      //move_pos.z = move_pos.z/2
+      move_pos.x = move_pos.x
+      move_pos.y = move_pos.y
+      move_pos.z = move_pos.z
       let target_pos
       if(save_target === undefined){
         set_save_target({...target})
@@ -337,7 +340,11 @@ export default function Home(props) {
     if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
       const quat_start = new THREE.Quaternion().setFromEuler(start_rotation);
       const quat_controller = new THREE.Quaternion().setFromEuler(controller_object_rotation);
-      const quatDifference1 = quat_start.clone().invert().multiply(quat_controller);
+      //const quatDifference1 = quat_start.clone().invert().multiply(quat_controller);
+      const wk_quatDiff1 = quat_start.clone().invert().multiply(quat_controller);
+
+      const wk_diff_1 = quaternionToAngle(wk_quatDiff1)
+      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, toRadian(wk_diff_1.angle/5));
 
       const quat_save = new THREE.Quaternion().setFromEuler(save_rotation);
       const quatDifference2 = quat_start.clone().invert().multiply(quat_save);
