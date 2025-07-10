@@ -344,7 +344,7 @@ export default function Home(props) {
       const wk_quatDiff1 = quat_start.clone().invert().multiply(quat_controller);
 
       const wk_diff_1 = quaternionToAngle(wk_quatDiff1)
-      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, toRadian(wk_diff_1.angle/5));
+      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, toRadian(wk_diff_1.angle/3));
 
       const quat_save = new THREE.Quaternion().setFromEuler(save_rotation);
       const quatDifference2 = quat_start.clone().invert().multiply(quat_save);
