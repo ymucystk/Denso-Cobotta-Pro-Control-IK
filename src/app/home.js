@@ -40,8 +40,10 @@ const x_vec_base = new THREE.Vector3(1,0,0).normalize()
 const y_vec_base = new THREE.Vector3(0,1,0).normalize()
 const z_vec_base = new THREE.Vector3(0,0,1).normalize()
 
-let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
-let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
+const controller_start_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.6654549523360951,0,0,order))
+const controller_progress_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.6654549523360951,0,0,order))
+const robot_save_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.6654549523360951,0,0,order))
+let controller_acc_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0,order))
 const max_move_unit = [(1/120),(1/100),(1/120),(1/150),(1/150),(1/240)]
 const rotate_table = [[],[],[],[],[],[]]
 const object3D_table = []
@@ -68,7 +70,7 @@ let j6_error = false
 let tickprev = 0
 let controller_object = new THREE.Object3D()
 const controller_object_position = new THREE.Vector3()
-const controller_object_rotation = new THREE.Euler(0,0,0,order)
+const controller_object_quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0,order))
 let xrSession = undefined
 
 const Toolpos1 = {rot:{x:90,y:0,z:0},pos:{x:-0.1,y:-0.02,z:0.4},toolrot:0}
@@ -319,9 +321,6 @@ export default function Home(props) {
       //move_pos.x = move_pos.x/2
       //move_pos.y = move_pos.y/2
       //move_pos.z = move_pos.z/2
-      move_pos.x = move_pos.x
-      move_pos.y = move_pos.y
-      move_pos.z = move_pos.z
       let target_pos
       if(save_target === undefined){
         set_save_target({...target})
@@ -338,18 +337,17 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
-      const quat_start = new THREE.Quaternion().setFromEuler(start_rotation);
-      const quat_controller = new THREE.Quaternion().setFromEuler(controller_object_rotation);
-      //const quatDifference1 = quat_start.clone().invert().multiply(quat_controller);
-      const wk_quatDiff1 = quat_start.clone().invert().multiply(quat_controller);
-
+      const wk_quatDiff1 = controller_progress_quat.clone().invert().multiply(controller_object_quaternion);
       const wk_diff_1 = quaternionToAngle(wk_quatDiff1)
       const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, toRadian(wk_diff_1.angle/3));
 
-      const quat_save = new THREE.Quaternion().setFromEuler(save_rotation);
-      const quatDifference2 = quat_start.clone().invert().multiply(quat_save);
+      const quatDifference2 = controller_start_quat.clone().invert().multiply(robot_save_quat);
 
-      const wk_mtx = quat_start.clone().multiply(quatDifference1).multiply(quatDifference2)
+      const wk_mtx = controller_start_quat.clone().multiply(quatDifference1).multiply(controller_acc_quat).multiply(quatDifference2);
+      if(Math.abs(wk_diff_1.angle) > 135){
+        controller_progress_quat.copy(controller_object_quaternion)
+        controller_acc_quat.multiply(quatDifference1)
+      }
 
       wk_mtx.multiply(
         new THREE.Quaternion().setFromEuler(
@@ -357,15 +355,15 @@ export default function Home(props) {
             (0.6654549523360951*-1),  //x
             Math.PI,  //y
             Math.PI,  //z
-            controller_object_rotation.order
+            order
           )
         )
       )
 
-      const wk_euler = new THREE.Euler().setFromQuaternion(wk_mtx,controller_object_rotation.order)
+      const wk_euler = new THREE.Euler().setFromQuaternion(wk_mtx,order)
       set_wrist_rot({x:round(toAngle(wk_euler.x)),y:round(toAngle(wk_euler.y)),z:round(toAngle(wk_euler.z))})
     }
-  },[controller_object_rotation.x,controller_object_rotation.y,controller_object_rotation.z])
+  },[controller_object_quaternion.x,controller_object_quaternion.y,controller_object_quaternion.z,controller_object_quaternion.w])
 
   const robotChange = ()=>{
     const get = (robotName)=>{
@@ -839,8 +837,8 @@ export default function Home(props) {
 
 
   const quaternionToRotation = (q,v)=>{
-    const q_original = new THREE.Quaternion(q.x, q.y, q.z, q.w)
-    const q_conjugate = new THREE.Quaternion(q.x, q.y, q.z, q.w).conjugate()
+    const q_original = new THREE.Quaternion().copy(q)
+    const q_conjugate = q_original.clone().conjugate()
     const q_vector = new THREE.Quaternion(v.x, v.y, v.z, 0)
     const result = q_original.multiply(q_vector).multiply(q_conjugate)
     return new THREE.Vector3((result.x),(result.y),(result.z))
@@ -1260,7 +1258,9 @@ export default function Home(props) {
   },[p16_object.matrix.elements[14]])
 
   const vrControllStart = ()=>{
-    start_rotation = controller_object.rotation.clone()
+    controller_start_quat.copy(controller_object.quaternion.clone())
+    controller_progress_quat.copy(controller_object.quaternion.clone())
+    controller_acc_quat.copy(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0,order)))
     const wk_start_pos = new THREE.Vector3().applyMatrix4(controller_object.matrix)
     set_start_pos(wk_start_pos)
   }
@@ -1283,8 +1283,8 @@ export default function Home(props) {
         )
       ).invert()
     )
-    const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
-    save_rotation.copy(vrcon_euler)
+    //const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
+    robot_save_quat.copy(vrcon_qua)
     set_save_target(undefined)
   }
 
@@ -1491,11 +1491,11 @@ export default function Home(props) {
             let move = false
             const obj = this.el.object3D
             if(!controller_object_position.equals(obj.position)){
-              controller_object_position.set(obj.position.x,obj.position.y,obj.position.z)
+              controller_object_position.copy(obj.position)
               move = true
             }
-            if(!controller_object_rotation.equals(obj.rotation)){
-              controller_object_rotation.set(obj.rotation.x,obj.rotation.y,obj.rotation.z,obj.rotation.order)
+            if(!controller_object_quaternion.equals(obj.quaternion)){
+              controller_object_quaternion.copy(obj.quaternion)
               move = true
             }
             if(move){
@@ -1588,9 +1588,9 @@ export default function Home(props) {
               ).invert()
             )
 
-            const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
+            //const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
             //console.log("wrist_rot",toAngle(vrcon_euler.x),toAngle(vrcon_euler.y),toAngle(vrcon_euler.z))
-            save_rotation.copy(vrcon_euler)
+            robot_save_quat.copy(vrcon_qua)
 
             // ここからMQTT Start
             //let xrSession = this.el.renderer.xr.getSession();
