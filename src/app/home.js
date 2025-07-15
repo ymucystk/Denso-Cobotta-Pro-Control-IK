@@ -339,7 +339,7 @@ export default function Home(props) {
     if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
       const wk_quatDiff1 = controller_progress_quat.clone().invert().multiply(controller_object_quaternion);
       const wk_diff_1 = quaternionToAngle(wk_quatDiff1)
-      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, toRadian(wk_diff_1.angle/3));
+      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian/3);
 
       const quatDifference2 = controller_start_quat.clone().invert().multiply(robot_save_quat);
 
@@ -845,19 +845,19 @@ export default function Home(props) {
   }
 
   const quaternionToAngle = (q)=>{
-    const wk_angle = 2 * Math.acos(round(q.w))
-    if(wk_angle === 0){
-      return {angle:(toAngle(wk_angle)),axis:new THREE.Vector3(0,0,0)}
+    const radian = 2 * Math.acos(round(q.w))
+    if(radian === 0){
+      return {angle:(toAngle(radian)),radian,axis:new THREE.Vector3(0,0,0)}
     }
-    const angle = (toAngle(wk_angle))
+    const angle = (toAngle(radian))
     const sinHalfAngle = Math.sqrt(1 - q.w * q.w)
     if (sinHalfAngle > 0) {
       const axisX = (q.x / sinHalfAngle)
       const axisY = (q.y / sinHalfAngle)
       const axisZ = (q.z / sinHalfAngle)
-      return {angle,axis:new THREE.Vector3(axisX,axisY,axisZ)}
+      return {angle,radian,axis:new THREE.Vector3(axisX,axisY,axisZ)}
     }else{
-      return {angle,axis:new THREE.Vector3(0,0,0)}
+      return {angle,radian,axis:new THREE.Vector3(0,0,0)}
     }
   }
 
