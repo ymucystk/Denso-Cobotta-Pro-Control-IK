@@ -40,8 +40,10 @@ const x_vec_base = new THREE.Vector3(1,0,0).normalize()
 const y_vec_base = new THREE.Vector3(0,1,0).normalize()
 const z_vec_base = new THREE.Vector3(0,0,1).normalize()
 
-let start_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
-let save_rotation = new THREE.Euler(0.6654549523360951,0,0,order)
+const controller_start_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.6654549523360951,0,0,order))
+const controller_progress_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.6654549523360951,0,0,order))
+const robot_save_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.6654549523360951,0,0,order))
+const controller_acc_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0,order))
 const max_move_unit = [(1/120),(1/100),(1/120),(1/150),(1/150),(1/240)]
 const rotate_table = [[],[],[],[],[],[]]
 const object3D_table = []
@@ -68,7 +70,7 @@ let j6_error = false
 let tickprev = 0
 let controller_object = new THREE.Object3D()
 const controller_object_position = new THREE.Vector3()
-const controller_object_rotation = new THREE.Euler(0,0,0,order)
+const controller_object_quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0,order))
 let xrSession = undefined
 
 const Toolpos1 = {rot:{x:90,y:0,z:0},pos:{x:-0.1,y:-0.02,z:0.4},toolrot:0}
@@ -139,16 +141,18 @@ export default function Home(props) {
   const [j7_rotate,set_j7_rotate,j7_rotate_ref] = useRefState(set_update,0)
   const [j6_rotate_org,set_j6_rotate_org,j6_rotate_org_ref] = useRefState(set_update,0)
 
-  /*const rotateRef = React.useRef(
+  /*const outputRotateRef = React.useRef(
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
-  );*/ // ref を使って rotate を保持する
-  const [rotate,set_rotate,rotateRef] = useRefState(set_update,
+  );*/ // ref を使って outputRotate を保持する
+  const [outputRotate,set_outputRotate,outputRotateRef] = useRefState(set_update,
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
   )
+  const [checkRotate,set_checkRotate,checkRotateRef] = useRefState(set_update,outputRotate)
 
   const prevRotateRef = React.useRef([0,0,0,0,0,0,0]) //前回の関節角度
 
   const [input_rotate,set_input_rotate,input_rotateRef] = useRefState(set_update,[undefined,0,0,0,0,0,0])
+  const inputRotateFlg = React.useRef(false)
 
   const [p15_object,set_p15_object] = useRefState(set_update,new THREE.Object3D())
   const [p16_object,set_p16_object] = useRefState(set_update,new THREE.Object3D())
@@ -175,7 +179,7 @@ export default function Home(props) {
   const [c_deg_z,set_c_deg_z] = useRefState(set_update,0)
 
   const [wrist_rot,set_wrist_rot_org,wrist_rot_ref] = useRefState(set_update,{x:180,y:0,z:0})
-  const [tool_rotate,set_tool_rotate] = useRefState(set_update,0)
+  const [tool_rotate,set_tool_rotate,tool_rotate_ref] = useRefState(set_update,0)
   const [wrist_degree,set_wrist_degree] = useRefState(set_update,{direction:0,angle:0})
   const [dsp_message,set_dsp_message] = useRefState(set_update,"")
 
@@ -254,7 +258,23 @@ export default function Home(props) {
             j4_rotate:new_rotate[3],
             j5_rotate:new_rotate[4],
             j6_rotate:new_rotate[5]
-          },[...rotateRef.current])
+          },[...outputRotateRef.current])
+
+          if(conv_result.error_info !== undefined){
+            const error_info = conv_result.error_info
+            for(let i=0; i<error_info.length; i++){
+              if(error_info[i].check_value >= 180){
+                console.log(`j${error_info[i].joint}_rotate`,error_info[i].rotate,normalize180(error_info[i].rotate))
+                conv_result[`j${error_info[i].joint}_rotate`] = normalize180(error_info[i].rotate)
+              }else{
+                const check_rot = normalize180(error_info[i].rotate)
+                if(Math.abs(check_rot) < error_info[i].check_value){
+                  console.log(`j${error_info[i].joint}_rotate`,error_info[i].rotate,check_rot)
+                  conv_result[`j${error_info[i].joint}_rotate`] = check_rot
+                }
+              }
+            }
+          }
 
           const robot_rotate = [
             conv_result.j1_rotate,
@@ -266,8 +286,8 @@ export default function Home(props) {
             new_rotate[6]
           ]
           //console.log('robot_rotate',robot_rotate)
-          //rotateRef.current = [...robot_rotate]
-          set_rotate([...robot_rotate])
+          //outputRotateRef.current = [...robot_rotate]
+          set_outputRotate([...robot_rotate])
         }
         prevRotateRef.current = [...new_rotate]
       }
@@ -280,23 +300,27 @@ export default function Home(props) {
   }
 
   const set_target = (new_pos)=>{
-    if(target.x !== new_pos.x || target.y !== new_pos.y || target.z !== new_pos.z){
-      target_move_distance = distance(real_target,new_pos)
-      set_target_org(new_pos)
+    if(!inputRotateFlg.current){
+      if(target.x !== new_pos.x || target.y !== new_pos.y || target.z !== new_pos.z){
+        target_move_distance = distance(real_target,new_pos)
+        set_target_org(new_pos)
+      }
     }
   }
 
   const set_wrist_rot = (new_rot)=>{
-    target_move_distance = 0
-    set_wrist_rot_org({...new_rot})
+    if(!inputRotateFlg.current){
+      target_move_distance = 0
+      set_wrist_rot_org({...new_rot})
+    }
   }
 
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
       const move_pos = pos_sub(start_pos,controller_object_position)
-      move_pos.x = move_pos.x/2
-      move_pos.y = move_pos.y/2
-      move_pos.z = move_pos.z/2
+      //move_pos.x = move_pos.x/2
+      //move_pos.y = move_pos.y/2
+      //move_pos.z = move_pos.z/2
       let target_pos
       if(save_target === undefined){
         set_save_target({...target})
@@ -313,14 +337,17 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
-      const quat_start = new THREE.Quaternion().setFromEuler(start_rotation);
-      const quat_controller = new THREE.Quaternion().setFromEuler(controller_object_rotation);
-      const quatDifference1 = quat_start.clone().invert().multiply(quat_controller);
+      const wk_quatDiff1 = controller_progress_quat.clone().invert().multiply(controller_object_quaternion);
+      const wk_diff_1 = quaternionToAngle(wk_quatDiff1)
+      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian/3);
 
-      const quat_save = new THREE.Quaternion().setFromEuler(save_rotation);
-      const quatDifference2 = quat_start.clone().invert().multiply(quat_save);
+      const quatDifference2 = controller_start_quat.clone().invert().multiply(robot_save_quat);
 
-      const wk_mtx = quat_start.clone().multiply(quatDifference1).multiply(quatDifference2)
+      const wk_mtx = controller_start_quat.clone().multiply(quatDifference1).multiply(controller_acc_quat).multiply(quatDifference2);
+      if(Math.abs(wk_diff_1.angle) > 135){
+        controller_progress_quat.copy(controller_object_quaternion)
+        controller_acc_quat.multiply(quatDifference1)
+      }
 
       wk_mtx.multiply(
         new THREE.Quaternion().setFromEuler(
@@ -328,15 +355,15 @@ export default function Home(props) {
             (0.6654549523360951*-1),  //x
             Math.PI,  //y
             Math.PI,  //z
-            controller_object_rotation.order
+            order
           )
         )
       )
 
-      const wk_euler = new THREE.Euler().setFromQuaternion(wk_mtx,controller_object_rotation.order)
+      const wk_euler = new THREE.Euler().setFromQuaternion(wk_mtx,order)
       set_wrist_rot({x:round(toAngle(wk_euler.x)),y:round(toAngle(wk_euler.y)),z:round(toAngle(wk_euler.z))})
     }
-  },[controller_object_rotation.x,controller_object_rotation.y,controller_object_rotation.z])
+  },[controller_object_quaternion.x,controller_object_quaternion.y,controller_object_quaternion.z,controller_object_quaternion.w])
 
   const robotChange = ()=>{
     const get = (robotName)=>{
@@ -356,7 +383,8 @@ export default function Home(props) {
     ToolChangeTbl.push({...Toolpos1upper,speedfacter:10})
     ToolChangeTbl.push({...Toolpos1,speedfacter:20})
     ToolChangeTbl.push({...Toolpos1front,speedfacter:10})
-    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:1})
+    ToolChangeTbl.push({rot:wrist_rot_ref.current,pos:target_ref.current,toolrot:tool_rotate_ref.current,speedfacter:1})
+    console.log("target_ref.current",target_ref.current)
     if(xrSession !== undefined){
       xrSession.requestAnimationFrame(toolChangeExec)
     }else{
@@ -371,7 +399,7 @@ export default function Home(props) {
     ToolChangeTbl.push({...Toolpos2upper,speedfacter:10})
     ToolChangeTbl.push({...Toolpos2,speedfacter:20})
     ToolChangeTbl.push({...Toolpos2front,speedfacter:10})
-    ToolChangeTbl.push({rot:wrist_rot,pos:target,toolrot:tool_rotate,speedfacter:2})
+    ToolChangeTbl.push({rot:wrist_rot_ref.current,pos:target_ref.current,toolrot:tool_rotate_ref.current,speedfacter:2})
     if(xrSession !== undefined){
       xrSession.requestAnimationFrame(toolChangeExec)
     }else{
@@ -445,6 +473,14 @@ export default function Home(props) {
         xrSession.requestAnimationFrame(toolChangeExec)
       }else{
         requestAnimationFrame(toolChangeExec)
+      }
+      if(inputRotateFlg.current){
+        inputRotateFlg.current = false
+        console.log("before robot rotate ",outputRotateRef.current)
+        console.log("before check rotate ",outputRotateRef.current)
+        console.log("set robot rotate ",input_rotateRef.current)
+        set_outputRotate([...input_rotateRef.current])
+        set_checkRotate([...input_rotateRef.current])
       }
     }
   }
@@ -559,8 +595,24 @@ export default function Home(props) {
     if(props.viewer){
       const conv_result = outRotateConv(
         {j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate:normalize180(j6_rotate+tool_rotate)},
-        [...rotateRef.current]
+        [...outputRotateRef.current]
       )
+
+      if(conv_result.error_info !== undefined){
+        const error_info = conv_result.error_info
+        for(let i=0; i<error_info.length; i++){
+          if(error_info[i].check_value >= 180){
+            console.log(`j${error_info[i].joint}_rotate`,error_info[i].rotate,normalize180(error_info[i].rotate))
+            conv_result[`j${error_info[i].joint}_rotate`] = normalize180(error_info[i].rotate)
+          }else{
+            const check_rot = normalize180(error_info[i].rotate)
+            if(Math.abs(check_rot) < error_info[i].check_value){
+              console.log(`j${error_info[i].joint}_rotate`,error_info[i].rotate,check_rot)
+              conv_result[`j${error_info[i].joint}_rotate`] = check_rot
+            }
+          }
+        }
+      }
 
       const new_rotate = [
         conv_result.j1_rotate,
@@ -571,8 +623,8 @@ export default function Home(props) {
         conv_result.j6_rotate,
         round(j7_rotate)
       ]
-      set_rotate([...new_rotate])
-      //rotateRef.current = [...new_rotate]
+      set_outputRotate([...new_rotate])
+      //outputRotateRef.current = [...new_rotate]
       //console.log("Real Rotate:",new_rotate)
     }
   }, [j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate,j7_rotate])
@@ -650,24 +702,25 @@ export default function Home(props) {
       if(props.viewer){// Viewer の場合
         //サブスクライブ時の処理
         window.mqttClient.on('message', (topic, message) => {
-          if (topic == MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
+          if (topic === MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
             console.log(" MQTT Device Topic: ", message.toString());
               // ここでは Viewer の設定を実施！
             let data = JSON.parse(message.toString())
-            if (data.controller != undefined) {// コントローラ情報ならば！
+            if (data.controller !== undefined) {// コントローラ情報ならば！
               robotIDRef.current = data.devId
               subscribeMQTT([
                 "control/"+data.devId
               ]);
             }
-          }else if (topic == "control/"+robotIDRef.current){
+          }else if (topic === "control/"+robotIDRef.current){
             let data = JSON.parse(message.toString())
-            if (data.joints != undefined) {
+            if (data.joints !== undefined) {
               // 次のフレームあとにtarget を確認してもらう（IKが出来てるはず
               if(!viewer_tool_change && !viewer_put_down_box){
                 if(input_rotateRef.current.some((e,i)=>e!==data.joints[i])){
                   console.log("Viewer!!!", data.joints)
                   set_input_rotate([...data.joints])
+                  inputRotateFlg.current = true
                 }
                 if(data.tool_change !== undefined){
                   console.log("tool_change!",data.tool_change)
@@ -704,7 +757,7 @@ export default function Home(props) {
               console.log("Can't find robot!")
             }else{
               robotIDRef.current = data.devId 
-              if (receive_state == false ){ // ロボットの姿勢を受け取るまで、スタートしない。
+              if (receive_state === false ){ // ロボットの姿勢を受け取るまで、スタートしない。
                 subscribeMQTT([
                   MQTT_ROBOT_STATE_TOPIC+robotIDRef.current // ロボットの姿勢を待つ
                 ])
@@ -751,6 +804,7 @@ export default function Home(props) {
                 if(input_rotateRef.current.some((e,i)=>e!==joints[i])){
                   console.log("receive joints",joints)
                   set_input_rotate([...joints])
+                  inputRotateFlg.current = true
                 }
               }
             }
@@ -776,34 +830,34 @@ export default function Home(props) {
   }, [])
 
   const handleBeforeUnload = () => {
-    if (mqttclient != undefined) {
+    if (mqttclient !== undefined) {
       publishMQTT("mgr/unregister", JSON.stringify({ devId: idtopic }));
     }
   }
 
 
   const quaternionToRotation = (q,v)=>{
-    const q_original = new THREE.Quaternion(q.x, q.y, q.z, q.w)
-    const q_conjugate = new THREE.Quaternion(q.x, q.y, q.z, q.w).conjugate()
+    const q_original = new THREE.Quaternion().copy(q)
+    const q_conjugate = q_original.clone().conjugate()
     const q_vector = new THREE.Quaternion(v.x, v.y, v.z, 0)
     const result = q_original.multiply(q_vector).multiply(q_conjugate)
     return new THREE.Vector3((result.x),(result.y),(result.z))
   }
 
   const quaternionToAngle = (q)=>{
-    const wk_angle = 2 * Math.acos(round(q.w))
-    if(wk_angle === 0){
-      return {angle:(toAngle(wk_angle)),axis:new THREE.Vector3(0,0,0)}
+    const radian = 2 * Math.acos(round(q.w))
+    if(radian === 0){
+      return {angle:(toAngle(radian)),radian,axis:new THREE.Vector3(0,0,0)}
     }
-    const angle = (toAngle(wk_angle))
+    const angle = (toAngle(radian))
     const sinHalfAngle = Math.sqrt(1 - q.w * q.w)
     if (sinHalfAngle > 0) {
       const axisX = (q.x / sinHalfAngle)
       const axisY = (q.y / sinHalfAngle)
       const axisZ = (q.z / sinHalfAngle)
-      return {angle,axis:new THREE.Vector3(axisX,axisY,axisZ)}
+      return {angle,radian,axis:new THREE.Vector3(axisX,axisY,axisZ)}
     }else{
-      return {angle,axis:new THREE.Vector3(0,0,0)}
+      return {angle,radian,axis:new THREE.Vector3(0,0,0)}
     }
   }
 
@@ -954,8 +1008,8 @@ export default function Home(props) {
       shift_target.z = shift_target.z + sabun_pos.z
     }
 
-    if(dsp_message === "" && !props.viewer){
-      const check_result = outRotateConv(result_rotate,[...rotateRef.current])
+    if(dsp_message === "" && !props.viewer && !inputRotateFlg.current){
+      const check_result = outRotateConv(result_rotate,[...checkRotateRef.current])
       if(check_result.j1_rotate<-j1_limit || check_result.j1_rotate>j1_limit){
         dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
         j1_error = true
@@ -979,6 +1033,18 @@ export default function Home(props) {
       if(check_result.j6_rotate<-j6_limit || check_result.j6_rotate>j6_limit){
         dsp_message = `j6_rotate 指定可能範囲外！:(${check_result.j6_rotate})`
         j6_error = true
+      }
+      if(dsp_message === ""){
+        const check_rotate = [
+          check_result.j1_rotate,
+          check_result.j2_rotate,
+          check_result.j3_rotate,
+          check_result.j4_rotate,
+          check_result.j5_rotate,
+          check_result.j6_rotate,
+          checkRotateRef.current[6]
+        ]
+        set_checkRotate(check_rotate)
       }
     }
 
@@ -1192,7 +1258,9 @@ export default function Home(props) {
   },[p16_object.matrix.elements[14]])
 
   const vrControllStart = ()=>{
-    start_rotation = controller_object.rotation.clone()
+    controller_start_quat.copy(controller_object.quaternion.clone())
+    controller_progress_quat.copy(controller_object.quaternion.clone())
+    controller_acc_quat.copy(new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0,order)))
     const wk_start_pos = new THREE.Vector3().applyMatrix4(controller_object.matrix)
     set_start_pos(wk_start_pos)
   }
@@ -1215,8 +1283,8 @@ export default function Home(props) {
         )
       ).invert()
     )
-    const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
-    save_rotation.copy(vrcon_euler)
+    //const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
+    robot_save_quat.copy(vrcon_qua)
     set_save_target(undefined)
   }
 
@@ -1423,11 +1491,11 @@ export default function Home(props) {
             let move = false
             const obj = this.el.object3D
             if(!controller_object_position.equals(obj.position)){
-              controller_object_position.set(obj.position.x,obj.position.y,obj.position.z)
+              controller_object_position.copy(obj.position)
               move = true
             }
-            if(!controller_object_rotation.equals(obj.rotation)){
-              controller_object_rotation.set(obj.rotation.x,obj.rotation.y,obj.rotation.z,obj.rotation.order)
+            if(!controller_object_quaternion.equals(obj.quaternion)){
+              controller_object_quaternion.copy(obj.quaternion)
               move = true
             }
             if(move){
@@ -1520,9 +1588,9 @@ export default function Home(props) {
               ).invert()
             )
 
-            const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
+            //const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
             //console.log("wrist_rot",toAngle(vrcon_euler.x),toAngle(vrcon_euler.y),toAngle(vrcon_euler.z))
-            save_rotation.copy(vrcon_euler)
+            robot_save_quat.copy(vrcon_qua)
 
             // ここからMQTT Start
             //let xrSession = this.el.renderer.xr.getSession();
@@ -1576,6 +1644,15 @@ export default function Home(props) {
                   vr.x = round(target_pos.x); vr.y = round(target_pos.y); vr.z = round(target_pos.z);
                   return vr
             })
+
+            if(!props.viewer){
+              set_c_pos_x(0)
+              set_c_pos_y(0.35) //ロボット設置高さ
+              set_c_pos_z(1.2) //ロボットの設置位置からの前後距離
+              set_c_deg_x(0)
+              set_c_deg_y(0)  //カメラのデフォルトの向きを反転
+              set_c_deg_z(0)
+            }
           });
         /*},
         tick: function (t) {*/
@@ -1604,7 +1681,7 @@ export default function Home(props) {
     }
     const robot_state_json = JSON.stringify({
       time: time,
-      joints: rotateRef.current,
+      joints: outputRotateRef.current,
       grip: gripRef.current,
 //        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
       ...addKey
@@ -1624,7 +1701,7 @@ export default function Home(props) {
       }
     }
 
-    if ((mqttclient != null) && publish && receive_state ) {// 状態を受信していないと、送信しない
+    if ((mqttclient !== null) && publish && receive_state ) {// 状態を受信していないと、送信しない
       const addKey = {}
       if(tool_change_value !== undefined){
         addKey.tool_change = tool_change_value
@@ -1635,7 +1712,7 @@ export default function Home(props) {
       // MQTT 送信
       const ctl_json = JSON.stringify({
         time: time,
-        joints: rotateRef.current,
+        joints: outputRotateRef.current,
         grip: gripRef.current,
 //        trigger: [gripRef.current, buttonaRef.current, buttonbRef.current, gripValueRef.current]
         ...addKey
@@ -1750,7 +1827,7 @@ export default function Home(props) {
         <a-entity light="type: directional; color: #FFF; intensity: 0.25" position="1 1 -1"></a-entity>
         <a-entity light="type: directional; color: #EFE; intensity: 0.05" position="0 -1 0"></a-entity>
         <a-entity id="rig" position={`${c_pos_x} ${c_pos_y} ${c_pos_z}`} rotation={`${c_deg_x} ${c_deg_y} ${c_deg_z}`}>
-          <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0"></a-camera>
+          <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0" look-controls-enabled="false" wasd-controls-enabled="false"></a-camera>
         </a-entity>
         <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${!props.viewer}`}></a-sphere>
         <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box>
@@ -1768,7 +1845,7 @@ export default function Home(props) {
           {`wrist_degree:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}`}
           {` ${dsp_message}`}
           {props.viewer?<>{` input rot:[${input_rotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
-          {!props.viewer?<>{` output rot:[${rotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
+          {!props.viewer?<>{` output rot:[${outputRotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
         </div>
       </div>
     </>
