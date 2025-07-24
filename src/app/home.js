@@ -103,6 +103,12 @@ let viewer_put_down_box = false
 let viewer_put_down_box_end = undefined
 
 let switchingVrMode = false
+let robotOperation = true
+const luggage_obj_list = {}
+let endTool_obj = undefined
+let touchLuggage = undefined
+let carryLuggage = false
+let boxpos_x = 0.3
 
 function useRefState(updateFunc,initialValue=undefined) {
   const ref = React.useRef(initialValue);
@@ -160,7 +166,7 @@ export default function Home(props) {
 
   const [p51_object,set_p51_object] = useRefState(set_update,new THREE.Object3D())
 
-  const gripRef = React.useRef(false);
+  const [grip,set_grip,gripRef] = useRefState(set_update,false);
 
   const [start_pos,set_start_pos] = useRefState(set_update,new THREE.Object3D())
   const [save_target,set_save_target] = useRefState(set_update)
@@ -300,10 +306,20 @@ export default function Home(props) {
   }
 
   const set_target = (new_pos)=>{
+    let wk_new_pos = new_pos
+    if(!carryLuggage){
+      const touchResult = boxTouchCheck(wk_new_pos,target_ref.current)
+      if(touchResult.result){
+        touchLuggage = touchResult.key
+        wk_new_pos = {...touchResult.touchPoint}
+      }else{
+        touchLuggage = undefined
+      }
+    }
     if(!inputRotateFlg.current){
-      if(target.x !== new_pos.x || target.y !== new_pos.y || target.z !== new_pos.z){
-        target_move_distance = distance(real_target,new_pos)
-        set_target_org(new_pos)
+      if(target.x !== wk_new_pos.x || target.y !== wk_new_pos.y || target.z !== wk_new_pos.z){
+        target_move_distance = distance(real_target,wk_new_pos)
+        set_target_org(wk_new_pos)
       }
     }
   }
@@ -485,6 +501,104 @@ export default function Home(props) {
     }
   }
   //}, [now])
+
+  const boxTouchCheck = (newtarget,prevtarget)=>{
+    const objKeys = Object.keys(luggage_obj_list)
+    if(objKeys.length > 0){
+      const wk_carryLuggageKey = objKeys.reduce((prev,key)=>{
+        let res = prev
+        if(prev === undefined){
+          res = key
+        }else{
+          const prevpos = new THREE.Vector3()
+          luggage_obj_list[prev].getWorldPosition(prevpos)
+          const prevdis = distance(prevpos,newtarget)
+          const newpos = new THREE.Vector3()
+          luggage_obj_list[key].getWorldPosition(newpos)
+          const newdis = distance(newpos,newtarget)
+          if(prevdis > newdis){
+            res = key
+          }
+        }
+        return res
+      },undefined)
+      const newtargetV3 = new THREE.Vector3(newtarget.x,newtarget.y,newtarget.z)
+      const boxObj = luggage_obj_list[wk_carryLuggageKey].clone()
+      const wk_box_world_pos = new THREE.Vector3()
+      boxObj.getWorldPosition(wk_box_world_pos)
+      if(newtargetV3.equals(wk_box_world_pos)){
+        console.log("touch same pos",wk_carryLuggageKey)
+        return {result:false,key:wk_carryLuggageKey}
+      }
+      const outdir = newtargetV3.clone().sub(wk_box_world_pos).normalize()
+      const outpos = wk_box_world_pos.clone().add(outdir.multiplyScalar(1)) //１ｍ後方の座標を求める
+      const dir = wk_box_world_pos.clone().sub(outpos).normalize()
+      const raycaster = new THREE.Raycaster(outpos, dir)
+      const intersects = raycaster.intersectObject(boxObj, true)
+      if(intersects.length > 0){
+        let minValueIdx = 0
+        for(let i=0; i<intersects.length; i=i+1){ //近い方の接点を探す
+          if(intersects[i].distance < intersects[minValueIdx].distance){
+            minValueIdx = i
+          }
+        }
+        const Distance_surface_target = distance(intersects[minValueIdx].point,newtargetV3)
+        if(Math.abs(Distance_surface_target) <= 0.0005){  //表面から５ｍｍ以内
+          console.log("touch",wk_carryLuggageKey)
+          const tp = touchLuggage === undefined ? intersects[minValueIdx].point : prevtarget
+          return {result:true,touchPoint:{x:round(tp.x),y:round(tp.y),z:round(tp.z)},key:wk_carryLuggageKey}
+        }else{
+          const Distance_center_surface = distance(wk_box_world_pos,intersects[minValueIdx].point)
+          const Distance_center_terget = distance(wk_box_world_pos,newtargetV3)
+          if(Distance_center_surface >= Distance_center_terget){  //オブジェクトの内側？
+            console.log("touch",wk_carryLuggageKey)
+            const tp = touchLuggage === undefined ? intersects[minValueIdx].point : prevtarget
+            return {result:true,touchPoint:{x:round(tp.x),y:round(tp.y),z:round(tp.z)},key:wk_carryLuggageKey}
+          }
+        }
+      }else{
+        console.log("box size over!! 1m over")
+      }
+      return {result:false,key:wk_carryLuggageKey}
+    }
+    return {result:false,key:"NoBox"}
+  }
+
+  React.useEffect(() => {
+    const objKeys = Object.keys(luggage_obj_list)
+    if(objKeys.length > 0){
+      console.log("grip",gripRef.current,"j7_rotate",j7_rotate_ref.current)
+      if(gripRef.current || j7_rotate_ref.current > 0){  //つかむ
+        if(touchLuggage !== undefined && !carryLuggage){
+          console.log("catch",touchLuggage)
+          carryLuggage = true
+          const wk_box_world_pos = new THREE.Vector3()
+          luggage_obj_list[touchLuggage].getWorldPosition(wk_box_world_pos)
+          const wk_box_add_local_pos = endTool_obj.worldToLocal(wk_box_world_pos)
+          luggage_obj_list[touchLuggage].position.copy(wk_box_add_local_pos)
+          const wk_box_world_quat = new THREE.Quaternion()
+          luggage_obj_list[touchLuggage].getWorldQuaternion(wk_box_world_quat)
+          const quatDifference = quaternionDifference(wk_box_world_quat,get_j5_quaternion())
+          luggage_obj_list[touchLuggage].quaternion.copy(quatDifference.invert())
+          endTool_obj.add(luggage_obj_list[touchLuggage])
+        }
+      }else{  //はなす
+        if(endTool_obj.children.includes(luggage_obj_list[touchLuggage]) && carryLuggage){
+          console.log("release",touchLuggage)
+          carryLuggage = false
+          const scene_object = document.querySelector('a-scene').object3D;
+          const wk_box_world_pos = new THREE.Vector3()
+          luggage_obj_list[touchLuggage].getWorldPosition(wk_box_world_pos)
+          const wk_box_add_local_pos = scene_object.worldToLocal(wk_box_world_pos)
+          luggage_obj_list[touchLuggage].position.copy(wk_box_add_local_pos)
+          const wk_box_world_quat = new THREE.Quaternion()
+          luggage_obj_list[touchLuggage].getWorldQuaternion(wk_box_world_quat)
+          luggage_obj_list[touchLuggage].quaternion.copy(wk_box_world_quat)
+          scene_object.add(luggage_obj_list[touchLuggage])
+        }
+      }
+    }
+  }, [gripRef.current,j7_rotate_ref.current])
 
   React.useEffect(() => {
     if(rotate_table[0].length > 1){
@@ -1363,11 +1477,31 @@ export default function Home(props) {
           }else
           if(this.data === 51){
             set_p51_object(this.el.object3D)
+          }else
+          if(this.data >= 100){
+            endTool_obj = this.el.object3D
+            console.log("j_id init",this.data)
           }
         },
         remove: function () {
           if(this.data === 16){
             set_p16_object(this.el.object3D)
+          }
+        },
+        update: function () {
+          if(this.data >= 100){
+            endTool_obj = this.el.object3D
+            console.log("j_id update",this.data)
+          }
+        }
+      });
+      AFRAME.registerComponent('luggage-id', {
+        schema: {type: 'string', default: ''},
+        init: function () {
+          if(!Object.hasOwn(luggage_obj_list,this.data)){
+            luggage_obj_list[this.data] = this.el.object3D
+            luggage_obj_list[this.data].position.set(boxpos_x,0.05,-0.5)
+            boxpos_x = boxpos_x - 0.2
           }
         }
       });
@@ -1390,10 +1524,12 @@ export default function Home(props) {
           });
 
           this.el.addEventListener('gripdown', (evt) => {
-            gripRef.current = true;
+            set_grip(true)
+            //gripRef.current = true;
           });
           this.el.addEventListener('gripup', (evt) => {
-            gripRef.current = false;
+            set_grip(false)
+            //gripRef.current = false;
           });
 
           this.el.addEventListener('thumbstickdown', (evt) => {
@@ -1484,6 +1620,20 @@ export default function Home(props) {
             }
             set_update((v)=>v=v+1)
           });
+          this.el.addEventListener('bbuttondown', (evt) => {
+            console.log("bbuttondown")
+            if(robotOperation){
+              robotOperation = false
+            }else{
+              firstReceiveJoint = true
+              switchingVrMode = true
+              setTimeout(()=>{
+                switchingVrMode = false
+                robotOperation = true
+              },1000)
+            }
+            set_update((v)=>v=v+1)
+          });
         },
         tick: function (time) {
           if((tickprev + 50) < time){
@@ -1519,7 +1669,7 @@ export default function Home(props) {
                 update: function () {
                     var mesh = this.el.getObject3D("mesh");
                     var data = this.data;
-                    if (!mesh) {
+                    if (!mesh || !data) {
                         return;
                     }
                     mesh.traverse(function (node) {
@@ -1701,7 +1851,7 @@ export default function Home(props) {
       }
     }
 
-    if ((mqttclient !== null) && publish && receive_state ) {// 状態を受信していないと、送信しない
+    if ((mqttclient !== null) && publish && receive_state && robotOperation) {// 状態を受信していないと、送信しない
       const addKey = {}
       if(tool_change_value !== undefined){
         addKey.tool_change = tool_change_value
@@ -1813,7 +1963,7 @@ export default function Home(props) {
     <>
       <a-scene scene xr-mode-ui={`enabled: ${!props.viewer?'true':'false'}; XRMode: xr`}>
         <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${false}`}></a-entity>
-        <a-circle position="0 0 0" rotation="-90 0 0" radius="0.25" color={target_error?"#ff7f50":"#7BC8A4"} opacity="0.5"></a-circle>
+        <a-circle position="0 0 0" rotation="-90 0 0" radius="0.75" color={target_error?"#ff7f50":"#7BC8A4"} opacity="0.5"></a-circle>
 
         <Assets viewer={props.viewer}/>
         <Select_Robot {...robotProps}/>
@@ -1837,6 +1987,8 @@ export default function Home(props) {
         <Line pos1={{x:0,y:0.0001,z:1}} pos2={{x:0,y:0.0001,z:-1}} visible={cursor_vis} color="white"></Line>
         {/*<a-cylinder j_id="51" color="green" height="0.1" radius="0.005" position={edit_pos({x:0.3,y:0.3,z:0.3})}></a-cylinder>*/}
         <Toolmenu />
+        <a-entity luggage-id="box1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1;" material="color: #ff8800" visible={`${true}`}></a-entity>
+        <a-entity luggage-id="box2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1;" material="color: #888800" visible={`${true}`}></a-entity>
       </a-scene>
       <Controller {...controllerProps}/>
       <div className="footer" >
@@ -1876,6 +2028,7 @@ const Assets = (props)=>{
       <a-asset-items id="j8_l" src={`${path}link8_l.gltf`} ></a-asset-items>
       <a-asset-items id="wingman" src={`${path}wingman.gltf`} ></a-asset-items>
       <a-asset-items id="vgc10-1" src={`${path}gripper_vgc10_1.gltf`} ></a-asset-items>
+      <a-asset-items id="vgc10-1L" src={`${path}gripper_vgc10_1L.gltf`} ></a-asset-items>
       <a-asset-items id="vgc10-4" src={`${path}gripper_vgc10_4.gltf`} ></a-asset-items>
       <a-asset-items id="cutter" src={`${path}ss-cutter2-end.gltf`} ></a-asset-items>
       <a-asset-items id="boxLiftUp" src={`${path}sanko_box_lift_up_end.gltf`} ></a-asset-items>
@@ -1944,8 +2097,8 @@ const Model_Tool = (props)=>{
   const {j7_rotate, joint_pos:{j7:j7pos}, cursor_vis, box_vis, edit_pos} = props
   const Spacer = 0.03
   const Toolpos = [j7pos,{x:0,y:0,z:0.01725},{x:0,y:0,z:0.02845},{x:0,y:0,z:0.02845},{x:0,y:0,z:0.01725},{x:0,y:0,z:0.0218}]
-  const p16pos = [j7pos,{...j7pos,z:j7pos.z+0.12+Spacer},{...j7pos,z:j7pos.z+0.16+Spacer},
-    {...j7pos,z:j7pos.z+0.10+Spacer},{...j7pos,z:j7pos.z+0.02+Spacer},{...j7pos,z:j7pos.z+0+Spacer}]
+  const p16pos = [j7pos,{...j7pos,z:j7pos.z+0.12+Spacer},{...j7pos,z:j7pos.z+0.2+Spacer},
+    {...j7pos,z:j7pos.z+0.095+Spacer},{...j7pos,z:j7pos.z+0.02+Spacer},{...j7pos,z:j7pos.z+0+Spacer}]
   const x = 36/90
   const finger_pos = ((j7_rotate*x) / 1000)+0.0004
   const j8_r_pos = { x: finger_pos, y:0, z:0.11 }
@@ -1954,11 +2107,12 @@ const Model_Tool = (props)=>{
 
   const return_table = [
     <>
+      <a-entity j_id="100"></a-entity>
       <Cursor3dp j_id="16" pos={p16pos[0]} visible={cursor_vis}/>
       <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[0])} visible={`${box_vis}`}></a-box>
     </>,
     <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
-      <a-entity gltf-model="#j7" position={edit_pos(Toolpos[1])} model-opacity="0.8">
+      <a-entity gltf-model="#j7" j_id="101" position={edit_pos(Toolpos[1])} model-opacity="0.8">
         <a-entity gltf-model="#j8_r" position={edit_pos(j8_r_pos)} model-opacity="0.8"></a-entity>
         <a-entity gltf-model="#j8_l" position={edit_pos(j8_1_pos)} model-opacity="0.8"></a-entity>
       </a-entity>
@@ -1966,26 +2120,26 @@ const Model_Tool = (props)=>{
       <Cursor3dp j_id="16" pos={p16pos[1]} visible={cursor_vis}/>
     </a-entity>,
     <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
-      <a-entity gltf-model="#vgc10-1" position={edit_pos(Toolpos[2])} rotation={`0 0 0`} model-opacity="0.8">
+      <a-entity gltf-model="#vgc10-1L" j_id="102" position={edit_pos(Toolpos[2])} rotation={`0 0 0`} model-opacity="0.8">
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${box_vis}`}></a-box>
         <Cursor3dp j_id="16" pos={p16pos[2]} visible={cursor_vis}/>
       </a-entity>
     </a-entity>,
     <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
-      <a-entity gltf-model="#vgc10-4" position={edit_pos(Toolpos[3])} rotation={`0 0 0`} model-opacity="0.8">
+      <a-entity gltf-model="#vgc10-4" j_id="103" position={edit_pos(Toolpos[3])} rotation={`0 0 0`} model-opacity="0.8">
         <Cursor3dp j_id="16" pos={p16pos[3]} visible={cursor_vis}/>
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
       </a-entity>
     </a-entity>,
     <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
-      <a-entity gltf-model="#cutter" position={edit_pos(Toolpos[4])} rotation={`0 0 0`} model-opacity="0.8">
+      <a-entity gltf-model="#cutter" j_id="104" position={edit_pos(Toolpos[4])} rotation={`0 0 0`} model-opacity="0.8">
         <a-entity></a-entity>
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
         <Cursor3dp j_id="16" pos={p16pos[4]} visible={cursor_vis}/>
       </a-entity>
     </a-entity>,
     <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
-      <a-entity gltf-model="#boxLiftUp" position={edit_pos(Toolpos[5])} rotation={`0 0 0`} model-opacity="0.8">
+      <a-entity gltf-model="#boxLiftUp" j_id="105" position={edit_pos(Toolpos[5])} rotation={`0 0 0`} model-opacity="0.8">
         <a-entity></a-entity>
         <Cursor3dp j_id="16" pos={p16pos[5]} visible={cursor_vis}/>
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[3])} visible={`${box_vis}`}></a-box>
