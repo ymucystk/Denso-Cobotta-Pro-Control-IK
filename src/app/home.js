@@ -530,10 +530,10 @@ export default function Home(props) {
         console.log("touch same pos",wk_carryLuggageKey)
         return {result:false,key:wk_carryLuggageKey}
       }
-      const outdir = newtargetV3.clone().sub(wk_box_world_pos).normalize()
-      const outpos = wk_box_world_pos.clone().add(outdir.multiplyScalar(1)) //１ｍ後方の座標を求める
-      const dir = wk_box_world_pos.clone().sub(outpos).normalize()
-      const raycaster = new THREE.Raycaster(outpos, dir)
+      const wk_endTool_world_pos = new THREE.Vector3()
+      endTool_obj.getWorldPosition(wk_endTool_world_pos)
+      const dir = wk_box_world_pos.clone().sub(wk_endTool_world_pos).normalize()
+      const raycaster = new THREE.Raycaster(wk_endTool_world_pos, dir)
       const intersects = raycaster.intersectObject(boxObj, true)
       if(intersects.length > 0){
         let minValueIdx = 0
@@ -542,17 +542,18 @@ export default function Home(props) {
             minValueIdx = i
           }
         }
-        const Distance_surface_target = distance(intersects[minValueIdx].point,newtargetV3)
+        const hit = intersects[minValueIdx]
+        const Distance_surface_target = distance(hit.point,newtargetV3)
         if(Math.abs(Distance_surface_target) <= 0.0005){  //表面から５ｍｍ以内
           console.log("touch",wk_carryLuggageKey)
           const tp = touchLuggage === undefined ? newtargetV3 : prevtarget
           return {result:true,touchPoint:{x:round(tp.x),y:round(tp.y),z:round(tp.z)},key:wk_carryLuggageKey}
         }else{
-          const Distance_center_surface = distance(wk_box_world_pos,intersects[minValueIdx].point)
+          const Distance_center_surface = distance(wk_box_world_pos,hit.point)
           const Distance_center_terget = distance(wk_box_world_pos,newtargetV3)
-          if(Distance_center_surface >= Distance_center_terget){  //オブジェクトの内側？
+          if(Distance_center_surface >= Distance_center_terget){  //オブジェクトの外側だけタッチ認定
             console.log("touch",wk_carryLuggageKey)
-            const tp = touchLuggage === undefined ? intersects[minValueIdx].point : prevtarget
+            const tp = touchLuggage === undefined ? hit.point : prevtarget
             return {result:true,touchPoint:{x:round(tp.x),y:round(tp.y),z:round(tp.z)},key:wk_carryLuggageKey}
           }
         }
