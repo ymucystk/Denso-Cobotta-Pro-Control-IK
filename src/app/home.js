@@ -523,17 +523,18 @@ export default function Home(props) {
         return res
       },undefined)
       const newtargetV3 = new THREE.Vector3(newtarget.x,newtarget.y,newtarget.z)
+      let original_pos = newtargetV3.clone()
       const boxObj = luggage_obj_list[wk_carryLuggageKey].clone()
       const wk_box_world_pos = new THREE.Vector3()
       boxObj.getWorldPosition(wk_box_world_pos)
       if(newtargetV3.equals(wk_box_world_pos)){
         console.log("touch same pos",wk_carryLuggageKey)
-        return {result:false,key:wk_carryLuggageKey}
+        endTool_obj.getWorldPosition(original_pos)
       }
-      const wk_endTool_world_pos = new THREE.Vector3()
-      endTool_obj.getWorldPosition(wk_endTool_world_pos)
-      const dir = wk_box_world_pos.clone().sub(wk_endTool_world_pos).normalize()
-      const raycaster = new THREE.Raycaster(wk_endTool_world_pos, dir)
+      const outdir = original_pos.clone().sub(wk_box_world_pos).normalize()
+      const outpos = wk_box_world_pos.clone().add(outdir.multiplyScalar(1)) //１ｍ後方の座標を求める
+      const dir = wk_box_world_pos.clone().sub(outpos).normalize()
+      const raycaster = new THREE.Raycaster(outpos, dir)
       const intersects = raycaster.intersectObject(boxObj, true)
       if(intersects.length > 0){
         let minValueIdx = 0
