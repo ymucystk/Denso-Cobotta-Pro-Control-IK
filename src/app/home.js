@@ -547,7 +547,7 @@ export default function Home(props) {
         const Distance_surface_target = distance(hit.point,newtargetV3)
         if(Math.abs(Distance_surface_target) <= 0.0005){  //表面から５ｍｍ以内
           console.log("touch",wk_carryLuggageKey)
-          const tp = touchLuggage === undefined ? newtargetV3 : prevtarget
+          const tp = newtargetV3
           return {result:true,touchPoint:{x:round(tp.x),y:round(tp.y),z:round(tp.z)},key:wk_carryLuggageKey}
         }else{
           const Distance_center_surface = distance(wk_box_world_pos,hit.point)
