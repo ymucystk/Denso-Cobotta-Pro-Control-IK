@@ -110,7 +110,7 @@ let touchLuggage = undefined
 let carryLuggage = false
 let boxpos_x = 0.3
 
-function useRefState(updateFunc,initialValue=undefined) {
+function useRefState(updateFunc=undefined,initialValue=undefined) {
   const ref = React.useRef(initialValue);
   function setValue(arg){
     if (typeof arg === 'function') {
@@ -118,7 +118,9 @@ function useRefState(updateFunc,initialValue=undefined) {
     }else{
       ref.current = arg
     }
-    updateFunc((v)=>v=v+1)
+    if(updateFunc){
+      updateFunc((v)=>v=v+1)
+    }
   }
   return [ref.current, setValue, ref];
 }
@@ -150,7 +152,7 @@ export default function Home(props) {
   /*const outputRotateRef = React.useRef(
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
   );*/ // ref を使って outputRotate を保持する
-  const [outputRotate,set_outputRotate,outputRotateRef] = useRefState(set_update,
+  const [outputRotate,set_outputRotate,outputRotateRef] = useRefState(undefined,
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
   )
   const [checkRotate,set_checkRotate,checkRotateRef] = useRefState(set_update,outputRotate)
