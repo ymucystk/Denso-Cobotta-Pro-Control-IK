@@ -2035,7 +2035,7 @@ const Assets = (props)=>{
       <a-asset-items id="vgc10-1L" src={`${path}gripper_vgc10_1L.gltf`} ></a-asset-items>
       <a-asset-items id="vgc10-4" src={`${path}gripper_vgc10_4.gltf`} ></a-asset-items>
       <a-asset-items id="cutter" src={`${path}ss-cutter2-end.gltf`} ></a-asset-items>
-      <a-asset-items id="boxLiftUp" src={`${path}sanko_box_lift_up_end.gltf`} ></a-asset-items>
+      <a-asset-items id="boxLiftUp" src={`${path}sanko_box_lift_up_end_v2.gltf`} ></a-asset-items>
     </a-assets>
   )
 }
