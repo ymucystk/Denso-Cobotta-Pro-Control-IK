@@ -15,18 +15,7 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"node0",
-			"rotation":[
-				-1,
-				0,
-				0,
-				4.371138828673793e-08
-			],
-			"translation":[
-				0,
-				0,
-				-0.004548000171780586
-			]
+			"name":"node0"
 		}
 	],
 	"materials":[
@@ -64,23 +53,23 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":101842,
+			"count":101691,
 			"max":[
 				0.08892109990119934,
-				0.05779999867081642,
-				2.4424909718126996e-17
+				0.09949999302625656,
+				0.008452008478343487
 			],
 			"min":[
 				-0.08892109990119934,
-				-0.09949999302625656,
-				-0.013000000268220901
+				-0.05779999867081642,
+				-0.004548005294054747
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":101842,
+			"count":101691,
 			"type":"VEC3"
 		},
 		{
@@ -93,26 +82,26 @@
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":1222104,
+			"byteLength":1220292,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1222104,
-			"byteOffset":1222104,
+			"byteLength":1220292,
+			"byteOffset":1220292,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":572256,
-			"byteOffset":2444208,
+			"byteOffset":2440584,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":3016464,
+			"byteLength":3012840,
 			"uri":"sanko_box_lift_up_end_v2.bin"
 		}
 	]
