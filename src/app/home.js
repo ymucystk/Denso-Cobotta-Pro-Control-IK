@@ -3,8 +3,10 @@ import 'aframe'
 import * as React from 'react'
 const THREE = window.AFRAME.THREE; // これで　AFRAME と　THREEを同時に使える
 
+import { AppMode } from './appmode.js';
 import Controller from './controller.js'
 import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT, codeType } from '../lib/MetaworkMQTT'
+import App from 'next/app.js';
 
 const MQTT_REQUEST_TOPIC = "mgr/request";
 const MQTT_DEVICE_TOPIC = "dev/"+idtopic;
@@ -50,7 +52,8 @@ const object3D_table = []
 const rotvec_table = [y_vec_base,x_vec_base,x_vec_base,y_vec_base,x_vec_base,z_vec_base]
 let target_move_distance = 0
 const target_move_speed = (1000/0.5)
-let real_target = {x:0.4,y:0.8,z:-0.4}
+//let real_target = {x:0.4,y:0.8,z:-0.4}
+let real_target = {x:0.3,y:0.25,z:-0.48}
 let baseObject3D = new THREE.Object3D()
 
 const j1_Correct_value = 180.0
@@ -107,6 +110,8 @@ let robotOperation = true
 const luggage_obj_list = {}
 let endTool_obj = undefined
 let touchLuggage = undefined
+let fallingLuggage = undefined // 落下中の荷物
+let fallingSpeed = 0 // 落下中の荷物の速度
 let carryLuggage = false
 let boxpos_x = 0.3
 
@@ -186,7 +191,7 @@ export default function Home(props) {
   const [c_deg_y,set_c_deg_y] = useRefState(set_update,0)
   const [c_deg_z,set_c_deg_z] = useRefState(set_update,0)
 
-  const [wrist_rot,set_wrist_rot_org,wrist_rot_ref] = useRefState(set_update,{x:180,y:0,z:0})
+  const [wrist_rot,set_wrist_rot_org,wrist_rot_ref] = useRefState(set_update,{x:90,y:0,z:0})
   const [tool_rotate,set_tool_rotate,tool_rotate_ref] = useRefState(set_update,0)
   const [wrist_degree,set_wrist_degree] = useRefState(set_update,{direction:0,angle:0})
   const [dsp_message,set_dsp_message] = useRefState(set_update,"")
@@ -230,13 +235,13 @@ export default function Home(props) {
   },[])
 
   React.useEffect(() => {
-    if(!props.viewer && !vr_mode){
+    if(!(props.appmode === AppMode.viewer) && !vr_mode){
       requestAnimationFrame(get_real_joint_rot)
     }
   },[vr_mode])
 
   const get_real_joint_rot = ()=>{
-    if(!props.viewer){
+    if(!(props.appmode === AppMode.viewer)){
       if(object3D_table.length === 6 && switchingVrMode === false){
         const axis_tbl = ['y','x','x','y','x','z']
         const new_rotate = object3D_table.map((obj3d,idx)=>{
@@ -309,7 +314,7 @@ export default function Home(props) {
 
   const set_target = (new_pos)=>{
     let wk_new_pos = new_pos
-    if(!carryLuggage){
+    if(!carryLuggage && props.appmode === AppMode.practice){ // 練習モードの時のみ     
       const touchResult = boxTouchCheck(wk_new_pos,target_ref.current)
       if(touchResult.result){
         touchLuggage = touchResult.key
@@ -333,6 +338,7 @@ export default function Home(props) {
     }
   }
 
+  // コントローラの移動を取得
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
       const move_pos = pos_sub(start_pos,controller_object_position)
@@ -353,6 +359,7 @@ export default function Home(props) {
     }
   },[controller_object_position.x,controller_object_position.y,controller_object_position.z])
 
+  // コントローラの回転を取得
   React.useEffect(() => {
     if(rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode){
       const wk_quatDiff1 = controller_progress_quat.clone().invert().multiply(controller_object_quaternion);
@@ -433,7 +440,7 @@ export default function Home(props) {
       set_target(ToolChangeTbl[0].pos)
       target_move_distance*= ToolChangeTbl[0].speedfacter
       ToolChangeTbl.shift()
-      if(props.viewer && viewer_tool_change === true && ToolChangeTbl.length === 0){
+      if(props.appmode===AppMode.viewer && viewer_tool_change === true && ToolChangeTbl.length === 0){
         setTimeout(()=>{
           viewer_tool_change_end = true
           viewer_tool_change = false
@@ -571,34 +578,41 @@ export default function Home(props) {
   React.useEffect(() => {
     const objKeys = Object.keys(luggage_obj_list)
     if(objKeys.length > 0){
-      console.log("grip",gripRef.current,"j7_rotate",j7_rotate_ref.current)
-      if(gripRef.current || j7_rotate_ref.current > 0){  //つかむ
-        if(touchLuggage !== undefined && !carryLuggage){
-          console.log("catch",touchLuggage)
-          carryLuggage = true
-          const wk_box_world_pos = new THREE.Vector3()
-          luggage_obj_list[touchLuggage].getWorldPosition(wk_box_world_pos)
-          const wk_box_add_local_pos = endTool_obj.worldToLocal(wk_box_world_pos)
-          luggage_obj_list[touchLuggage].position.copy(wk_box_add_local_pos)
-          const wk_box_world_quat = new THREE.Quaternion()
-          luggage_obj_list[touchLuggage].getWorldQuaternion(wk_box_world_quat)
-          const quatDifference = quaternionDifference(wk_box_world_quat,get_j5_quaternion())
-          luggage_obj_list[touchLuggage].quaternion.copy(quatDifference.invert())
-          endTool_obj.add(luggage_obj_list[touchLuggage])
-        }
-      }else{  //はなす
-        if(endTool_obj.children.includes(luggage_obj_list[touchLuggage]) && carryLuggage){
-          console.log("release",touchLuggage)
-          carryLuggage = false
-          const scene_object = document.querySelector('a-scene').object3D;
-          const wk_box_world_pos = new THREE.Vector3()
-          luggage_obj_list[touchLuggage].getWorldPosition(wk_box_world_pos)
-          const wk_box_add_local_pos = scene_object.worldToLocal(wk_box_world_pos)
-          luggage_obj_list[touchLuggage].position.copy(wk_box_add_local_pos)
-          const wk_box_world_quat = new THREE.Quaternion()
-          luggage_obj_list[touchLuggage].getWorldQuaternion(wk_box_world_quat)
-          luggage_obj_list[touchLuggage].quaternion.copy(wk_box_world_quat)
-          scene_object.add(luggage_obj_list[touchLuggage])
+//      console.log("grip",gripRef.current,"j7_rotate",j7_rotate_ref.current, touchLuggage, carryLuggage)
+      if (props.appmode === AppMode.practice){
+        if(gripRef.current || j7_rotate_ref.current > 0){  //つかむ
+          if(touchLuggage !== undefined && !carryLuggage){
+            console.log("catch",touchLuggage)
+            carryLuggage = true
+            const wk_box_world_pos = new THREE.Vector3()
+            luggage_obj_list[touchLuggage].getWorldPosition(wk_box_world_pos)
+            const wk_box_add_local_pos = endTool_obj.worldToLocal(wk_box_world_pos)
+            luggage_obj_list[touchLuggage].position.copy(wk_box_add_local_pos)
+            const wk_box_world_quat = new THREE.Quaternion()
+            luggage_obj_list[touchLuggage].getWorldQuaternion(wk_box_world_quat)
+            const quatDifference = quaternionDifference(wk_box_world_quat,get_j5_quaternion())
+            luggage_obj_list[touchLuggage].quaternion.copy(quatDifference.invert())
+            endTool_obj.add(luggage_obj_list[touchLuggage])
+          }
+        }else{  //はなす
+          if(endTool_obj.children.includes(luggage_obj_list[touchLuggage]) && carryLuggage){
+            console.log("release",touchLuggage)
+            carryLuggage = false
+            const scene_object = document.querySelector('a-scene').object3D;
+            const wk_box_world_pos = new THREE.Vector3()
+            luggage_obj_list[touchLuggage].getWorldPosition(wk_box_world_pos)
+            const wk_box_add_local_pos = scene_object.worldToLocal(wk_box_world_pos)
+            luggage_obj_list[touchLuggage].position.copy(wk_box_add_local_pos)
+            const wk_box_world_quat = new THREE.Quaternion()
+            luggage_obj_list[touchLuggage].getWorldQuaternion(wk_box_world_quat)
+            luggage_obj_list[touchLuggage].quaternion.copy(wk_box_world_quat)
+            endTool_obj.remove(luggage_obj_list[touchLuggage])
+            scene_object.add(luggage_obj_list[touchLuggage])
+            // ここから落下アニメーションスタート
+            fallingLuggage = touchLuggage; // 落下中の荷物を設定
+            fallingSpeed = 0.02 // 落下速度を初期化
+            
+          }
         }
       }
     }
@@ -710,7 +724,7 @@ export default function Home(props) {
     }
     //setTimeout(()=>{joint_slerp()},0)
 
-    if(props.viewer){
+    if(props.appmode===AppMode.viewer){
       const conv_result = outRotateConv(
         {j1_rotate,j2_rotate,j3_rotate,j4_rotate,j5_rotate,j6_rotate:normalize180(j6_rotate+tool_rotate)},
         [...outputRotateRef.current]
@@ -797,6 +811,9 @@ export default function Home(props) {
 // MQTT connected request
   const requestRobot = (mqclient) =>{
         // 制御対象のロボットを探索（表示された時点で実施）
+        if (props.appmode === AppMode.viewer ) {
+          return;
+        }
         const requestInfo = {
           devId: idtopic, // 自分のID
           type: codeType,  //  コードタイプ（Request でマッチングに利用)
@@ -808,6 +825,9 @@ export default function Home(props) {
   // register to MQTT
   React.useEffect(() => {
     if (typeof window.mqttClient === 'undefined') {
+      if (props.appmode === AppMode.practice) { // 練習モードは　MQTT 接続しない
+        return;
+      }
       //サブスクライブするトピックの登録
       console.log("Start connectMQTT!!")
       window.mqttClient = connectMQTT(requestRobot);
@@ -817,7 +837,7 @@ export default function Home(props) {
 //      console.log("Subscribe:",MQTT_DEVICE_TOPIC);
       //        MQTT_CTRL_TOPIC  // MQTT Version5 なので、 noLocal が効くはず
 
-      if(props.viewer){// Viewer の場合
+      if(props.appmode===AppMode.viewer){// Viewer の場合
         //サブスクライブ時の処理
         window.mqttClient.on('message', (topic, message) => {
           if (topic === MQTT_DEVICE_TOPIC){ // デバイスへの連絡用トピック
@@ -1126,7 +1146,7 @@ export default function Home(props) {
       shift_target.z = shift_target.z + sabun_pos.z
     }
 
-    if(dsp_message === "" && !props.viewer && !inputRotateFlg.current){
+    if(dsp_message === "" && !(props.appmode===AppMode.viewer) && !inputRotateFlg.current){
       const check_result = outRotateConv(result_rotate,[...checkRotateRef.current])
       if(check_result.j1_rotate<-j1_limit || check_result.j1_rotate>j1_limit){
         dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
@@ -1507,6 +1527,15 @@ export default function Home(props) {
             luggage_obj_list[this.data].position.set(boxpos_x,0.05,-0.5)
             boxpos_x = boxpos_x - 0.2
           }
+        },
+        tick: function(time, deltaTime) {
+          if (fallingLuggage ===undefined) return;
+          const obj = luggage_obj_list[fallingLuggage]
+          obj.position.y = Math.max(0.05, obj.position.y - (deltaTime / 1000) * fallingSpeed);
+          fallingSpeed += 0.02; // 落下速度を徐々に増加させる
+          if (obj.position.y <= 0.05) {
+            fallingLuggage = undefined; // 落下が完了したら fallingLuggage をリセット
+          }          
         }
       });
       AFRAME.registerComponent('vr-controller-right', {
@@ -1692,7 +1721,7 @@ export default function Home(props) {
       AFRAME.registerComponent('scene', {
         schema: {type: 'string', default: ''},
         init: function () {
-          if (props.viewer){// viewer は VR モードじゃなくても requestする
+          if (props.appmode===AppMode.viewer){// viewer は VR モードじゃなくても requestする
             window.requestAnimationFrame(onAnimationMQTT);
           }
           this.el.addEventListener('enter-vr', ()=>{
@@ -1755,7 +1784,7 @@ export default function Home(props) {
             })
             xrSession.requestAnimationFrame(get_real_joint_rot);
 
-            if(!props.viewer){
+            if(!(props.appmode===AppMode.viewer)){
               set_c_pos_x(0)
               set_c_pos_y(-0.775) //ロボット設置高さ
               set_c_pos_z(1.2) //ロボットの設置位置からの前後距離
@@ -1799,7 +1828,7 @@ export default function Home(props) {
                   return vr
             })
 
-            if(!props.viewer){
+            if(!(props.appmode===AppMode.viewer)){
               set_c_pos_x(0)
               set_c_pos_y(0.35) //ロボット設置高さ
               set_c_pos_z(1.2) //ロボットの設置位置からの前後距離
@@ -1847,7 +1876,7 @@ export default function Home(props) {
   // XR のレンダリングフレーム毎に MQTTを呼び出したい
   const onXRFrameMQTT = (time, frame) => {
     // for next frame
-    if(props.viewer){
+    if(props.appmode===AppMode.viewer){
       frame.session.requestAnimationFrame(onXRFrameMQTT);
     }else{
       if (vrModeRef.current){// VR_mode じゃなかったら呼び出さない
@@ -1965,11 +1994,11 @@ export default function Home(props) {
   if(rendered){
     return (
     <>
-      <a-scene scene xr-mode-ui={`enabled: ${!props.viewer?'true':'false'}; XRMode: xr`}>
+      <a-scene scene xr-mode-ui={`enabled: ${!(props.appmode===AppMode.viewer)?'true':'false'}; XRMode: xr`}>
         <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${false}`}></a-entity>
-        <a-circle position="0 0 0" rotation="-90 0 0" radius="0.75" color={target_error?"#ff7f50":"#7BC8A4"} opacity="0.5"></a-circle>
+        <a-circle position="0 0 0" rotation="-90 0 0" radius={props.appmode===AppMode.practice?"0.75":"0.3"} color={target_error?"#ff7f50":"#7BC8A4"} opacity="0.5"></a-circle>
 
-        <Assets viewer={props.viewer}/>
+        <Assets appmode={props.appmode}/>
         <Select_Robot {...robotProps}/>
         <Cursor3dp j_id="20" pos={{x:0,y:0,z:0}} visible={cursor_vis}>
           <Cursor3dp j_id="21" pos={{x:0,y:0,z:p15_16_len}} visible={cursor_vis}></Cursor3dp>
@@ -1983,7 +2012,7 @@ export default function Home(props) {
         <a-entity id="rig" position={`${c_pos_x} ${c_pos_y} ${c_pos_z}`} rotation={`${c_deg_x} ${c_deg_y} ${c_deg_z}`}>
           <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0" look-controls-enabled="false" wasd-controls-enabled="false"></a-camera>
         </a-entity>
-        <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${!props.viewer}`}></a-sphere>
+        <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${!(props.appmode===AppMode.viewer)}`}></a-sphere>
         <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box>
         <Line pos1={{x:1,y:0.0001,z:1}} pos2={{x:-1,y:0.0001,z:-1}} visible={cursor_vis} color="white"></Line>
         <Line pos1={{x:1,y:0.0001,z:-1}} pos2={{x:-1,y:0.0001,z:1}} visible={cursor_vis} color="white"></Line>
@@ -1991,32 +2020,36 @@ export default function Home(props) {
         <Line pos1={{x:0,y:0.0001,z:1}} pos2={{x:0,y:0.0001,z:-1}} visible={cursor_vis} color="white"></Line>
         {/*<a-cylinder j_id="51" color="green" height="0.1" radius="0.005" position={edit_pos({x:0.3,y:0.3,z:0.3})}></a-cylinder>*/}
         <Toolmenu />
-        <a-entity luggage-id="box1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1;" material="color: #ff8800" visible={`${true}`}></a-entity>
-        <a-entity luggage-id="box2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1;" material="color: #888800" visible={`${true}`}></a-entity>
+        {(props.appmode===AppMode.practice)?<>
+            <a-entity luggage-id="box1" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1;" material="color: #ff8800" visible={`${true}`}></a-entity>
+            <a-entity luggage-id="box2" geometry="primitive: box; width: 0.1; height: 0.1; depth: 0.1;" material="color: #888800" visible={`${true}`}></a-entity>
+          </>
+        :<></>}
       </a-scene>
       <Controller {...controllerProps}/>
       <div className="footer" >
         <div>
-          {`${props.viewer?'viewer mode / ':''}`}
+          {`${props.appmode}:`}
           {`wrist_degree:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}`}
           {` ${dsp_message}`}
-          {props.viewer?<>{` input rot:[${input_rotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
-          {!props.viewer?<>{` output rot:[${outputRotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
+          {props.appmode===AppMode.viewer?<>{` input rot:[${input_rotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
+          {!(props.appmode===AppMode.viewer)?<>{` output rot:[${outputRotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
         </div>
       </div>
     </>
     );
   }else{
     return(
-      <a-scene xr-mode-ui={`enabled: ${!props.viewer?'true':'false'}; XRMode: xr`}>
-        <Assets viewer={props.viewer}/>
+      <a-scene xr-mode-ui={`enabled: ${!(props.appmode===AppMode.viewer)?'true':'false'}; XRMode: xr`}>
+        <Assets appmode={props.appmode}/>
       </a-scene>
     )
   }
 }
 
 const Assets = (props)=>{
-  const path = props.viewer?"../":""
+  const path = (props.appmode===AppMode.normal)?"":"../"
+//  const path = ""
   return (
     <a-assets>
       {/*Model*/}
