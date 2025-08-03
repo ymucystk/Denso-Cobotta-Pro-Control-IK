@@ -12,7 +12,7 @@ export default function Controller(props) {
   const {tool_rotate} = props
   const {normalize180} = props
   const {vr_mode} = props
-  const {vrModeAngle} = props
+  const {vrModeAngle, vrModeOffsetX} = props
 
   const set_toolName = (e)=>{
     props.set_toolName(e.target.value)
@@ -105,6 +105,12 @@ export default function Controller(props) {
     let value = Number.parseFloat(e.target.value || 0)
     props.set_vrModeAngle(value)
   }
+
+  const set_vrModeOffsetX = (e)=>{
+    let value = Number.parseFloat(e.target.value || 0)
+    props.set_vrModeOffsetX(value)
+  }
+
 
   const set_wrist_rot_x = (e)=>{
     let value = Number.parseFloat(e.target.value || 0)
@@ -207,6 +213,10 @@ export default function Controller(props) {
         <div className="row mb-2">
           <div className="col-md-4"><label htmlFor="VR_Angle_number" className="form-label"><span className="form-control-plaintext">VR Angle</span></label></div>
           <div className="col-md-8"><input type="number" className="form-control" id="VR_Angle_number" value={vrModeAngle} onChange={set_vrModeAngle} min={-180} max={180} step={1}/></div>
+        </div>
+        <div className="row mb-2">
+          <div className="col-md-4"><label htmlFor="VR_OffsetX_number" className="form-label"><span className="form-control-plaintext">OffsetX</span></label></div>
+          <div className="col-md-8"><input type="number" className="form-control" id="VR_OffsetX_number" value={vrModeOffsetX} onChange={set_vrModeOffsetX} min={-5} max={5} step={0.1}/></div>
         </div>
         <div className="row mb-2">
         </div></>}

@@ -6,7 +6,9 @@ const THREE = window.AFRAME.THREE; // これで　AFRAME と　THREEを同時に
 import { AppMode } from './appmode.js';
 import Controller from './controller.js'
 import { connectMQTT, mqttclient,idtopic,subscribeMQTT, publishMQTT, codeType } from '../lib/MetaworkMQTT'
-import App from 'next/app.js';
+
+import StereoVideo from '../lib/stereoWebRTC.js';
+
 
 const MQTT_REQUEST_TOPIC = "mgr/request";
 const MQTT_DEVICE_TOPIC = "dev/"+idtopic;
@@ -115,6 +117,8 @@ let fallingSpeed = 0 // 落下中の荷物の速度
 let carryLuggage = false
 let boxpos_x = 0.3
 
+
+// 再レンダリングしなくて値を更新する（かつ set_update で再レンダリングさせられる）
 function useRefState(updateFunc=undefined,initialValue=undefined) {
   const ref = React.useRef(initialValue);
   function setValue(arg){
@@ -144,6 +148,20 @@ export default function Home(props) {
     vrModeAngle = vrModeAngle_ref.current = new_angle
     set_update((v)=>v=v+1)
   }
+
+  // 横方向のオフセットをCookieに保存
+  const vrModeOffsetX_ref = React.useRef(0)
+  let vrModeOffsetX = vrModeOffsetX_ref.current
+  const set_vrModeOffsetX = (new_offset)=>{
+    document.cookie = `vrModeOffsetX=${new_offset}; path=/; max-age=31536000;`
+    vrModeOffsetX = vrModeOffsetX_ref.current = new_offset
+    console.log('set_vrModeOffsetX',vrModeOffsetX)
+    set_update((v)=>v=v+1)
+  }
+
+  // WebRTCの統計情報を記録
+  const [rtcStats, set_rtcStats, rtcStats_ref ] = useRefState(set_update,[])
+
 
   const [j1_rotate,set_j1_rotate,j1_rotate_ref] = useRefState(set_update,0)
   const [j2_rotate,set_j2_rotate,j2_rotate_ref] = useRefState(set_update,0)
@@ -191,10 +209,12 @@ export default function Home(props) {
   const [c_deg_y,set_c_deg_y] = useRefState(set_update,0)
   const [c_deg_z,set_c_deg_z] = useRefState(set_update,0)
 
+
   const [wrist_rot,set_wrist_rot_org,wrist_rot_ref] = useRefState(set_update,{x:90,y:0,z:0})
   const [tool_rotate,set_tool_rotate,tool_rotate_ref] = useRefState(set_update,0)
   const [wrist_degree,set_wrist_degree] = useRefState(set_update,{direction:0,angle:0})
   const [dsp_message,set_dsp_message] = useRefState(set_update,"")
+  const [fps_message,set_fps_message] = useRefState(set_update,"0 fps")
 
   const toolNameList = ["No tool","Gripper","vgc10-1","vgc10-4","cutter","boxLiftUp"]
   const [toolName,set_toolName_org,toolNameRef] = useRefState(set_update,toolNameList[1])
@@ -227,6 +247,8 @@ export default function Home(props) {
   React.useEffect(() => {
     const wk_vrModeAngle = getCookie('vrModeAngle')
     set_vrModeAngle(wk_vrModeAngle?parseFloat(wk_vrModeAngle):0)
+    const wk_vrModeOffsetX = getCookie('vrModeOffsetX')
+    set_vrModeOffsetX(wk_vrModeOffsetX?parseFloat(wk_vrModeOffsetX):0)
     const wk_toolName = getCookie('toolName')
     set_toolName(wk_toolName?wk_toolName:"Gripper")
     /*if(!props.viewer){
@@ -1475,8 +1497,10 @@ export default function Home(props) {
     if(!registered){
       registered = true
 
-      setTimeout(set_rendered(true),1)
-      console.log('set_rendered')
+      setTimeout(()=>{
+        set_rendered(true)
+        console.log('set_rendered')
+      },500)
 
       const teihen = joint_pos.j5.x
       const takasa = joint_pos.j3.y + joint_pos.j4.y
@@ -1800,7 +1824,21 @@ export default function Home(props) {
             setTimeout(()=>{
               switchingVrMode = false
             },3000)
+            
+            // VR モードでのカメラ位置と角度を設定
+
             baseObject3D.rotateY(toRadian(vrModeAngle_ref.current))
+            baseObject3D.position.x += vrModeOffsetX_ref.current
+            object3D_table[0].position.x += vrModeOffsetX_ref.current
+
+            const circle3D = window.document.querySelector('#circle3D');
+            if(circle3D){
+              circle3D.object3D.position.x += vrModeOffsetX_ref.current
+            }
+
+  //          console.log("vrModeOffsetX_ref.current",vrModeOffsetX_ref.current)
+  //          console.log(baseObject3D.position, joint_pos.base)
+
             const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
               y_vec_base,toRadian(vrModeAngle_ref.current)
             ).multiply(
@@ -1975,6 +2013,7 @@ export default function Home(props) {
 
 
   const edit_pos = (posxyz)=>`${posxyz.x} ${posxyz.y} ${posxyz.z}`
+  const edit_pos_offset = (posxyz)=>`${posxyz.x+vrModeOffsetX_ref.current} ${posxyz.y} ${posxyz.z}`
 
   const controllerProps = {
     robotName, robotNameList, set_robotName,
@@ -1986,7 +2025,7 @@ export default function Home(props) {
     c_deg_x,set_c_deg_x,c_deg_y,set_c_deg_y,c_deg_z,set_c_deg_z,
     wrist_rot,set_wrist_rot,
     tool_rotate,set_tool_rotate,normalize180, vr_mode:vrModeRef.current,
-    vrModeAngle, set_vrModeAngle,
+    vrModeAngle, set_vrModeAngle, vrModeOffsetX, set_vrModeOffsetX,
     toolChange1, toolChange2
   }
 
@@ -2059,11 +2098,29 @@ export default function Home(props) {
   //console.log("rendered")
 
   if(rendered){
+
+    let rtc_message = "";
+    if (props.appmode===AppMode.withCam || props.appmode === AppMode.withDualCam){
+      if (rtcStats_ref.current.length > 0) {
+        rtc_message = ["WebRTC Stats:"];
+        rtcStats_ref.current.forEach((stat, idx) => {
+          rtc_message.push(`${stat}`);
+        })
+        rtc_message = rtc_message.join('\n')
+      }
+    }
     return (
     <>
       <a-scene scene xr-mode-ui={`enabled: ${!(props.appmode===AppMode.viewer)?'true':'false'}; XRMode: xr`}>
+      {  // ステレオカメラ使うか
+      (props.appmode===AppMode.withCam || props.appmode === AppMode.withDualCam)?
+        <StereoVideo rendered={rendered} set_rtcStats={set_rtcStats} stereo_visible='true'
+          appmode={props.appmode}
+       />: <></>       
+      }
+
         <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${false}`}></a-entity>
-        <a-circle position="0 0 0" rotation="-90 0 0" radius={props.appmode===AppMode.practice?"0.75":"0.3"} color={target_error?"#ff7f50":"#7BC8A4"} opacity="0.5"></a-circle>
+        <a-circle id="circle3D" position="0 0 0" rotation="-90 0 0" radius={props.appmode===AppMode.practice?"0.75":"0.3"} color={target_error?"#ff7f50":"#7BC8A4"} opacity="0.5"></a-circle>
 
         <Assets appmode={props.appmode}/>
         <Select_Robot {...robotProps}/>
@@ -2077,9 +2134,19 @@ export default function Home(props) {
         <a-entity light="type: directional; color: #FFF; intensity: 0.25" position="1 1 -1"></a-entity>
         <a-entity light="type: directional; color: #EFE; intensity: 0.05" position="0 -1 0"></a-entity>
         <a-entity id="rig" position={`${c_pos_x} ${c_pos_y} ${c_pos_z}`} rotation={`${c_deg_x} ${c_deg_y} ${c_deg_z}`}>
-          <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0" look-controls-enabled="false" wasd-controls-enabled="false"></a-camera>
+          <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0" look-controls-enabled="false" wasd-controls-enabled="false">
+            {/* for stereo camera */}
+              <a-entity 
+                id="UIBack" camera='active: true'
+                position='0 0 0' stereocam='eye:left;'
+              />   
+              <a-entity
+                text={`value: ${rtc_message}; color: gray; backgroundColor: rgb(31, 219, 131); border: #000000; whiteSpace: pre`}
+                position="0 0.35 -1.4" 
+              />
+          </a-camera>
         </a-entity>
-        <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${!(props.appmode===AppMode.viewer)}`}></a-sphere>
+        <a-sphere position={edit_pos_offset(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${!(props.appmode===AppMode.viewer)&&vr_mode}`}></a-sphere>
         <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box>
         <Line pos1={{x:1,y:0.0001,z:1}} pos2={{x:-1,y:0.0001,z:-1}} visible={cursor_vis} color="white"></Line>
         <Line pos1={{x:1,y:0.0001,z:-1}} pos2={{x:-1,y:0.0001,z:1}} visible={cursor_vis} color="white"></Line>
@@ -2142,6 +2209,7 @@ const Assets = (props)=>{
 
 const Model = (props)=>{
   const {visible, cursor_vis, edit_pos, joint_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error, j6_error} = props
+//  console.log("Joint base",joint_pos.base)
   return (<>{visible?<>
     <a-entity j_id="0"  robot-click="" gltf-model="#base" position={edit_pos(joint_pos.base)} visible={`${visible}`}></a-entity>
       <a-entity geometry="primitive: circle; radius: 0.16;" material="color: #00FFFF; opacity: 0.8" position="0 0.1 0" rotation="-90 0 0" visible={`${j1_error}`}></a-entity>

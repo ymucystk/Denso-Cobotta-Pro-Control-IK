@@ -1,6 +1,6 @@
 {
   "name": "cobotta-pro-control-ik",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,6 +15,7 @@
     "mqtt": "^5.10.3",
     "next": "15.4.4",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "sora-js-sdk": "^2025.1.0"
   }
 }

@@ -26,6 +26,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.1.0(react@19.1.0)
+      sora-js-sdk:
+        specifier: ^2025.1.0
+        version: 2025.1.0
 
 packages:
 
@@ -618,6 +621,10 @@ packages:
 
   simple-swizzle@0.2.2:
     resolution: {integrity: sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg==}
+
+  sora-js-sdk@2025.1.0:
+    resolution: {integrity: sha512-36QSWJGhQZ2DRrr91GK3OmJBjRYSvhFcMqKIpjtS3xurfCjZk5ZJIl1BQrlWQNB/d/IUiDSdr5YZM7vRi8195Q==}
+    engines: {node: '>=20', pnpm: '>=8'}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -1325,6 +1332,8 @@ snapshots:
     dependencies:
       is-arrayish: 0.3.2
     optional: true
+
+  sora-js-sdk@2025.1.0: {}
 
   source-map-js@1.2.1: {}
 
