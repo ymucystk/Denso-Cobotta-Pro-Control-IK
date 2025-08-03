@@ -53,7 +53,7 @@ const rotvec_table = [y_vec_base,x_vec_base,x_vec_base,y_vec_base,x_vec_base,z_v
 let target_move_distance = 0
 const target_move_speed = (1000/0.5)
 //let real_target = {x:0.4,y:0.8,z:-0.4}
-let real_target = {x:0.3,y:0.25,z:-0.48}
+let real_target = {x:0.3,y:0.25,z:-0.5}
 let baseObject3D = new THREE.Object3D()
 
 const j1_Correct_value = 180.0
@@ -312,15 +312,58 @@ export default function Home(props) {
     }
   }
 
+  function convertToMesh(object3D, material=undefined) {
+    if (object3D.isMesh) return object3D;
+    if (object3D.geometry) {
+      return new THREE.Mesh(
+        object3D.geometry,
+        material || new THREE.MeshNormalMaterial()
+      );
+    }
+    let mesh = null;
+    object3D.traverse((child) => {
+      if (!mesh && child.geometry) {
+        mesh = new THREE.Mesh(
+          child.geometry,
+          material || new THREE.MeshNormalMaterial()
+        );
+      }
+    });
+    return mesh;
+  }
+
   const set_target = (new_pos)=>{
-    let wk_new_pos = new_pos
-    if(!carryLuggage && props.appmode === AppMode.practice){ // 練習モードの時のみ     
-      const touchResult = boxTouchCheck(wk_new_pos,target_ref.current)
-      if(touchResult.result){
-        touchLuggage = touchResult.key
-        wk_new_pos = {...touchResult.touchPoint}
-      }else{
-        touchLuggage = undefined
+    let wk_new_pos = {...new_pos}
+    if(props.appmode === AppMode.practice){ // 練習モードの時のみ     
+      if(!carryLuggage){
+        const touchResult = boxTouchCheck(wk_new_pos,target_ref.current)
+        if(touchResult.result){
+          touchLuggage = touchResult.key
+          wk_new_pos = {...touchResult.touchPoint}
+        }else{
+          touchLuggage = undefined
+        }
+      }else
+      if(touchLuggage !== undefined){
+        const prevpos = {...target_ref.current}
+        const diffpos = pos_sub(wk_new_pos,prevpos)
+        const mesh = convertToMesh(luggage_obj_list[touchLuggage])
+        const posAttr = mesh.geometry.attributes.position
+        const vertex = new THREE.Vector3()
+        let intersection_flg = false
+        for(let i=0; i<posAttr.count; i=i+1){
+          vertex.fromBufferAttribute(posAttr, i)
+          vertex.applyMatrix4(luggage_obj_list[touchLuggage].matrixWorld)
+          const check_pos = pos_add(vertex,diffpos)
+          if(round(check_pos.y) < 0 && diffpos.y < 0){
+            intersection_flg = true
+            break
+          }
+        }
+        console.log("intersection_flg",intersection_flg)
+        if(intersection_flg){
+          wk_new_pos = {...target_ref.current}
+        }
       }
     }
     if(!inputRotateFlg.current){
@@ -536,9 +579,11 @@ export default function Home(props) {
       const boxObj = luggage_obj_list[wk_carryLuggageKey].clone()
       const wk_box_world_pos = new THREE.Vector3()
       boxObj.getWorldPosition(wk_box_world_pos)
+      //console.log("wk_box_world_pos_",wk_box_world_pos)
       if(newtargetV3.equals(wk_box_world_pos)){
-        console.log("touch same pos",wk_carryLuggageKey)
-        endTool_obj.getWorldPosition(original_pos)
+        //console.log("touch same pos",wk_carryLuggageKey)
+        const p15_16_offset_pos = get_p21_pos()
+        original_pos = newtargetV3.clone().sub(p15_16_offset_pos)
       }
       const outdir = original_pos.clone().sub(wk_box_world_pos).normalize()
       const outpos = wk_box_world_pos.clone().add(outdir.multiplyScalar(1)) //１ｍ後方の座標を求める
@@ -1529,13 +1574,35 @@ export default function Home(props) {
           }
         },
         tick: function(time, deltaTime) {
-          if (fallingLuggage ===undefined) return;
+          if (fallingLuggage === undefined) return
+          if (touchLuggage === undefined) return
           const obj = luggage_obj_list[fallingLuggage]
-          obj.position.y = Math.max(0.05, obj.position.y - (deltaTime / 1000) * fallingSpeed);
-          fallingSpeed += 0.02; // 落下速度を徐々に増加させる
-          if (obj.position.y <= 0.05) {
+          const next_y = Math.max(0.05, obj.position.y - (deltaTime / 1000) * fallingSpeed)
+          const diff_y = obj.position.y - next_y
+          const mesh = convertToMesh(obj)
+          const posAttr = mesh.geometry.attributes.position
+          const vertex = new THREE.Vector3()
+          let intersection_flg = false
+          for(let i=0; i<posAttr.count; i=i+1){
+            vertex.fromBufferAttribute(posAttr, i)
+            const w_vertex = vertex.clone().applyMatrix4(luggage_obj_list[touchLuggage].matrixWorld)
+            const check_y = w_vertex.y - diff_y
+            if(round(check_y) <= 0){
+              intersection_flg = true
+            }
+          }
+          console.log("intersection_flg",intersection_flg)
+          if(intersection_flg){
             fallingLuggage = undefined; // 落下が完了したら fallingLuggage をリセット
-          }          
+            fallingSpeed = 0
+            const {result} = boxTouchCheck(target_ref.current,target_ref.current)
+            if(!result){
+              touchLuggage = undefined
+            }
+          }else{
+            obj.position.y = next_y
+            fallingSpeed += 0.02; // 落下速度を徐々に増加させる
+          }
         }
       });
       AFRAME.registerComponent('vr-controller-right', {
