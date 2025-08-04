@@ -347,21 +347,20 @@ export default function Home(props) {
       if(touchLuggage !== undefined){
         const prevpos = {...target_ref.current}
         const diffpos = pos_sub(wk_new_pos,prevpos)
-        const mesh = convertToMesh(luggage_obj_list[touchLuggage])
+        const obj = luggage_obj_list[touchLuggage]
+        const mesh = convertToMesh(obj)
         const posAttr = mesh.geometry.attributes.position
         const vertex = new THREE.Vector3()
-        let intersection_flg = false
+        const min_vertex = new THREE.Vector3(0,Infinity,0)
         for(let i=0; i<posAttr.count; i=i+1){
           vertex.fromBufferAttribute(posAttr, i)
-          vertex.applyMatrix4(luggage_obj_list[touchLuggage].matrixWorld)
-          const check_pos = pos_add(vertex,diffpos)
-          if(round(check_pos.y) < 0 && diffpos.y < 0){
-            intersection_flg = true
-            break
+          if(vertex.y < min_vertex.y){
+            min_vertex.copy(vertex)
           }
         }
-        console.log("intersection_flg",intersection_flg)
-        if(intersection_flg){
+        const w_min_vertex = min_vertex.clone().applyMatrix4(obj.matrixWorld)
+        const check_pos = pos_add(w_min_vertex,diffpos)
+        if(check_pos.y < 0){
           wk_new_pos = {...target_ref.current}
         }
       }
@@ -1578,22 +1577,21 @@ export default function Home(props) {
           if (fallingLuggage === undefined) return
           if(endTool_obj.children.includes(luggage_obj_list[fallingLuggage])) return
           const obj = luggage_obj_list[fallingLuggage]
-          const next_y = Math.max(0.05, obj.position.y - (deltaTime / 1000) * fallingSpeed)
-          const diff_y = obj.position.y - next_y
+          const drop_dis = (deltaTime / 1000) * fallingSpeed
           const mesh = convertToMesh(obj)
           const posAttr = mesh.geometry.attributes.position
           const vertex = new THREE.Vector3()
-          let intersection_flg = false
+          const min_vertex = new THREE.Vector3(0,Infinity,0)
           for(let i=0; i<posAttr.count; i=i+1){
             vertex.fromBufferAttribute(posAttr, i)
-            const w_vertex = vertex.clone().applyMatrix4(luggage_obj_list[fallingLuggage].matrixWorld)
-            const check_y = w_vertex.y - diff_y
-            if(round(check_y) <= 0){
-              intersection_flg = true
+            if(vertex.y < min_vertex.y){
+              min_vertex.copy(vertex)
             }
           }
-          console.log("intersection_flg",intersection_flg)
-          if(intersection_flg){
+          const w_min_vertex = min_vertex.clone().applyMatrix4(obj.matrixWorld)
+          if((w_min_vertex.y - drop_dis) <= 0){
+            const adjust = w_min_vertex.y - drop_dis
+            obj.position.y = (obj.position.y - drop_dis) - adjust
             fallingLuggage = undefined; // 落下が完了したら fallingLuggage をリセット
             fallingSpeed = 0
             const touchResult = boxTouchCheck(target_ref.current,target_ref.current)
@@ -1603,7 +1601,7 @@ export default function Home(props) {
               touchLuggage = touchResult.key
             }
           }else{
-            obj.position.y = next_y
+            obj.position.y = obj.position.y - drop_dis
             fallingSpeed += 0.02; // 落下速度を徐々に増加させる
           }
         }
