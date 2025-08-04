@@ -656,6 +656,7 @@ export default function Home(props) {
             // ここから落下アニメーションスタート
             fallingLuggage = touchLuggage; // 落下中の荷物を設定
             fallingSpeed = 0.02 // 落下速度を初期化
+            touchLuggage = undefined
             
           }
         }
@@ -1575,7 +1576,7 @@ export default function Home(props) {
         },
         tick: function(time, deltaTime) {
           if (fallingLuggage === undefined) return
-          if (touchLuggage === undefined) return
+          if(endTool_obj.children.includes(luggage_obj_list[fallingLuggage])) return
           const obj = luggage_obj_list[fallingLuggage]
           const next_y = Math.max(0.05, obj.position.y - (deltaTime / 1000) * fallingSpeed)
           const diff_y = obj.position.y - next_y
@@ -1585,7 +1586,7 @@ export default function Home(props) {
           let intersection_flg = false
           for(let i=0; i<posAttr.count; i=i+1){
             vertex.fromBufferAttribute(posAttr, i)
-            const w_vertex = vertex.clone().applyMatrix4(luggage_obj_list[touchLuggage].matrixWorld)
+            const w_vertex = vertex.clone().applyMatrix4(luggage_obj_list[fallingLuggage].matrixWorld)
             const check_y = w_vertex.y - diff_y
             if(round(check_y) <= 0){
               intersection_flg = true
@@ -1595,9 +1596,11 @@ export default function Home(props) {
           if(intersection_flg){
             fallingLuggage = undefined; // 落下が完了したら fallingLuggage をリセット
             fallingSpeed = 0
-            const {result} = boxTouchCheck(target_ref.current,target_ref.current)
-            if(!result){
+            const touchResult = boxTouchCheck(target_ref.current,target_ref.current)
+            if(!touchResult.result){
               touchLuggage = undefined
+            }else{
+              touchLuggage = touchResult.key
             }
           }else{
             obj.position.y = next_y
