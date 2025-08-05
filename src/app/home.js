@@ -351,14 +351,18 @@ export default function Home(props) {
         const mesh = convertToMesh(obj)
         const posAttr = mesh.geometry.attributes.position
         const vertex = new THREE.Vector3()
-        const min_vertex = new THREE.Vector3(0,Infinity,0)
+        const worldVertices = []
         for(let i=0; i<posAttr.count; i=i+1){
           vertex.fromBufferAttribute(posAttr, i)
-          if(vertex.y < min_vertex.y){
-            min_vertex.copy(vertex)
+          vertex.applyMatrix4(obj.matrixWorld)
+          worldVertices.push(vertex.clone())
+        }
+        const w_min_vertex = new THREE.Vector3(0,Infinity,0)
+        for(let i=0; i<worldVertices.length; i=i+1){
+          if(worldVertices[i].y < w_min_vertex.y){
+            w_min_vertex.copy(worldVertices[i])
           }
         }
-        const w_min_vertex = min_vertex.clone().applyMatrix4(obj.matrixWorld)
         const check_pos = pos_add(w_min_vertex,diffpos)
         if(check_pos.y < 0){
           wk_new_pos = {...target_ref.current}
@@ -1581,14 +1585,18 @@ export default function Home(props) {
           const mesh = convertToMesh(obj)
           const posAttr = mesh.geometry.attributes.position
           const vertex = new THREE.Vector3()
-          const min_vertex = new THREE.Vector3(0,Infinity,0)
+          const worldVertices = []
           for(let i=0; i<posAttr.count; i=i+1){
             vertex.fromBufferAttribute(posAttr, i)
-            if(vertex.y < min_vertex.y){
-              min_vertex.copy(vertex)
+            vertex.applyMatrix4(obj.matrixWorld)
+            worldVertices.push(vertex.clone())
+          }
+          const w_min_vertex = new THREE.Vector3(0,Infinity,0)
+          for(let i=0; i<worldVertices.length; i=i+1){
+            if(worldVertices[i].y < w_min_vertex.y){
+              w_min_vertex.copy(worldVertices[i])
             }
           }
-          const w_min_vertex = min_vertex.clone().applyMatrix4(obj.matrixWorld)
           if((w_min_vertex.y - drop_dis) <= 0){
             const adjust = w_min_vertex.y - drop_dis
             obj.position.y = (obj.position.y - drop_dis) - adjust
