@@ -1,6 +1,6 @@
 {
-  "name": "cobotta-pro-control-ik",
   "version": "0.5.1",
+  "name": "cobotta-pro-real",
   "private": true,
   "scripts": {
     "dev": "next dev",
