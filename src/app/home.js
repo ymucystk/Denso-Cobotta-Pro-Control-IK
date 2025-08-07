@@ -119,7 +119,7 @@ let boxpos_x = 0.3
 
 
 // 再レンダリングしなくて値を更新する（かつ set_update で再レンダリングさせられる）
-function useRefState(updateFunc=undefined,initialValue=undefined) {
+function useRefState(initialValue=undefined,updateFunc=undefined) {
   const ref = React.useRef(initialValue);
   function setValue(arg){
     if (typeof arg === 'function') {
@@ -136,10 +136,10 @@ function useRefState(updateFunc=undefined,initialValue=undefined) {
 
 export default function Home(props) {
   const [update, set_update] = React.useState(0)
-  const [rendered,set_rendered] = useRefState(set_update,false)
+  const [rendered,set_rendered] = useRefState(false)
   const robotNameList = ["Model"]
-  const [robotName,set_robotName] = useRefState(set_update,robotNameList[0])
-  const [target_error,set_target_error] = useRefState(set_update,false)
+  const [robotName,set_robotName] = useRefState(robotNameList[0])
+  const [target_error,set_target_error] = useRefState(false)
 
   const vrModeAngle_ref = React.useRef(0)
   let vrModeAngle = vrModeAngle_ref.current
@@ -160,64 +160,64 @@ export default function Home(props) {
   }
 
   // WebRTCの統計情報を記録
-  const [rtcStats, set_rtcStats, rtcStats_ref ] = useRefState(set_update,[])
+  const [rtcStats, set_rtcStats, rtcStats_ref ] = useRefState([])
 
 
-  const [j1_rotate,set_j1_rotate,j1_rotate_ref] = useRefState(set_update,0)
-  const [j2_rotate,set_j2_rotate,j2_rotate_ref] = useRefState(set_update,0)
-  const [j3_rotate,set_j3_rotate,j3_rotate_ref] = useRefState(set_update,0)
-  const [j4_rotate,set_j4_rotate,j4_rotate_ref] = useRefState(set_update,0)
-  const [j5_rotate,set_j5_rotate,j5_rotate_ref] = useRefState(set_update,0)
-  const [j6_rotate,set_j6_rotate,j6_rotate_ref] = useRefState(set_update,0)
-  const [j7_rotate,set_j7_rotate,j7_rotate_ref] = useRefState(set_update,0)
-  const [j6_rotate_org,set_j6_rotate_org,j6_rotate_org_ref] = useRefState(set_update,0)
+  const [j1_rotate,set_j1_rotate,j1_rotate_ref] = useRefState(0)
+  const [j2_rotate,set_j2_rotate,j2_rotate_ref] = useRefState(0)
+  const [j3_rotate,set_j3_rotate,j3_rotate_ref] = useRefState(0)
+  const [j4_rotate,set_j4_rotate,j4_rotate_ref] = useRefState(0)
+  const [j5_rotate,set_j5_rotate,j5_rotate_ref] = useRefState(0)
+  const [j6_rotate,set_j6_rotate,j6_rotate_ref] = useRefState(0)
+  const [j7_rotate,set_j7_rotate,j7_rotate_ref] = useRefState(0)
+  const [j6_rotate_org,set_j6_rotate_org,j6_rotate_org_ref] = useRefState(0)
 
   /*const outputRotateRef = React.useRef(
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
   );*/ // ref を使って outputRotate を保持する
-  const [outputRotate,set_outputRotate,outputRotateRef] = useRefState(undefined,
+  const [outputRotate,set_outputRotate,outputRotateRef] = useRefState(
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
   )
-  const [checkRotate,set_checkRotate,checkRotateRef] = useRefState(set_update,outputRotate)
+  const [checkRotate,set_checkRotate,checkRotateRef] = useRefState(outputRotate)
 
   const prevRotateRef = React.useRef([0,0,0,0,0,0,0]) //前回の関節角度
 
-  const [input_rotate,set_input_rotate,input_rotateRef] = useRefState(set_update,[undefined,0,0,0,0,0,0])
+  const [input_rotate,set_input_rotate,input_rotateRef] = useRefState([undefined,0,0,0,0,0,0])
   const inputRotateFlg = React.useRef(false)
 
-  const [p15_object,set_p15_object] = useRefState(set_update,new THREE.Object3D())
-  const [p16_object,set_p16_object] = useRefState(set_update,new THREE.Object3D())
+  const [p15_object,set_p15_object] = useRefState(new THREE.Object3D())
+  const [p16_object,set_p16_object] = useRefState(new THREE.Object3D())
   const targetRef = React.useRef(null); // target 位置
 
-  const [p51_object,set_p51_object] = useRefState(set_update,new THREE.Object3D())
+  const [p51_object,set_p51_object] = useRefState(new THREE.Object3D())
 
-  const [grip,set_grip,gripRef] = useRefState(set_update,false);
+  const [grip,set_grip,gripRef] = useRefState(false);
 
-  const [start_pos,set_start_pos] = useRefState(set_update,new THREE.Object3D())
-  const [save_target,set_save_target] = useRefState(set_update)
+  const [start_pos,set_start_pos] = useRefState(new THREE.Object3D())
+  const [save_target,set_save_target] = useRefState()
 
   //const vrModeRef = React.useRef(false); // vr_mode はref のほうが使いやすい
-  const [vr_mode,set_vr_mode,vrModeRef] = useRefState(set_update,false)
+  const [vr_mode,set_vr_mode,vrModeRef] = useRefState(false)
   const robotIDRef = React.useRef("none");
 
-  const [test_pos,set_test_pos] = useRefState(set_update,{x:0,y:0,z:0})
+  const [test_pos,set_test_pos] = useRefState({x:0,y:0,z:0})
 
-  const [c_pos_x,set_c_pos_x] = useRefState(set_update,0)
-  const [c_pos_y,set_c_pos_y] = useRefState(set_update,0.35)
-  const [c_pos_z,set_c_pos_z] = useRefState(set_update,1.2)
-  const [c_deg_x,set_c_deg_x] = useRefState(set_update,0)
-  const [c_deg_y,set_c_deg_y] = useRefState(set_update,0)
-  const [c_deg_z,set_c_deg_z] = useRefState(set_update,0)
+  const [c_pos_x,set_c_pos_x] = useRefState(0)
+  const [c_pos_y,set_c_pos_y] = useRefState(0.35)
+  const [c_pos_z,set_c_pos_z] = useRefState(1.2)
+  const [c_deg_x,set_c_deg_x] = useRefState(0)
+  const [c_deg_y,set_c_deg_y] = useRefState(0)
+  const [c_deg_z,set_c_deg_z] = useRefState(0)
 
 
-  const [wrist_rot,set_wrist_rot_org,wrist_rot_ref] = useRefState(set_update,{x:90,y:0,z:0})
-  const [tool_rotate,set_tool_rotate,tool_rotate_ref] = useRefState(set_update,0)
-  const [wrist_degree,set_wrist_degree] = useRefState(set_update,{direction:0,angle:0})
-  const [dsp_message,set_dsp_message] = useRefState(set_update,"")
-  const [fps_message,set_fps_message] = useRefState(set_update,"0 fps")
+  const [wrist_rot,set_wrist_rot_org,wrist_rot_ref] = useRefState({x:90,y:0,z:0})
+  const [tool_rotate,set_tool_rotate,tool_rotate_ref] = useRefState(0)
+  const [wrist_degree,set_wrist_degree] = useRefState({direction:0,angle:0})
+  const [dsp_message,set_dsp_message] = useRefState("")
+  const [fps_message,set_fps_message] = useRefState("0 fps")
 
   const toolNameList = ["No tool","Gripper","vgc10-1","vgc10-4","cutter","boxLiftUp"]
-  const [toolName,set_toolName_org,toolNameRef] = useRefState(set_update,toolNameList[1])
+  const [toolName,set_toolName_org,toolNameRef] = useRefState(toolNameList[1])
   const set_toolName = (newTool)=>{
     const wk_tool_value = tool_menu_list.indexOf(newTool)
     if(wk_tool_value >= 0){
@@ -231,11 +231,11 @@ export default function Home(props) {
     set_toolName_org(newTool)
   }
 
-  const [target,set_target_org,target_ref] = useRefState(set_update,real_target)
-  const [p15_16_len,set_p15_16_len] = useRefState(set_update,joint_pos.j7.z+0.14)
-  const [p14_maxlen,set_p14_maxlen] = useRefState(set_update,0)
+  const [target,set_target_org,target_ref] = useRefState(real_target)
+  const [p15_16_len,set_p15_16_len] = useRefState(joint_pos.j7.z+0.14)
+  const [p14_maxlen,set_p14_maxlen] = useRefState(0)
 
-  const [do_target_update,set_do_target_update] = useRefState(set_update,0)
+  const [do_target_update,set_do_target_update] = useRefState(0)
 
   function getCookie(name) {
     const value = document.cookie
@@ -576,6 +576,7 @@ export default function Home(props) {
         set_checkRotate([...input_rotateRef.current])
       }
     }
+    set_update((v)=>v=v+1)
   }
   //}, [now])
 
@@ -651,7 +652,9 @@ export default function Home(props) {
 //      console.log("grip",gripRef.current,"j7_rotate",j7_rotate_ref.current, touchLuggage, carryLuggage)
       if (props.appmode === AppMode.practice){
         if(gripRef.current || j7_rotate_ref.current > 0){  //つかむ
-          if(touchLuggage !== undefined && !carryLuggage){
+          const touchResult = boxTouchCheck(target_ref.current,target_ref.current)
+          if(touchResult.result && touchResult.key !== undefined && !carryLuggage){
+            touchLuggage = touchResult.key
             console.log("catch",touchLuggage)
             carryLuggage = true
             const wk_box_world_pos = new THREE.Vector3()
@@ -1951,9 +1954,9 @@ export default function Home(props) {
               set_c_deg_z(0)
             }
           });
-        /*},
-        tick: function (t) {*/
-          //setTick(t)
+        },
+        tick: function (t) {
+          set_update((v)=>v=v+1)
         }
       });
     }
@@ -2156,6 +2159,7 @@ export default function Home(props) {
           </a-camera>
         </a-entity>
         <a-sphere position={edit_pos_offset(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${!(props.appmode===AppMode.viewer)&&vr_mode}`}></a-sphere>
+        <a-sphere position={edit_pos(target)} scale="0.012 0.012 0.012" color={target_error?"red":"yellow"} visible={`${props.appmode===AppMode.normal || props.appmode===AppMode.practice}`}></a-sphere>
         <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box>
         <Line pos1={{x:1,y:0.0001,z:1}} pos2={{x:-1,y:0.0001,z:-1}} visible={cursor_vis} color="white"></Line>
         <Line pos1={{x:1,y:0.0001,z:-1}} pos2={{x:-1,y:0.0001,z:1}} visible={cursor_vis} color="white"></Line>
