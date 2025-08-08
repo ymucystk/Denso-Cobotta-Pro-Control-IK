@@ -78,6 +78,47 @@ export default function StereoVideo(props) {
             const recvonly = sora.recvonly(channelId, options);
             const remoteVideo = document.getElementById('remotevideo');
 
+            recvonly.on('disconnect', (event) => {
+                console.log("Disconnected from sora:", event);
+
+            });
+            recvonly.on("removetrack", (event) => {
+                console.log("Track removed from sora:", event);
+                if (event.target instanceof MediaStream) {
+                    // ここにトラック削除イベントの処理を書く
+                    console.log("MediaStream track removed:", event.target);
+                }
+            });
+            recvonly.on('push', (message, transportType) => {
+                console.log("Push event from sora:", message, transportType);
+                
+            });
+            recvonly.on('notify', (message, transportType) => {
+                console.log("Notify Event from sora:", message, transportType);
+                
+            });
+            recvonly.on('timeout', () => {
+                console.log("Timeout Event from sora:", event);
+                
+            });
+            recvonly.on('message', (message) => {
+                console.log("Message Event from sora:", message.label, message.data);
+                
+            });
+            recvonly.on('datachannel', (event) => {
+                console.log("Datachannel Event from sora:", event.datachannel.label, event.datachannel.direction);
+                
+            });
+            recvonly.on('signaling', (event) => {
+                console.log("Signaling Event from sora:", event);
+                
+            });
+            recvonly.on('timeline', (event) => {
+                console.log("Timeline Event from sora:", event);
+                
+            });
+            
+
             recvonly.on('track', event => {
                 if (event.track.kind === 'video') {
                     const mediaStream = new MediaStream();
@@ -122,6 +163,8 @@ export default function StereoVideo(props) {
                 // start cheking stats
                 setInterval(() => {
                     setStatsReport(recvonly);
+
+                    // もし切断されていたら？というチェックは？
                 }, 1000);
 
             }).catch(err => {
