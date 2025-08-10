@@ -3,7 +3,13 @@ import Head from 'next/head';
 import Script from 'next/script';
 import 'aframe'
 import Sora from "sora-js-sdk";
-import { AppMode } from '@/app/appmode';
+import { AppMode } from '../app/appmode';
+import {userUUID} from './cookie_id';
+
+
+import package_info from '../../package.json' // load version
+const codeType = package_info.name; // software name
+const version = package_info.version; // version number
 
 //const set_RealSense = true; //realsenseを使う場合はtrueにする
 const set_Audio = false;     //audioを使う場合はtrueにする
@@ -58,7 +64,7 @@ export default function StereoVideo(props) {
 //            const signalingUrl = 'wss://sora2.uclab.jp/signaling'; // 202508 demo用
             const channelId = 'uclab-vr180';
             const channelId1 = 'uclab-hand';
-            const audioChannelId = 'uclab-audio';
+            const audioChannelId = 'uclab-audio'; // 202508 のdemo では、使わない予定
             const sora = Sora.connection(signalingUrl);
             const bundleId = 'vrdemo-sora-bundle';
 
@@ -72,6 +78,11 @@ export default function StereoVideo(props) {
                 },
                 audio: false,
             };
+            const metadata = {
+                codeType: codeType,
+                version: version,
+                bundleId: userUUID,
+            }
 
             sora_once = false;
 
