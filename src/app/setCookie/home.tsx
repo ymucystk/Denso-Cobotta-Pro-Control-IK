@@ -50,7 +50,7 @@ export default function DyanmicHome() {
   };
 
   const reloadFromCookies = () => {
-    const cName = getCookie(cookieName);
+    const cName = getCookie(id_cookie);
     const angleStr = getCookie("vrModeAngle");
     const offsetStr = getCookie("vrModeOffsetX");
 
