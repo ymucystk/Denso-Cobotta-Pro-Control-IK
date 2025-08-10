@@ -86,7 +86,7 @@ export default function StereoVideo(props) {
 
             sora_once = false;
 
-            const recvonly = sora.recvonly(channelId, options);
+            const recvonly = sora.recvonly(channelId, metadata, options);
             const remoteVideo = document.getElementById('remotevideo');
 
             recvonly.on('disconnect', (event) => {
@@ -197,8 +197,12 @@ export default function StereoVideo(props) {
                     audio: false,
                 };
 
-
-                const recvonly1 = sora.recvonly(channelId1, options);
+                const metadata = {
+                    codeType: codeType,
+                    version: version,
+                    bundleId: userUUID,
+                }
+                const recvonly1 = sora.recvonly(channelId1, metadata, options);
                 const remoteVideo1 = document.getElementById('remotevideo-realsense');
                 recvonly1.on('track', event => {
                     if (event.track.kind === 'video') {
