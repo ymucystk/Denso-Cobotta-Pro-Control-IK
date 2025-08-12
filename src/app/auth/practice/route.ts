@@ -18,7 +18,10 @@ type ConnectedToken = jose.JWTPayload & {
 // GET リクエストハンドラ
 export async function GET(req : NextRequest) {
     const token = req.nextUrl.searchParams.get('token');
-    const url = new URL(req.url);
+//    console.log(req.url)
+ //   console.log("host is",req.headers.get('host'))
+    const url = new URL("https://"+req.headers.get('host'));
+  //  console.log("URL is :",url)
     const redirectError = (msg: string) =>
         NextResponse.redirect(new URL(`/error?err=${encodeURIComponent(msg)}`, url.origin));    console.log('token:', token);
 
