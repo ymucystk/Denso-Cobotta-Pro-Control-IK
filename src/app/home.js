@@ -2191,8 +2191,8 @@ export default function Home(props) {
 }
 
 const Assets = (props)=>{
-  const path = (props.appmode===AppMode.normal)?"":"../"
-//  const path = ""
+ // const path = (props.appmode===AppMode.normal)?"":"../"
+  const path = "../"
   return (
     <a-assets>
       {/*Model*/}
