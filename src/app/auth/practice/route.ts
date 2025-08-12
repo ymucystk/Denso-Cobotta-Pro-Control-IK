@@ -1,70 +1,74 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import * as jose from 'jose';
 
+import {decryptJwt, verifyToken, verifyCognitoToken } from "../../../lib/jwt_proc";
+
+/**
+ * 引き継ぎ認証情報の型
+ * `jose.JWTPayload`を継承
+ * @property metawork_token: ワーカーアプリのアクセストークン
+ * @property virtual_kominkan_token: バーチャル公民館のアクセストークン
+ */
+type ConnectedToken = jose.JWTPayload & {
+  metawork_token: string;
+  virtual_kominkan_token: string;
+};
+
+
 // GET リクエストハンドラ
-export async function GET(req) {
-  const token = req.nextUrl.searchParams.get('token');
-  const redirect_uri = 'https://localhost:3000/error';
-  console.log('token:', token);
+export async function GET(req : NextRequest) {
+    const token = req.nextUrl.searchParams.get('token');
+    const url = new URL(req.url);
+    const redirectError = (msg: string) =>
+        NextResponse.redirect(new URL(`/error?err=${encodeURIComponent(msg)}`, url.origin));    console.log('token:', token);
 
-  if (!token) {
-    return NextResponse.redirect(redirect_uri+"?error=missing!!token");
-  }
-  console.log('token:', token);
+    if (!token) {
+        return redirectError("?error=missing!!token");
+    }
+    const decryptToken = await decryptJwt(token);
+//    console.log('decryptToken:', decryptToken);
 
-  const decryptToken = await decryptJwt(token);
+    if (!decryptToken) {
+        return redirectError("?err=decryptError");
+    }
+    const { metawork_token, virtual_kominkan_token } = decryptToken as ConnectedToken;
 
-  console.log('decryptToken:', decryptToken);
 
-  if (!decryptToken) {
-    return NextResponse.redirect(redirect_uri+"?err=decryptError");
-  }
+    // メタワークトークンの有効性のチェック
+    const jwtPayload = await verifyToken(metawork_token);
+//    console.log('jwtPayload:', jwtPayload);
 
-  const { metawork_token, virtual_kominkan_token } = decryptToken;
-
-  const jwtPayload = await verifyToken(metawork_token);
-  console.log('jwtPayload:', jwtPayload);
-  if (!jwtPayload) {
-    return NextResponse.redirect(redirect_uri+"?err=Payload");
-  }
-
-  const response = NextResponse.redirect('https://localhost:3000/practice');
-  response.cookies.set('worker_access_token', metawork_token, { httpOnly: true, path: '/' });
-  return response;
-  
-  //return NextResponse.redirect('https://localhost:3000/error/?token='+token);
-}
-
-// トークン復号関数
-const decryptJwt = async (text) => {
-  const SSO_JOSE_SECRET = process.env.SSO_JOSE_SECRET;
-  console.log('SSO_JOSE_SECRET:', SSO_JOSE_SECRET);
-  if (!SSO_JOSE_SECRET) {
-    return null;
-  }
-
-  const secret = jose.base64url.decode(SSO_JOSE_SECRET);
-  console.log('secret:', secret);
-  const { payload } = await jose.jwtDecrypt(text, secret);
-  return payload;
-}
-
-// JWT 検証関数
-const verifyToken = async (token) => {
-  try {
-    const SSO_KEYCLOAK_URL = process.env.SSO_KEYCLOAK_URL;
-    const SSO_KEYCLOAK_REALM = process.env.SSO_KEYCLOAK_REALM;
-    if (!token || !SSO_KEYCLOAK_URL || !SSO_KEYCLOAK_REALM) {
-      return null;
+    if (!jwtPayload) {
+        return redirectError("?err=jwtPayload");
     }
 
-    const JWKS_URL = `${SSO_KEYCLOAK_URL}/realms/${SSO_KEYCLOAK_REALM}/protocol/openid-connect/certs`;
-    const JWKS = jose.createRemoteJWKSet(new URL(JWKS_URL));
-    const { payload } = await jose.jwtVerify(token, JWKS);
-
-    return payload;
-  } catch (error) {
-    console.error('JWT verification failed:', error);
-    return null;
+  // バーチャル公民館トークンが有効か検証
+  const jwtCognitoPayload = await verifyCognitoToken(virtual_kominkan_token);
+  // バーチャル公民館トークンの検証結果を判定
+  if (!jwtCognitoPayload) {
+    // バーチャル公民館トークンが無効な場合、エラーページにリダイレクト
+    return redirectError("?err=cognitoDecryptError");
   }
+    
+    // トークンが有効な場合、AuthContextを設定すべき
+    // ここでは、metawork_tokenをクッキーに保存して、/practiceへリダイレクト
+
+    const res = NextResponse.redirect(new URL("/practice", url.origin));
+
+    res.cookies.set("worker_token", metawork_token, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: true,           // ローカルで問題あれば一時的に false に
+        path: "/",
+        maxAge: 60 * 60,        // 例: 1時間
+    });
+    res.cookies.set("kominkan_token", virtual_kominkan_token, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: true,           // ローカルで問題あれば一時的に false に
+        path: "/",
+        maxAge: 60 * 60,        // 例: 1時間
+    });
+    return res;
+
 }
