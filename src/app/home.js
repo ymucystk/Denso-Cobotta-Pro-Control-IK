@@ -37,7 +37,7 @@ const j6_limit = 360 - 10
 let registered = false
 let trigger_on = false
 const cursor_vis = false
-const box_vis = false
+const box_vis = true /// デバッグ用 四角
 const order = 'ZYX'
 
 const x_vec_base = new THREE.Vector3(1, 0, 0).normalize()
@@ -360,17 +360,19 @@ export default function Home(props) {
   }
 
   const set_target = (new_pos) => {
+    console.log("SetTarget",new_pos)
     let wk_new_pos = { ...new_pos }
     if (props.appmode === AppMode.practice) { // 練習モードの時のみ     
-      if (!carryLuggage) {
+      if (!carryLuggage) {// 握っていないとき
         const touchResult = boxTouchCheck(wk_new_pos, target_ref.current)
         if (touchResult.result) {
+          //          set_debug_message(`bTst: ${touchResult.touchPoint.x}`)
           touchLuggage = touchResult.key
-          wk_new_pos = { ...touchResult.touchPoint }
+          wk_new_pos = { ...touchResult.touchPoint } // ぶつけないための target を変更
         } else {
           touchLuggage = undefined
         }
-      } else
+      } else // 荷物を運んでいるとき
         if (touchLuggage !== undefined) {
           const prevpos = { ...target_ref.current }
           const diffpos = pos_sub(wk_new_pos, prevpos)
@@ -399,6 +401,7 @@ export default function Home(props) {
     if (!inputRotateFlg.current) {
       if (target.x !== wk_new_pos.x || target.y !== wk_new_pos.y || target.z !== wk_new_pos.z) {
         target_move_distance = distance(real_target, wk_new_pos)
+        console.log("Distance: ",round(target_move_distance),real_target)
         set_target_org(wk_new_pos)
       }
     }
@@ -512,6 +515,7 @@ export default function Home(props) {
   }
 
   //React.useEffect(()=>{
+  // ジョイントを制御して動かしているときに毎回呼ばれる
   const joint_slerp = () => {
     let raw_data = 0
     for (let i = 0; i < rotate_table.length; i = i + 1) {
@@ -573,10 +577,16 @@ export default function Home(props) {
   }
   //}, [now])
 
+
+  // どの箱のどこに接触しているか（prev は、衝突していた場合に動かさないため）
   const boxTouchCheck = (newtarget, prevtarget) => {
+    const nt = structuredClone(newtarget) // offsetX を変更
+    nt.x += vrModeOffsetX_ref.current     // 
+
+
     const objKeys = Object.keys(luggage_obj_list)
     if (objKeys.length > 0) {
-      set_debug_message("boxTouchCheck start")
+      // 最も近いbox を探す
       const wk_carryLuggageKey = objKeys.reduce((prev, key) => {
         let res = prev
         if (prev === undefined) {
@@ -584,29 +594,37 @@ export default function Home(props) {
         } else {
           const prevpos = new THREE.Vector3()
           luggage_obj_list[prev].getWorldPosition(prevpos)
-          const prevdis = distance(prevpos, newtarget)
+          const prevdis = distance(prevpos, nt)
           const newpos = new THREE.Vector3()
           luggage_obj_list[key].getWorldPosition(newpos)
-          const newdis = distance(newpos, newtarget)
+          const newdis = distance(newpos, nt)
           if (prevdis > newdis) {
             res = key
           }
         }
         return res
       }, undefined)
-      const newtargetV3 = new THREE.Vector3(newtarget.x, newtarget.y, newtarget.z)
+
+      // 表示用
+      const tmppos = new THREE.Vector3()
+      luggage_obj_list[wk_carryLuggageKey].getWorldPosition(tmppos)
+      const newdis = Math.floor(distance(tmppos, nt) * 100) / 100;
+      set_debug_message(`${wk_carryLuggageKey},t:(${round(nt.x)},${nt.z}),b(${tmppos.x},${tmppos.z}),d:${newdis}`)
+
+      //    const newtargetV3 = new THREE.Vector3(newtarget.x, newtarget.y, newtarget.z)
+      const newtargetV3 = new THREE.Vector3(nt.x, nt.y, nt.z)
       let original_pos = newtargetV3.clone()
       const boxObj = luggage_obj_list[wk_carryLuggageKey].clone()
       const wk_box_world_pos = new THREE.Vector3()
       boxObj.getWorldPosition(wk_box_world_pos)
       //console.log("wk_box_world_pos_",wk_box_world_pos)
-      if (newtargetV3.equals(wk_box_world_pos)) {
+      if (newtargetV3.equals(wk_box_world_pos)) {// raycast のためのcheck
         //console.log("touch same pos",wk_carryLuggageKey)
         const p15_16_offset_pos = get_p21_pos()
         original_pos = newtargetV3.clone().sub(p15_16_offset_pos)
       }
-      const outdir = original_pos.clone().sub(wk_box_world_pos).normalize()
-      const outpos = wk_box_world_pos.clone().add(outdir.multiplyScalar(1)) //１ｍ後方の座標を求める
+      const outdir = original_pos.clone().sub(wk_box_world_pos).normalize() //差分ベクトル
+      const outpos = wk_box_world_pos.clone().add(outdir.multiplyScalar(1)) //１ｍ後方の座標を求めて raycast
       const dir = wk_box_world_pos.clone().sub(outpos).normalize()
       const raycaster = new THREE.Raycaster(outpos, dir)
       const intersects = raycaster.intersectObject(boxObj, true)
@@ -620,16 +638,29 @@ export default function Home(props) {
         const hit = intersects[minValueIdx]
         const Distance_surface_target = distance(hit.point, newtargetV3)
         if (Math.abs(Distance_surface_target) <= 0.0005) {  //表面から５ｍｍ以内
-          console.log("touch", wk_carryLuggageKey)
+          console.log("touch0", wk_carryLuggageKey)
           const tp = newtargetV3
+          tp.x -= vrModeOffsetX_ref.current
           return { result: true, touchPoint: { x: round(tp.x), y: round(tp.y), z: round(tp.z) }, key: wk_carryLuggageKey }
         } else {
           const Distance_center_surface = distance(wk_box_world_pos, hit.point)
           const Distance_center_terget = distance(wk_box_world_pos, newtargetV3)
-          if (Distance_center_surface >= Distance_center_terget) {  //オブジェクトの外側だけタッチ認定
-            console.log("touch", wk_carryLuggageKey)
-            const tp = touchLuggage === undefined ? hit.point : prevtarget
+          if (Distance_center_surface >= Distance_center_terget) {  //接触位置がターゲットより外側なら接触
+            console.log("touch1", newtargetV3, prevtarget)
+//            const prevOffset = structuredClone(prevtarget) // offsetX を変更
+            let tp = hit.point;
+            if( touchLuggage !== undefined){
+              console.log("touch2", wk_carryLuggageKey, prevtarget)
+              tp = prevtarget;
+            }else{
+              console.log("touch3", wk_carryLuggageKey, tp)
+              // target は戻す必要がある
+              tp.x -= vrModeOffsetX_ref.current
+            }
+//            const tp = touchLuggage === undefined ? hit.point : prevOffset;//　（一つ前のターゲットで動かないようにする）
             return { result: true, touchPoint: { x: round(tp.x), y: round(tp.y), z: round(tp.z) }, key: wk_carryLuggageKey }
+          }else{
+            console.log("not touch ", wk_carryLuggageKey)
           }
         }
       } else {
@@ -640,14 +671,14 @@ export default function Home(props) {
     return { result: false, key: "NoBox" }
   }
 
-  React.useEffect(() => {
+  React.useEffect(() => {// グリップ変化時 , [gripRef.current, j7_rotate_ref.current])
     const objKeys = Object.keys(luggage_obj_list)
     if (objKeys.length > 0) {
       //      console.log("grip",gripRef.current,"j7_rotate",j7_rotate_ref.current, touchLuggage, carryLuggage)
       if (props.appmode === AppMode.practice) {
         if (gripRef.current || j7_rotate_ref.current > 0) {  //つかむ
           if (touchLuggage !== undefined && !carryLuggage) {
-            console.log("catch", touchLuggage)
+//            console.log("catch", touchLuggage)
             carryLuggage = true
             const wk_box_world_pos = new THREE.Vector3()
             luggage_obj_list[touchLuggage].getWorldPosition(wk_box_world_pos)
@@ -661,7 +692,7 @@ export default function Home(props) {
           }
         } else {  //はなす
           if (endTool_obj.children.includes(luggage_obj_list[touchLuggage]) && carryLuggage) {
-            console.log("release", touchLuggage)
+//            console.log("release", touchLuggage)
             carryLuggage = false
             const scene_object = document.querySelector('a-scene').object3D;
             const wk_box_world_pos = new THREE.Vector3()
@@ -829,9 +860,9 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if (input_rotate[0] === undefined) return
-//    const wk_j1_Correct_value = normalize180(j1_Correct_value - (vrModeRef.current ? vrModeAngle_ref.current : 0))
-    const wk_j1_Correct_value = normalize180(j1_Correct_value -  vrModeAngle_ref.current )
-  
+    //    const wk_j1_Correct_value = normalize180(j1_Correct_value - (vrModeRef.current ? vrModeAngle_ref.current : 0))
+    const wk_j1_Correct_value = normalize180(j1_Correct_value - vrModeAngle_ref.current)
+
     const robot_rotate = {
       j1_rotate: round(normalize180(input_rotate[0] - wk_j1_Correct_value)),
       j2_rotate: round(normalize180(input_rotate[1] - j2_Correct_value)),
@@ -868,9 +899,7 @@ export default function Home(props) {
   React.useEffect(() => {
     if (rendered) {
       target_update()
-
       if (p51_object) p51_object.quaternion.copy(get_j5_quaternion())
-
     }
   }, [do_target_update])
 
@@ -1041,7 +1070,7 @@ export default function Home(props) {
     }
   }
 
-
+  // Vector v をクオータニオンで回転させる
   const quaternionToRotation = (q, v) => {
     const q_original = new THREE.Quaternion().copy(q)
     const q_conjugate = q_original.clone().conjugate()
@@ -1398,6 +1427,7 @@ export default function Home(props) {
     return { j2_rotate: wk_j2_rotate, j3_rotate: wk_j3_rotate, dsp_message }
   }
 
+  // 表示の時だけで良いのになぜ？
   const round = (x, d = 5) => {
     const v = 10 ** (d | 0)
     return Math.round(x * v) / v
@@ -1593,7 +1623,7 @@ export default function Home(props) {
         schema: { type: 'string', default: '' },
         init: function () {
           if (!Object.hasOwn(luggage_obj_list, this.data)) {
-            console.log("luggage-id init", this.data)
+            //            console.log("luggage-id init", this.data)
             luggage_obj_list[this.data] = this.el.object3D
             luggage_obj_list[this.data].position.set(boxpos_x, 0.05, 0.0)
             boxpos_x = boxpos_x + 0.2
@@ -1619,9 +1649,12 @@ export default function Home(props) {
               w_min_vertex.copy(worldVertices[i])
             }
           }
-          if ((w_min_vertex.y - drop_dis) <= 0) {
+          if ((w_min_vertex.y - drop_dis) <= 0) {// 地面につく？
             const adjust = w_min_vertex.y - drop_dis
             obj.position.y = (obj.position.y - drop_dis) - adjust
+
+            // 地面についた時に水平にしたほうが良い（ TODO　）
+
             fallingLuggage = undefined; // 落下が完了したら fallingLuggage をリセット
             fallingSpeed = 0
             const touchResult = boxTouchCheck(target_ref.current, target_ref.current)
@@ -1641,9 +1674,9 @@ export default function Home(props) {
         schema: { type: 'string', default: '' }, // luggae-id と同じものを指定
         init: function () {
           if (Object.hasOwn(luggage_obj_list, this.data)) {// luggage_obj_list に登録されているものを指定
-            console.log("waku-id init", this.data)
+            //            console.log("waku-id init", this.data)
             const lug_pos = luggage_obj_list[this.data].position
-            this.el.object3D.position.set(lug_pos.x + 0.15, lug_pos.y - 0.035, lug_pos.z + 0.15)
+            this.el.object3D.position.set(lug_pos.x + 0.15, lug_pos.y - 0.05, lug_pos.z + 0.15)
           }
         }
       });
@@ -1844,30 +1877,9 @@ export default function Home(props) {
               switchingVrMode = false
             }, 3000)
 
-            // VR モードでのカメラ位置と角度を設定
-
+            // VR モードでの角度を設定
             baseObject3D.rotateY(-toRadian(vrModeAngle_ref.current))
 
-            //            baseObject3D.position.x += vrModeOffsetX_ref.current
-            //            object3D_table[0].position.x += vrModeOffsetX_ref.current
-
-            /*
-            const circle3D = window.document.querySelector('#circle3D');
-            if (circle3D) {
-              const pos = circle3D.object3D.position
-              console.log("found circle3D",pos)
-              circle3D.object3D.position.set(pos.x+ vrModeOffsetX_ref.current,pos.y, pos.z);
-              const pos2 = circle3D.object3D.position
-              console.log("set circle3D",pos2)
-            }else{
-             console.log("cant find circle3D")
-            }
-             */
-
-            //          console.log("vrModeOffsetX_ref.current",vrModeOffsetX_ref.current)
-            //          console.log(baseObject3D.position, joint_pos.base)
-
-            
             const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
               y_vec_base, toRadian(vrModeAngle_ref.current)
             ).multiply(
@@ -1906,10 +1918,10 @@ export default function Home(props) {
               ).invert()
             )
             robot_save_quat.copy(vrcon_qua)
-            
+
             //const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
             //console.log("wrist_rot",toAngle(vrcon_euler.x),toAngle(vrcon_euler.y),toAngle(vrcon_euler.z))
-            
+
             // ここからMQTT Start
             //let xrSession = this.el.renderer.xr.getSession();
             xrSession = this.el.renderer.xr.getSession();
@@ -2222,12 +2234,12 @@ export default function Home(props) {
           </Cursor3dp>
 
           {/*<!-- 全体のフィル（影は落とさない） -->*/}
-          <a-entity light="type: hemisphere; color: #fff; groundColor: #efe; intensity: 0.2"></a-entity>
+          <a-entity light="type: hemisphere; color: #fff; groundColor: #efe; intensity: 0.3"></a-entity>
 
           {/*<!-- 斜め右前上からの太陽光（影あり） -->*/}
           <a-entity position="2 4 1"
             light="type: directional;
-                   intensity: 0.8;
+                   intensity: 0.2;
                    castShadow: true;
                    shadowMapWidth: 512; shadowMapHeight: 512;
                    shadowBias: -0.0002;
@@ -2255,12 +2267,14 @@ export default function Home(props) {
             </a-camera>
           </a-entity>
           <a-sphere position={edit_pos_offset(target)} scale="0.012 0.012 0.012" color={target_error ? "red" : "yellow"} visible={`${!(props.appmode === AppMode.viewer) && vr_mode}`}></a-sphere>
-          <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box>
+          {/* 
+            <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box> 
+            <a-cylinder j_id="51" color="red" height="0.1" radius="0.005" position={edit_pos({x:0.3,y:0.3,z:0.3})}></a-cylinder>
+          */}
           <Line pos1={{ x: 1, y: 0.0001, z: 1 }} pos2={{ x: -1, y: 0.0001, z: -1 }} visible={cursor_vis} color="white"></Line>
           <Line pos1={{ x: 1, y: 0.0001, z: -1 }} pos2={{ x: -1, y: 0.0001, z: 1 }} visible={cursor_vis} color="white"></Line>
           <Line pos1={{ x: 1, y: 0.0001, z: 0 }} pos2={{ x: -1, y: 0.0001, z: 0 }} visible={cursor_vis} color="white"></Line>
           <Line pos1={{ x: 0, y: 0.0001, z: 1 }} pos2={{ x: 0, y: 0.0001, z: -1 }} visible={cursor_vis} color="white"></Line>
-          {/*<a-cylinder j_id="51" color="green" height="0.1" radius="0.005" position={edit_pos({x:0.3,y:0.3,z:0.3})}></a-cylinder>*/}
           <Toolmenu />
           {(props.appmode === AppMode.practice) ? <>
             <a-entity luggage-id="box1" geometry="primitive: box; width: 0.07; height: 0.07; depth: 0.07;"
@@ -2333,37 +2347,37 @@ const RobotModel = (props) => {
     <a-entity j_id="0" gltf-model="#base" position={edit_pos(joint_pos.base)} model-opacity="0.8" rotation={`0 ${base_rotate} 0'}`}>
       <a-entity geometry="primitive: circle; radius: 0.16;" material="color: #00FFFF; opacity: 0.8" position="0 0.1 0" rotation="-90 0 0" visible={`${j1_error}`}></a-entity>
       <a-entity geometry="primitive: circle; radius: 0.16;" material="color: #00FFFF; opacity: 0.8" position="0 0.1 0" rotation="90 0 0" visible={`${j1_error}`}></a-entity>
-      <a-entity j_id="1" gltf-model="#j1" position={edit_pos(joint_pos.j1)} model-opacity="0.8">
+      <a-entity j_id="1" gltf-model="#j1" position={edit_pos(joint_pos.j1)} model-opacity="0.8" shadow="cast: true">
         <a-entity position="0 0.1 0" rotation="90 0 0" visible={`${j1_error}`}>
           <a-cylinder position="0 0.08 0" rotation="0 0 0" radius="0.003" height="0.16" color="#FF0000"></a-cylinder>
         </a-entity>
         <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j2, { x: -0.08, y: 0, z: 0 }))} rotation="0 90 0" visible={`${j2_error}`}></a-entity>
         <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j2, { x: -0.08, y: 0, z: 0 }))} rotation="0 -90 0" visible={`${j2_error}`}></a-entity>
-        <a-entity j_id="2" gltf-model="#j2" position={edit_pos(joint_pos.j2)} model-opacity="0.8">
+        <a-entity j_id="2" gltf-model="#j2" position={edit_pos(joint_pos.j2)} model-opacity="0.8" shadow="cast: true">
           <a-entity position="-0.08 0 0" rotation="0 0 0" visible={`${j2_error}`}>
             <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
           </a-entity>
           <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j3, { x: -0.09, y: 0, z: 0 }))} rotation="0 90 0" visible={`${j3_error}`}></a-entity>
           <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j3, { x: -0.09, y: 0, z: 0 }))} rotation="0 -90 0" visible={`${j3_error}`}></a-entity>
-          <a-entity j_id="3" gltf-model="#j3" position={edit_pos(joint_pos.j3)} model-opacity="0.8">
+          <a-entity j_id="3" gltf-model="#j3" position={edit_pos(joint_pos.j3)} model-opacity="0.8" shadow="cast: true">
             <a-entity position="-0.09 0 0" rotation="0 0 0" visible={`${j3_error}`}>
               <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
             </a-entity>
             <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF; opacity: 0.8" position="-0.03 0.302 0" rotation="-90 0 0" visible={`${j4_error}`}></a-entity>
             <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF; opacity: 0.8" position="-0.03 0.302 0" rotation="90 0 0" visible={`${j4_error}`}></a-entity>
-            <a-entity j_id="4" gltf-model="#j4" position={edit_pos(joint_pos.j4)} model-opacity="0.8">
-              <a-entity position="0 -0.087 0" rotation="90 0 0" visible={`${j4_error}`}>
+            <a-entity j_id="4" gltf-model="#j4" position={edit_pos(joint_pos.j4)} model-opacity="0.8" shadow="cast: true">
+              <a-entity position="0 -0.087 0" rotation="90 0 0" visible={`${j4_error}`} >
                 <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
               </a-entity>
               <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j5, { x: 0.077, y: 0, z: 0 }))} rotation="0 90 0" visible={`${j5_error}`}></a-entity>
               <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j5, { x: 0.077, y: 0, z: 0 }))} rotation="0 -90 0" visible={`${j5_error}`}></a-entity>
-              <a-entity j_id="5" gltf-model="#j5" position={edit_pos(joint_pos.j5)} model-opacity="0.8">
+              <a-entity j_id="5" gltf-model="#j5" position={edit_pos(joint_pos.j5)} model-opacity="0.8" shadow="cast: true">
                 <a-entity position="0.077 0 0" rotation="90 0 0" visible={`${j5_error}`}>
                   <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
                 </a-entity>
                 <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF; opacity: 0.8" position="0.15 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}></a-entity>
                 <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF; opacity: 0.8" position="0.15 0 0.0805" rotation="0 180 0" visible={`${j6_error}`}></a-entity>
-                <a-entity j_id="6" gltf-model="#j6" position={edit_pos(joint_pos.j6)} model-opacity="0.8">
+                <a-entity j_id="6" gltf-model="#j6" position={edit_pos(joint_pos.j6)} model-opacity="0.8" shadow="cast: true">
                   <a-entity position="0 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}>
                     <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
                   </a-entity>
@@ -2412,8 +2426,10 @@ const Model_Tool = (props) => {
       <Cursor3dp j_id="16" pos={p16pos[1]} visible={cursor_vis} />
     </a-entity>,
     <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
-      <a-entity gltf-model="#vgc10-1L" j_id="102" position={edit_pos(Toolpos[2])} rotation={`0 0 0`} model-opacity="0.8">
+      <a-entity gltf-model="#vgc10-1L" j_id="102" position={edit_pos(Toolpos[2])} rotation={`0 0 0`} model-opacity="0.8" shadow="cast: true">
+        {/*
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${box_vis}`}></a-box>
+        */}
         <Cursor3dp j_id="16" pos={p16pos[2]} visible={cursor_vis} />
       </a-entity>
     </a-entity>,
