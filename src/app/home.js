@@ -203,7 +203,7 @@ export default function Home(props) {
   const [test_pos,set_test_pos] = useRefState({x:0,y:0,z:0})
 
   const [c_pos_x,set_c_pos_x] = useRefState(0)
-  const [c_pos_y,set_c_pos_y] = useRefState(0.35)
+  const [c_pos_y,set_c_pos_y] = useRefState(0.45)
   const [c_pos_z,set_c_pos_z] = useRefState(1.2)
   const [c_deg_x,set_c_deg_x] = useRefState(0)
   const [c_deg_y,set_c_deg_y] = useRefState(0)
@@ -2146,12 +2146,12 @@ export default function Home(props) {
         <a-entity light="type: directional; color: #FFF; intensity: 0.25" position="1 1 -1"></a-entity>
         <a-entity light="type: directional; color: #EFE; intensity: 0.05" position="0 -1 0"></a-entity>
         <a-entity id="rig" position={`${c_pos_x} ${c_pos_y} ${c_pos_z}`} rotation={`${c_deg_x} ${c_deg_y} ${c_deg_z}`}>
-          <a-camera id="camera" cursor="rayOrigin: mouse;" position="0 0 0" look-controls-enabled="false" wasd-controls-enabled="false">
             {/* for stereo camera */}
-              <a-entity 
-                id="UIBack" camera='active: true'
-                position='0 0 0' stereocam='eye:left;'
-              />   
+          <a-camera id="camera" stereocam="eye:left" position="0 0 0">
+              <a-entity id="UIBack">
+
+              </a-entity>
+
               <a-entity
                 text={`value: ${rtc_message}; color: gray; backgroundColor: rgb(31, 219, 131); border: #000000; whiteSpace: pre`}
                 position="0 0.35 -1.4" 
@@ -2177,7 +2177,7 @@ export default function Home(props) {
       <div className="footer" >
         <div>
           {`${props.appmode}:`}
-          {`wrist_degree:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}`}
+          {`info:{direction:${round(wrist_degree.direction)},angle:${round(wrist_degree.angle)}}`}
           {` ${dsp_message}`}
           {props.appmode===AppMode.viewer?<>{` input rot:[${input_rotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
           {!(props.appmode===AppMode.viewer)?<>{` output rot:[${outputRotateRef.current.map((el,i)=>` j${i+1} : ${round(el)} `)}]`}</>:null}
