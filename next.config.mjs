@@ -2,8 +2,8 @@
 const nextConfig = {
     reactStrictMode: false,
     trailingSlash: true,
-    assetPrefix: '/cobotta',
-    basePath: '/cobotta'
+//    assetPrefix: '/cobotta',
+//    basePath: '/cobotta'
 
 };
 
