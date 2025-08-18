@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as jose from 'jose';
 
+// runs on server side..
+
 import {decryptJwt, verifyToken, verifyCognitoToken } from "../../../lib/jwt_proc";
 
 /**

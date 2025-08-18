@@ -34,7 +34,8 @@ export default function AuthProvider({
             });
             if (res.ok) {
                 const data = await res.json();
-                setUser(data.user ?? null);
+                setUser(data.user?? null);
+//		console.log("ME!",data)
             } else {
                 setUser(null);
             }
@@ -57,7 +58,7 @@ export default function AuthProvider({
 
     // プロバイダーを作成し、配布物を格納する
     return (
-        <AuthContext.Provider value={user, loading, refresh, logout}>
+        <AuthContext.Provider value={{user, loading, refresh, logout}}>
             {children}
         </AuthContext.Provider>
     );

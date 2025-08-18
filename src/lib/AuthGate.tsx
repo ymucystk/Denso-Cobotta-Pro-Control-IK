@@ -1,22 +1,44 @@
-// /components/AuthGate.tsx
 "use client";
+// /components/AuthGate.tsx
 import React, { PropsWithChildren, useEffect } from "react";
 import { useAuth } from "../context/auth";
 import { usePathname, useRouter } from "next/navigation";
+
+import {logEnebular} from "./logEnebular";
+import {userUUID} from './cookie_id';
+
+// should run on client!
+
 
 export default function AuthGate({ children }: PropsWithChildren) {
   const user = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-    console.log('AuthGate user:', user);
+  // Enabular に post したい
+//  logEnebular(pathName,'login','',
+  
 
-  useEffect(() => {
-    if (user === null) {
-      // 未ログイン → /login へ
-      const next = encodeURIComponent(pathname || "/");
-      router.replace(`/login?next=${next}`);
+    useEffect(() => {
+	if (user === null) {
+	    // 未ログイン → /login へ
+	    const next = encodeURIComponent(pathname || "/");
+
+	    outer.replace(`/login?next=${next}`);
+	}else{
+
+//    console.log('AuthGate user:', user, userUUID);
+	const now = new Date();
+	if (user !== null && user !==undefined && user.user != null){
+		console.log("AuthGate:User:",user);
+	    console.log("AuthGate:Log",pathname,'login',user.user.kid,user.user.id,'Login to '+pathname, now.toLocaleString()+":"+userUUID)
+	    logEnebular(pathname,'login',user.kuser,user.user.id,'Login to '+pathname, now.toLocaleString()+":"+userUUID)
+
+	}else{
+	    console.log("AuthGate:User is null");
+	}
     }
+	
   }, [user, router, pathname]);
 
   if (user === undefined) {

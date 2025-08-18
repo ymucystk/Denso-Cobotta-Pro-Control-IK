@@ -1,5 +1,7 @@
 import * as jose from 'jose';
 
+// runs on server side..
+
 
 // トークン復号関数
 /**
@@ -39,12 +41,12 @@ export const verifyToken = async (token: string | null) => {
 
         const JWKS_URL = `${SSO_KEYCLOAK_URL}/realms/${SSO_KEYCLOAK_REALM}/protocol/openid-connect/certs`;
         const JWKS = jose.createRemoteJWKSet(new URL(JWKS_URL));
-        console.log('JWKS_URL:', JWKS_URL);
+//        console.log('JWKS_URL:', JWKS_URL);
         const { payload } = await jose.jwtVerify(token, JWKS);
 
         return payload;
     } catch (error) {
-        console.log('JWT:', error.reason , error.payload);
+        console.log('JWT ERR:', error.reason , error.payload);
 //        console.error('JWT verification failed:', error);
         // 本来は null を返すべきだが、エラー情報を返す
         return error.payload || null; // エラー時でも payload を返す
@@ -76,7 +78,7 @@ export const verifyCognitoToken = async (token: string | null) => {
     return payload;
   } catch(error) {
     //console.error('JWT Cognito verification failed:', error);
-    console.log('JWT Cognito:', error.reason, error.payload);
+    console.log('JWT Cognito Err:', error.reason, error.payload);
     return error.payload || null; // エラー時でも payload を返す
   }
 }
