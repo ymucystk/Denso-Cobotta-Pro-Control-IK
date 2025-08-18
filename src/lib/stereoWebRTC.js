@@ -3,7 +3,13 @@ import Head from 'next/head';
 import Script from 'next/script';
 import 'aframe'
 import Sora from "sora-js-sdk";
-import { AppMode } from '@/app/appmode';
+import { AppMode } from '../app/appmode';
+import {userUUID} from './cookie_id';
+
+
+import package_info from '../../package.json' // load version
+const codeType = package_info.name; // software name
+const version = package_info.version; // version number
 
 //const set_RealSense = true; //realsenseを使う場合はtrueにする
 const set_Audio = false;     //audioを使う場合はtrueにする
@@ -58,7 +64,7 @@ export default function StereoVideo(props) {
 //            const signalingUrl = 'wss://sora2.uclab.jp/signaling'; // 202508 demo用
             const channelId = 'uclab-vr180';
             const channelId1 = 'uclab-hand';
-            const audioChannelId = 'uclab-audio';
+            const audioChannelId = 'uclab-audio'; // 202508 のdemo では、使わない予定
             const sora = Sora.connection(signalingUrl);
             const bundleId = 'vrdemo-sora-bundle';
 
@@ -72,10 +78,15 @@ export default function StereoVideo(props) {
                 },
                 audio: false,
             };
+            const metadata = {
+                codeType: codeType,
+                version: version,
+                bundleId: userUUID,
+            }
 
             sora_once = false;
 
-            const recvonly = sora.recvonly(channelId, options);
+            const recvonly = sora.recvonly(channelId, metadata, options);
             const remoteVideo = document.getElementById('remotevideo');
 
             recvonly.on('disconnect', (event) => {
@@ -91,33 +102,33 @@ export default function StereoVideo(props) {
             });
             recvonly.on('push', (message, transportType) => {
                 console.log("Push event from sora:", message, transportType);
-
+                
             });
             recvonly.on('notify', (message, transportType) => {
                 console.log("Notify Event from sora:", message, transportType);
-
+                
             });
             recvonly.on('timeout', () => {
                 console.log("Timeout Event from sora:", event);
-
+                
             });
             recvonly.on('message', (message) => {
                 console.log("Message Event from sora:", message.label, message.data);
-
+                
             });
             recvonly.on('datachannel', (event) => {
                 console.log("Datachannel Event from sora:", event.datachannel.label, event.datachannel.direction);
-
+                
             });
             recvonly.on('signaling', (event) => {
                 console.log("Signaling Event from sora:", event);
-
+                
             });
             recvonly.on('timeline', (event) => {
                 console.log("Timeline Event from sora:", event);
-
+                
             });
-
+            
 
             recvonly.on('track', event => {
                 if (event.track.kind === 'video') {
@@ -186,8 +197,12 @@ export default function StereoVideo(props) {
                     audio: false,
                 };
 
-
-                const recvonly1 = sora.recvonly(channelId1, options);
+                const metadata = {
+                    codeType: codeType,
+                    version: version,
+                    bundleId: userUUID,
+                }
+                const recvonly1 = sora.recvonly(channelId1, metadata, options);
                 const remoteVideo1 = document.getElementById('remotevideo-realsense');
                 recvonly1.on('track', event => {
                     if (event.track.kind === 'video') {
