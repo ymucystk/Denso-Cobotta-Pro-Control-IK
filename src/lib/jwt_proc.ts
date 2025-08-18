@@ -72,8 +72,11 @@ export const verifyCognitoToken = async (token: string | null) => {
     const JWKS_URL = `${SSO_COGNITO_ISSUER}/.well-known/jwks.json`;
     const JWKS = jose.createRemoteJWKSet(new URL(JWKS_URL));
 
+    console.log("Check Cognitio:",JWKS_URL, JWKS)
+
     // JWT 検証
     const { payload } = await jose.jwtVerify(token, JWKS);
+    console.log("got payload",payload)
 
     return payload;
   } catch(error) {

@@ -1,6 +1,7 @@
 "use client";
 import { createContext, ReactNode, useEffect, useState, useContext, useCallback } from 'react';
-import type { AuthUser } from "../lib/auth-server";
+
+import type { AuthUser } from "../types/user";
 
 // コンテクスト用の型を定義
 type AuthContextType = {

@@ -5,15 +5,7 @@ import { cookies } from "next/headers";
 import * as jose from 'jose';
 import {decryptJwt, verifyToken, verifyCognitoToken } from "./jwt_proc";
 import { use } from "react";
-
-
-export type AuthUser = {
-  id: string;
-  kid: string;
-  name: string;
-  email: string;
-  roles?: string[];
-} | null;
+import type { AuthUser } from "types/user";
 
 export async function getUserFromCookies(): Promise<AuthUser> {
   const cookieStore = await cookies();

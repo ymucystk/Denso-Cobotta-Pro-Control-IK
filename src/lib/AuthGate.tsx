@@ -4,8 +4,8 @@ import React, { PropsWithChildren, useEffect } from "react";
 import { useAuth } from "../context/auth";
 import { usePathname, useRouter } from "next/navigation";
 
-import {logEnebular} from "./logEnebular";
-import {userUUID} from './cookie_id';
+import { logEnebular } from "./logEnebular";
+import { userUUID } from './cookie_id';
 
 // should run on client!
 
@@ -16,29 +16,29 @@ export default function AuthGate({ children }: PropsWithChildren) {
   const pathname = usePathname();
 
   // Enabular に post したい
-//  logEnebular(pathName,'login','',
-  
+  //  logEnebular(pathName,'login','',
 
-    useEffect(() => {
-	if (user === null) {
-	    // 未ログイン → /login へ
-	    const next = encodeURIComponent(pathname || "/");
 
-	    outer.replace(`/login?next=${next}`);
-	}else{
+  useEffect(() => {
+    if (user === null ) {
+      // 未ログイン → /login へ
+//      const next = encodeURIComponent(pathname || "/");
+      router.replace("/");
 
-//    console.log('AuthGate user:', user, userUUID);
-	const now = new Date();
-	if (user !== null && user !==undefined && user.user != null){
-		console.log("AuthGate:User:",user);
-	    console.log("AuthGate:Log",pathname,'login',user.user.kid,user.user.id,'Login to '+pathname, now.toLocaleString()+":"+userUUID)
-	    logEnebular(pathname,'login',user.kuser,user.user.id,'Login to '+pathname, now.toLocaleString()+":"+userUUID)
+    } else {
 
-	}else{
-	    console.log("AuthGate:User is null");
-	}
+      //    console.log('AuthGate user:', user, userUUID);
+      const now = new Date();
+      if (user !== undefined && user.user != null) {
+        console.log("AuthGate:User:", user);
+        console.log("AuthGate:Log", pathname, 'login', user.user.kid, user.user.id, 'Login to ' + pathname, now.toLocaleString() + ":" + userUUID)
+        logEnebular(pathname, 'login', user.user.kid, user.user.id, 'Login to ' + pathname, now.toLocaleString() + ":" + userUUID)
+
+      } else {
+        console.log("AuthGate: under working...");
+      }
     }
-	
+
   }, [user, router, pathname]);
 
   if (user === undefined) {
