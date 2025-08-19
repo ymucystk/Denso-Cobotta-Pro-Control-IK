@@ -105,7 +105,7 @@ export default function StereoVideo(props) {
                 
             });
             recvonly.on('notify', (message, transportType) => {
-                console.log("Notify Event from sora:", message, transportType);
+//                console.log("Notify Event from sora:", message, transportType);
                 
             });
             recvonly.on('timeout', () => {
@@ -121,12 +121,11 @@ export default function StereoVideo(props) {
                 
             });
             recvonly.on('signaling', (event) => {
-                console.log("Signaling Event from sora:", event);
+//                console.log("Signaling Event from sora:", event);
                 
             });
             recvonly.on('timeline', (event) => {
-                console.log("Timeline Event from sora:", event);
-                
+//                console.log("Timeline Event from sora:", event);              
             });
             
 

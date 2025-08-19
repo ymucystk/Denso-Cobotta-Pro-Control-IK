@@ -2,9 +2,7 @@
 // runs on server side..
 
 import { cookies } from "next/headers";
-import * as jose from 'jose';
-import {decryptJwt, verifyToken, verifyCognitoToken } from "./jwt_proc";
-import { use } from "react";
+import { verifyToken, verifyCognitoToken } from "./jwt_proc";
 import type { AuthUser } from "types/user";
 
 export async function getUserFromCookies(): Promise<AuthUser> {

@@ -1,5 +1,7 @@
+"use client"
 
-
+// client side
+// just use local proxy
 const ENEBULAR_ENDPOINT = process.env.NEXT_PUBLIC_LOG_ENDPOINT || "endopint"
 
 //console.log("Endpoint: ", ENEBULAR_ENDPOINT)

@@ -9,7 +9,6 @@ import { userUUID } from './cookie_id';
 
 // should run on client!
 
-
 export default function AuthGate({ children }: PropsWithChildren) {
   const user = useAuth();
   const router = useRouter();
