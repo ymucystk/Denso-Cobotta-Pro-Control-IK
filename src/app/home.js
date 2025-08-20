@@ -508,47 +508,14 @@ export default function Home(props) {
     }
   }, [controller_object_position.x, controller_object_position.y, controller_object_position.z])
 
-  // コントローラの回転を取得
-
-  const qAlign = new THREE.Euler(
-    (0.6654549523360951 * -1),  //x
-    // ここは実機で合わせ込む: X
-    Math.PI,             // 例: Yを反転したい場合
-    Math.PI,             // 例: Zを反転したい場合
-    order
-  );
-  //  const Q_ALIGN = new THREE.Quaternion().setFromEuler(qAlign).invert().normalize();
-//      const qYaw = new THREE.Quaternion().setFromAxisAngle(y_vec_base, -toRadian(vrModeAngle_ref.current));
-//      const axis2 = wk_diff_1.axis.clone().applyQuaternion(qYaw).normalize()
-//      const wk_diff_xz = quaternionToAngle(wk_quatDiff1)
-//      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian);
-//      const quatDifferenceXZ = new THREE.Quaternion().setFromAxisAngle(wk_diff_xz.axis, wk_diff_xz.radian);
-
-//      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian);
-      //    const qYaw = new THREE.Quaternion().setFromAxisAngle(y_vec_base, -toRadian(vrModeAngle_ref.current));
-      //const qYaw = new THREE.Quaternion().setFromAxisAngle(y_vec_base, -toRadian(60));
-      //const quatDif = qYaw.clone().multiply(quatDifference1)
-      //const quatDif2 = quatDifference1.clone().multiply(qYaw)
-
-      //    const quatDifference2 = controller_start_quat.clone().invert().multiply(robot_save_quat);
-      //    const wk_mtx = controller_start_quat.clone().multiply(quatDifference1).multiply(controller_acc_quat).multiply(robot_save_quat);
-
-      //    const ww = Q_ALIGN.multiply(controller_object_quaternion);
 
   React.useEffect(() => {
     if (rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode) {
-//      const norm_cont = controller_object_quaternion.normalize()
       const wk_quatDiff1 = controller_progress_quat.clone().invert().multiply(controller_object_quaternion);
       const wk_diff_1 = quaternionToAngle(wk_quatDiff1)
       const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian /3);
       const quatDifference2 = controller_start_quat.clone().invert().multiply(robot_save_quat);
       const wk_mtx = controller_start_quat.clone().multiply(quatDifference1).multiply(controller_acc_quat).multiply(quatDifference2);
-
-//      set_controller_reframe((q) => controller_object_quaternion);
-      //      set_controller_reframe1((q) => ww);
-//      set_controller_reframe2((q) => quatDifference1);
-//      set_controller_reframe3((q) => quatDifferenceXZ);
-//      set_controller_reframe1((q) => quatDif2);
 
       wk_mtx.multiply(
         new THREE.Quaternion().setFromEuler(
@@ -572,106 +539,14 @@ export default function Home(props) {
       }
       
 // ベースリンクと コントローラの差  
-      const wk_quatDiffBase = baseLinkQuat.clone().invert().multiply(controller_object_quaternion);
+//      const wk_quatDiffBase = baseLinkQuat.clone().invert().multiply(controller_object_quaternion);
       
-      set_controller_reframe((q) => controller_object_quaternion);
-      set_controller_reframe2((q) => wk_quatDiffBase);
-      set_controller_reframe1((q) => wk_mtx);
-
-//      const cout = baseLinkQuat.multiply(wk_mtx)
       wk_mtx.premultiply(baseLinkQuat.invert())
 
       const wk_euler = new THREE.Euler().setFromQuaternion(wk_mtx, order)
       set_wrist_rot({ x: round(toAngle(wk_euler.x)), y: round(toAngle(wk_euler.y)), z: round(toAngle(wk_euler.z)) })
     }
   }, [controller_object_quaternion.x, controller_object_quaternion.y, controller_object_quaternion.z, controller_object_quaternion.w])
-
-  /*
-  
-    // VR→Robotの基底変換（Y軸vrModeAngleだけ回っているのを戻す）
-    function toRobotFrame(q, vrm) {
-      const qYaw = new THREE.Quaternion().setFromAxisAngle(y_vec_base, -toRadian(vrm));
-      // q' = qYaw * q * qYaw^{-1}
-      return qYaw.clone().multiply(q).multiply(qYaw.clone().invert()).normalize();
-    }
-  
-    // コントローラ→ロボット手首の取付け/座標系差を吸収する固定オフセット（必要なら調整）
-    const qAlign = new THREE.Euler(
-      (0.6654549523360951 * -1),  //x
-                    // ここは実機で合わせ込む: X
-      Math.PI,             // 例: Yを反転したい場合
-      Math.PI,             // 例: Zを反転したい場合
-      order
-    );
-    const Q_ALIGN = new THREE.Quaternion().setFromEuler(qAlign).invert().normalize();
-  
-    // 差分のスケール（1で等倍、0.33なら1/3）
-    const GAIN = 1 / 3;
-  
-    React.useEffect(() => {
-      if (
-        rendered && vrModeRef.current && trigger_on &&
-        !tool_menu_on && !tool_load_operation &&
-        !put_down_box_operation && !switchingVrMode
-      ) {
-        // 1) 基底変換：VR世界→ロボット基準
-        const q_cur_hmd =  Q_ALIGN.multiply(controller_object_quaternion);      // 現在コントローラ
-        const q_ref_hmd = Q_ALIGN.multiply(controller_progress_quat);          // 差分の基準（進捗基準）
-        const q_cur = toRobotFrame(q_cur_hmd, vrModeAngle_ref.current);
-        const q_ref = toRobotFrame(q_ref_hmd, vrModeAngle_ref.current);
-  //      const qYaw = new THREE.Quaternion().setFromAxisAngle(y_vec_base, -toRadian(vrModeAngle_ref.current));
-  //      const qYY = qYaw.normalize().multiply(q_cur_hmd).multiply(Q_ALIGN)
-  
-        const qalign_cur = Q_ALIGN.multiply(q_cur_hmd)
-  
-        //      set_controller_reframe((euler) => euler.setFromQuaternion(q_cur));
-  
-        // 2) 差分（基準→現在）
-        //    q_delta を左から適用すると基準姿勢が現在姿勢に一致
-        const q_delta_full = q_ref.clone().invert().multiply(q_cur).normalize();
-  
-        set_controller_reframe((q) => q_cur_hmd.clone());
-        set_controller_reframe2((q) =>robot_save_quat );
-        set_controller_reframe3((q) =>q_delta_full);
-  
-  
-        // 3) 差分をスケール（等角スケーリング or SLERPどちらでもOK）
-        //    —— 等角スケーリング（軸角へ変換して角度だけGAIN倍）
-        const wk_diff_1 = quaternionToAngle(q_delta_full)
-        const q_delta = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian * GAIN).normalize();
-  
-        console.log("wk_diff1",wk_diff_1)
-        // 4) 手首の保存姿勢に差分を合成（左掛け）
-        //    robot_save_quat: トリガー開始時の手首姿勢
-        //    取付け/座標系差は Q_ALIGN にまとめて適用
-        const q_wrist = Q_ALIGN.invert().clone()
-          .multiply(q_delta)
-  //        .multiply(controller_acc_quat) // 蓄積差分を使うならここに
-          .multiply(robot_save_quat)
-          .normalize();
-  
-        // 5) 表示用にオイラーへ（必要なら）
-        const e = new THREE.Euler().setFromQuaternion(q_wrist, order);
-  
-        set_wrist_rot({
-          x: round(THREE.MathUtils.radToDeg(e.x)),
-          y: round(THREE.MathUtils.radToDeg(e.y)),
-          z: round(THREE.MathUtils.radToDeg(e.z)),
-        });
-  
-        // 6) 大きいジャンプのときは基準と蓄積を更新（任意の安定化ロジック）
-        // if (angle > THREE.MathUtils.degToRad(135)) {
-        //   controller_progress_quat.copy(controller_object_quaternion);
-        //   controller_acc_quat.multiply(q_delta).normalize();
-        // }
-      }
-    }, [
-      controller_object_quaternion.x,
-      controller_object_quaternion.y,
-      controller_object_quaternion.z,
-      controller_object_quaternion.w
-    ]);
-  */
 
 
   const toolChange1 = () => {
@@ -2186,7 +2061,7 @@ export default function Home(props) {
             // VR モードでの角度を設定
             //            baseObject3D.rotateY(-toRadian(vrModeAngle_ref.current))
 
-
+            
             const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
               y_vec_base, toRadian(vrModeAngle_ref.current)
             ).multiply(
@@ -2199,8 +2074,8 @@ export default function Home(props) {
               )
             )
             const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua, order)
-            set_wrist_rot({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) })
-
+//            set_wrist_rot({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) })
+            
             const vrcon_qua = wrist_qua.clone().multiply(
               new THREE.Quaternion().setFromEuler(
                 new THREE.Euler(
@@ -2532,12 +2407,13 @@ export default function Home(props) {
           <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${true}`}>
             <Cursor3dp j_id="99" pos={{ x: 0, y: 0, z: 0 }} visible={true}>   </Cursor3dp>
           </a-entity>
+          {/*
           <Cursor3dp j_id="98" pos={{ x: -0.15, y: 1, z: 0.2 }} rot={conv_rot(controller_reframe)} visible={true}>   </Cursor3dp>
           <Cursor3dp j_id="98" pos={{ x: -0.15, y: 0.8, z: 0.2 }} rot={conv_rot(controller_reframe1)} visible={true}>   </Cursor3dp>
 
           <Cursor3dp j_id="97" pos={{ x: -0.3, y: 1, z: 0.2 }} rot={conv_rot(controller_reframe2)} visible={true}>   </Cursor3dp>
           <Cursor3dp j_id="96" pos={{ x: -0.45, y: 1, z: 0.2 }} rot={conv_rot(controller_reframe3)} visible={true}>   </Cursor3dp>
-
+            */}
           {/* Practice 用のベース */}
           <RobotBase appmode={props.appmode} target_error={target_error} />
           {/*  <a-circle id="circle3D" position="0 0 0" rotation="-90 0 0" radius={props.appmode===AppMode.practice?"0.75":"0.3"} color={target_error?"#ff7f50":"#7BC8A4"} opacity="0.5"></a-circle> */}
