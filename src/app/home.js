@@ -276,7 +276,7 @@ export default function Home(props) {
 
   const [debug_message, set_debug_message] = React.useState("")
   const add_debug_message = (message) => {
-    set_debug_message((prev) => { prev + " " + message })
+    set_debug_message((prev) => (prev + " " + message ))
   }
 
   function getCookie(name) {
@@ -504,6 +504,7 @@ export default function Home(props) {
       if (target_pos.y < 0.012) {
         target_pos.y = 0.012
       }
+      set_debug_message(`xy:${target_pos.x} ${target_pos.y}`)
       set_target({ x: round(target_pos.x), y: round(target_pos.y), z: round(target_pos.z) })
     }
   }, [controller_object_position.x, controller_object_position.y, controller_object_position.z])
@@ -533,7 +534,8 @@ export default function Home(props) {
 
       const wk_euler = new THREE.Euler().setFromQuaternion(wk_mtx, order)
       const wrot = { x: round(toAngle(wk_euler.x)), y: round(toAngle(wk_euler.y)), z: round(toAngle(wk_euler.z)) };
-     // set_debug_message(`wr:${JSON.stringify(wrot)}`)
+      set_debug_message(`wr:${JSON.stringify(wrot)}`)
+
       set_wrist_rot(wrot)
     }
   }, [controller_object_quaternion.x, controller_object_quaternion.y, controller_object_quaternion.z, controller_object_quaternion.w])
@@ -643,7 +645,7 @@ export default function Home(props) {
       }
 
       // ここいる？
-      /*
+      
       if (inputRotateFlg.current) {// 入力１回に１どだけ
         inputRotateFlg.current = false
         console.log("before robot rotate ", outputRotateRef.current)
@@ -651,8 +653,7 @@ export default function Home(props) {
         set_outputRotate([...input_rotateRef.current])
         set_checkRotate([...input_rotateRef.current])
       }
-        */
-
+      
     }
   }
   //}, [now])
@@ -855,9 +856,7 @@ export default function Home(props) {
   // 出力用に変換
   const outRotateConv = (rotate, prevRotate) => {
     const base_rot = [rotate.j1_rotate, rotate.j2_rotate, rotate.j3_rotate, rotate.j4_rotate, rotate.j5_rotate, rotate.j6_rotate]
-    //    const wk_j1_Correct_value = normalize180(j1_Correct_value - (vrModeRef.current ? vrModeAngle_ref.current : 0))
-    const wk_j1_Correct_value = normalize180(j1_Correct_value - vrModeAngle_ref.current) // vrModeAngle for REAL!
-    const Correct_value = [wk_j1_Correct_value, j2_Correct_value, j3_Correct_value, j4_Correct_value, j5_Correct_value, j6_Correct_value]
+    const Correct_value = [j1_Correct_value, j2_Correct_value, j3_Correct_value, j4_Correct_value, j5_Correct_value, j6_Correct_value]
     const check_value = [j1_limit, j2_limit, j3_limit, j4_limit, j5_limit, j6_limit]
     const new_rot = base_rot.map((base, idx) => normalize180(base + Correct_value[idx]))
     const diff = new_rot.map((rot, idx) => shortestAngleDiffSigned(rot, prevRotate[idx]))
@@ -884,7 +883,8 @@ export default function Home(props) {
         }
       }
     }
-    return {
+    const ret = 
+     {
       j1_rotate: result_rot[0],
       j2_rotate: result_rot[1],
       j3_rotate: result_rot[2],
@@ -893,6 +893,7 @@ export default function Home(props) {
       j6_rotate: result_rot[5],
       error_info
     }
+    return ret;
   }
 
   React.useEffect(() => {
@@ -942,12 +943,8 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if (input_rotate[0] === undefined) return
-    //    const wk_j1_Correct_value = normalize180(j1_Correct_value - (vrModeRef.current ? vrModeAngle_ref.current : 0))
-    //    const wk_j1_Correct_value = normalize180(j1_Correct_value / vrModeAngle_ref.current)
-
     const robot_rotate = {
-      //      j1_rotate: round(normalize180(input_rotate[0] - wk_j1_Correct_value)),
-      j1_rotate: round(normalize180(normalize180(input_rotate[0] - j1_Correct_value))),
+      j1_rotate: round(normalize180(input_rotate[0] - j1_Correct_value)),
       j2_rotate: round(normalize180(input_rotate[1] - j2_Correct_value)),
       j3_rotate: round(normalize180(input_rotate[2] - j3_Correct_value)),
       j4_rotate: round(normalize180(input_rotate[3] - j4_Correct_value)),
@@ -1141,6 +1138,7 @@ export default function Home(props) {
               firstReceiveJoint = false
               window.setTimeout(() => {
                 console.log("Start to send movement!")
+                set_debug_message("Receive + go!")
                 receive_state = true; //
                 publishMQTT("dev/" + robotIDRef.current, JSON.stringify({ controller: "browser", devId: idtopic })) // 自分の topic を教える
               }, 1000);
@@ -2210,6 +2208,8 @@ export default function Home(props) {
         frame.session.requestAnimationFrame(onXRFrameMQTT);
       }
     }
+//    add_debug_message(".")
+//    set_debug_message(`${inputRotateFlg.current}`)
 
     if ((mqttclient !== null) && publish && receive_state && robotOperation) {// 状態を受信していないと、送信しない
       const addKey = {}
@@ -2482,12 +2482,13 @@ export default function Home(props) {
             <a-entity waku-id="box1"><Waku color="#ff8800" /></a-entity>
             <a-entity waku-id="box2"><Waku color="#8888ff" /></a-entity>
 
-            {/* debug 用インジケータ */}
-            <a-entity position="-0.3 0.8 0" rotation="0 0 0" geometry="primitive: plane; width: 1.5; height: 0.2;" material="color: #ccddcc; opacity: 0.5;" visible={`${true}`}>
-              <a-entity text={`value: ${debug_message}; color: black; align:center`} position="0 0 0.0001"></a-entity>
-            </a-entity>
           </>
             : <></>}
+            {/* debug 用インジケータ */}
+            <a-entity position="-0.3 1.0 -0.5" rotation="0 0 0" geometry="primitive: plane; width: 2.0; height: 0.2;" material="color: #ccddcc; opacity: 0.5;" visible={`${true}`}>
+              <a-entity text={`value: ${debug_message}; color: black; align:center`} position="0 0 0.0001"></a-entity>
+            </a-entity>
+
         </a-scene>
         <Controller {...controllerProps} />
         <div className="footer" >
