@@ -579,7 +579,7 @@ export default function Home(props) {
       set_controller_reframe1((q) => wk_mtx);
 
 //      const cout = baseLinkQuat.multiply(wk_mtx)
-      wk_mtx.premultiply(baseLinkQuat)
+      wk_mtx.premultiply(baseLinkQuat.invert())
 
       const wk_euler = new THREE.Euler().setFromQuaternion(wk_mtx, order)
       set_wrist_rot({ x: round(toAngle(wk_euler.x)), y: round(toAngle(wk_euler.y)), z: round(toAngle(wk_euler.z)) })
