@@ -518,47 +518,37 @@ export default function Home(props) {
     order
   );
   //  const Q_ALIGN = new THREE.Quaternion().setFromEuler(qAlign).invert().normalize();
-
-  React.useEffect(() => {
-    if (rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode) {
-      const norm_cont = controller_object_quaternion.normalize()
-
-      const wk_quatDiff1 = controller_progress_quat.clone().invert().multiply(controller_object_quaternion);
-      const wk_diff_1 = quaternionToAngle(wk_quatDiff1)
-      
-      const qYaw = new THREE.Quaternion().setFromAxisAngle(y_vec_base, -toRadian(vrModeAngle_ref.current));
-
-      const axis2 = wk_diff_1.axis.clone().applyQuaternion(qYaw).normalize()
-
-      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(axis2, wk_diff_1.radian);
-
-
+//      const qYaw = new THREE.Quaternion().setFromAxisAngle(y_vec_base, -toRadian(vrModeAngle_ref.current));
+//      const axis2 = wk_diff_1.axis.clone().applyQuaternion(qYaw).normalize()
 //      const wk_diff_xz = quaternionToAngle(wk_quatDiff1)
 //      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian);
 //      const quatDifferenceXZ = new THREE.Quaternion().setFromAxisAngle(wk_diff_xz.axis, wk_diff_xz.radian);
 
 //      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian);
-
-
       //    const qYaw = new THREE.Quaternion().setFromAxisAngle(y_vec_base, -toRadian(vrModeAngle_ref.current));
       //const qYaw = new THREE.Quaternion().setFromAxisAngle(y_vec_base, -toRadian(60));
-      const quatDif = qYaw.clone().multiply(quatDifference1)
-      const quatDif2 = quatDifference1.clone().multiply(qYaw)
+      //const quatDif = qYaw.clone().multiply(quatDifference1)
+      //const quatDif2 = quatDifference1.clone().multiply(qYaw)
 
       //    const quatDifference2 = controller_start_quat.clone().invert().multiply(robot_save_quat);
-      const quatDifference2 = controller_start_quat.clone().invert().multiply(robot_save_quat);
-
-      const wk_mtx = controller_start_quat.clone().multiply(quatDifference1).multiply(controller_acc_quat).multiply(quatDifference2);
       //    const wk_mtx = controller_start_quat.clone().multiply(quatDifference1).multiply(controller_acc_quat).multiply(robot_save_quat);
 
       //    const ww = Q_ALIGN.multiply(controller_object_quaternion);
 
-      set_controller_reframe((q) => controller_object_quaternion);
+  React.useEffect(() => {
+    if (rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode) {
+//      const norm_cont = controller_object_quaternion.normalize()
+      const wk_quatDiff1 = controller_progress_quat.clone().invert().multiply(controller_object_quaternion);
+      const wk_diff_1 = quaternionToAngle(wk_quatDiff1)
+      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian /3);
+      const quatDifference2 = controller_start_quat.clone().invert().multiply(robot_save_quat);
+      const wk_mtx = controller_start_quat.clone().multiply(quatDifference1).multiply(controller_acc_quat).multiply(quatDifference2);
+
+//      set_controller_reframe((q) => controller_object_quaternion);
       //      set_controller_reframe1((q) => ww);
-      set_controller_reframe2((q) => quatDifference1);
+//      set_controller_reframe2((q) => quatDifference1);
 //      set_controller_reframe3((q) => quatDifferenceXZ);
 //      set_controller_reframe1((q) => quatDif2);
-
 
       wk_mtx.multiply(
         new THREE.Quaternion().setFromEuler(
@@ -571,6 +561,25 @@ export default function Home(props) {
         )
       )
       //    set_controller_reframe1((q) => wk_mtx);
+
+//      この wk_mtx を baselinkとの差をかけてあげればいいはず
+      let baseLinkQuat = new THREE.Quaternion().identity()
+      if (baseObject3D){
+        console.log("baseObject3D", baseObject3D)
+        baseLinkQuat.copy(baseObject3D.quaternion)
+      }else{
+        console.log("baseObject3D not assigned!")
+      }
+      
+// ベースリンクと コントローラの差  
+      const wk_quatDiffBase = baseLinkQuat.clone().invert().multiply(controller_object_quaternion);
+      
+      set_controller_reframe((q) => controller_object_quaternion);
+      set_controller_reframe2((q) => wk_quatDiffBase);
+      set_controller_reframe1((q) => wk_mtx);
+
+//      const cout = baseLinkQuat.multiply(wk_mtx)
+      wk_mtx.premultiply(baseLinkQuat)
 
       const wk_euler = new THREE.Euler().setFromQuaternion(wk_mtx, order)
       set_wrist_rot({ x: round(toAngle(wk_euler.x)), y: round(toAngle(wk_euler.y)), z: round(toAngle(wk_euler.z)) })
