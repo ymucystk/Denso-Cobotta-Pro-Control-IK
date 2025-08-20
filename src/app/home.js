@@ -2405,8 +2405,8 @@ export default function Home(props) {
               /> : <></>
           }
 
-          <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${true}`}>
-            <Cursor3dp j_id="99" pos={{ x: 0, y: 0, z: 0 }} visible={true}>   </Cursor3dp>
+          <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${false}`}>
+            <Cursor3dp j_id="99" pos={{ x: 0, y: 0, z: 0 }} visible={false}>   </Cursor3dp>
           </a-entity>
           {/*
           <Cursor3dp j_id="98" pos={{ x: -0.15, y: 1, z: 0.2 }} rot={conv_rot(controller_reframe)} visible={true}>   </Cursor3dp>
@@ -2455,11 +2455,11 @@ export default function Home(props) {
               <a-entity id="UIBack">
 
               </a-entity>
-
+              {/*
               <a-entity
                 text={`value: ${rtc_message}; color: gray; backgroundColor: rgb(31, 219, 131); border: #000000; whiteSpace: pre`}
                 position="0 0.35 -1.4"
-              />
+              />*/}
             </a-camera>
           </a-entity>
           <a-sphere position={edit_pos_offset(disp_target)} scale="0.012 0.012 0.012" color={target_error ? "red" : "yellow"} visible={`${!(props.appmode === AppMode.viewer)}`}></a-sphere>
@@ -2485,11 +2485,12 @@ export default function Home(props) {
           </>
             : <></>}
             {/* debug 用インジケータ */}
-            <a-entity position="-0.3 1.0 -0.5" rotation="0 0 0" geometry="primitive: plane; width: 2.0; height: 0.2;" material="color: #ccddcc; opacity: 0.5;" visible={`${true}`}>
+            <a-entity position="-0.3 1.0 -0.5" rotation="0 0 0" geometry="primitive: plane; width: 1.2; height: 0.2;" material="color: #ccddcc; opacity: 0.7;" visible={`${true}`}>
               <a-entity text={`value: ${debug_message}; color: black; align:center`} position="0 0 0.0001"></a-entity>
             </a-entity>
 
         </a-scene>
+        {/*
         <Controller {...controllerProps} />
         <div className="footer" >
           <div>
@@ -2500,6 +2501,7 @@ export default function Home(props) {
             {!(props.appmode === AppMode.viewer) ? <>{` output rot:[${outputRotateRef.current.map((el, i) => ` j${i + 1} : ${round(el)} `)}]`}</> : null}
           </div>
         </div>
+        */}
       </>
     );
   } else {
@@ -2629,8 +2631,8 @@ const Model_Tool = (props) => {
         {/*
         <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${box_vis}`}></a-box>
         */}
-        <Cursor3dp j_id="16" pos={p16pos[2]} visible={true} />
-        <Cursor3dp j_id="86" pos={`${p16pos[2].x - 0.4} ${p16pos[2].y} ${p16pos[2].z}`} visible={true} />
+        <Cursor3dp j_id="16" pos={p16pos[2]} visible={false} />
+        <Cursor3dp j_id="86" pos={`${p16pos[2].x - 0.4} ${p16pos[2].y} ${p16pos[2].z}`} visible={false} />
       </a-entity>
     </a-entity>,
     <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
