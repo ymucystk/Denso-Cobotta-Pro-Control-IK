@@ -513,8 +513,8 @@ export default function Home(props) {
     if (rendered && vrModeRef.current && trigger_on && !tool_menu_on && !tool_load_operation && !put_down_box_operation && !switchingVrMode) {
       const wk_quatDiff1 = controller_progress_quat.clone().invert().multiply(controller_object_quaternion);
       const wk_diff_1 = quaternionToAngle(wk_quatDiff1)
-      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian /3);
-      const quatDifference2 = controller_start_quat.clone().invert().multiply(robot_save_quat);
+      const quatDifference1 = new THREE.Quaternion().setFromAxisAngle(wk_diff_1.axis, wk_diff_1.radian / 3);
+      const quatDifference2 = controller_start_quat.clone().invert().multiply(robot_save_quat);// robot 先端姿勢
       const wk_mtx = controller_start_quat.clone().multiply(quatDifference1).multiply(controller_acc_quat).multiply(quatDifference2);
 
       wk_mtx.multiply(
@@ -527,24 +527,14 @@ export default function Home(props) {
           )
         )
       )
-      //    set_controller_reframe1((q) => wk_mtx);
-
-//      この wk_mtx を baselinkとの差をかけてあげればいいはず
-      let baseLinkQuat = new THREE.Quaternion().identity()
-      if (baseObject3D){
-        console.log("baseObject3D", baseObject3D)
-        baseLinkQuat.copy(baseObject3D.quaternion)
-      }else{
-        console.log("baseObject3D not assigned!")
-      }
-      
-// ベースリンクと コントローラの差  
-//      const wk_quatDiffBase = baseLinkQuat.clone().invert().multiply(controller_object_quaternion);
-      
-      wk_mtx.premultiply(baseLinkQuat.invert())
+      //この wk_mtx を baselinkとの差をかけてあげればいいはず      
+      // ベースリンクとの差  
+      wk_mtx.premultiply(baseObject3D.quaternion.clone().invert())
 
       const wk_euler = new THREE.Euler().setFromQuaternion(wk_mtx, order)
-      set_wrist_rot({ x: round(toAngle(wk_euler.x)), y: round(toAngle(wk_euler.y)), z: round(toAngle(wk_euler.z)) })
+      const wrot = { x: round(toAngle(wk_euler.x)), y: round(toAngle(wk_euler.y)), z: round(toAngle(wk_euler.z)) };
+     // set_debug_message(`wr:${JSON.stringify(wrot)}`)
+      set_wrist_rot(wrot)
     }
   }, [controller_object_quaternion.x, controller_object_quaternion.y, controller_object_quaternion.z, controller_object_quaternion.w])
 
@@ -1089,6 +1079,7 @@ export default function Home(props) {
             if (data.devId === "none") {
               console.log("Can't find robot!")
             } else {
+              console.log("Assigned robot:", data.devId)
               robotIDRef.current = data.devId
               if (receive_state === false) { // ロボットの姿勢を受け取るまで、スタートしない。
                 subscribeMQTT([
@@ -1138,7 +1129,7 @@ export default function Home(props) {
               }
               if (firstReceiveJoint || tool_load_operation || put_down_box_operation) {
                 if (input_rotateRef.current.some((e, i) => e !== joints[i])) {
-                  console.log("receive joints", joints)
+                  console.log("receive joints from:", robotIDRef.current, joints)
                   set_input_rotate([...joints])
 
                   inputRotateFlg.current = true
@@ -1225,7 +1216,7 @@ export default function Home(props) {
     };
   }
 
-  
+
   function quaternionToAngleXZ(q) {
     const qn = q.clone().normalize(); // 念のため正規化
     const w = THREE.MathUtils.clamp(qn.w, -1, 1); // 丸めではなく clamp
@@ -1687,13 +1678,21 @@ export default function Home(props) {
   }
 
   const vrControllEnd = () => {
-    const wrist_qua = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(
-        toRadian(wrist_rot_ref.current.x),
-        toRadian(wrist_rot_ref.current.y),
-        toRadian(wrist_rot_ref.current.z), order
+
+    const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
+      y_vec_base, toRadian(vrModeAngle_ref.current)
+    ).multiply(
+      new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(
+          toRadian(wrist_rot_ref.current.x),
+          toRadian(wrist_rot_ref.current.y),
+          toRadian(wrist_rot_ref.current.z), order
+        )
       )
     )
+    const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua, order)
+    //            set_wrist_rot({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) })
+
     const vrcon_qua = wrist_qua.clone().multiply(
       new THREE.Quaternion().setFromEuler(
         new THREE.Euler(
@@ -1704,7 +1703,7 @@ export default function Home(props) {
         )
       ).invert()
     )
-    //const vrcon_euler = new THREE.Euler().setFromQuaternion(vrcon_qua,order)
+
     robot_save_quat.copy(vrcon_qua)
     set_save_target(undefined)
   }
@@ -2054,14 +2053,16 @@ export default function Home(props) {
             console.log('enter-vr')
 
             switchingVrMode = true // VR にはいって３秒間待つ。
+            set_debug_message("Please wait..")
             setTimeout(() => {
               switchingVrMode = false
-            }, 3000)
+              set_debug_message("")
+            }, 2000)
 
             // VR モードでの角度を設定
             //            baseObject3D.rotateY(-toRadian(vrModeAngle_ref.current))
 
-            
+
             const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
               y_vec_base, toRadian(vrModeAngle_ref.current)
             ).multiply(
@@ -2074,8 +2075,8 @@ export default function Home(props) {
               )
             )
             const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua, order)
-//            set_wrist_rot({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) })
-            
+            //            set_wrist_rot({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) })
+
             const vrcon_qua = wrist_qua.clone().multiply(
               new THREE.Quaternion().setFromEuler(
                 new THREE.Euler(
