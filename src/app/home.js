@@ -48,7 +48,7 @@ const controller_start_quat = new THREE.Quaternion().setFromEuler(new THREE.Eule
 const controller_progress_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.6654549523360951,0,0,order))
 const robot_save_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.6654549523360951,0,0,order))
 const controller_acc_quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0,0,0,order))
-const max_move_unit = [(1/120),(1/100),(1/120),(1/150),(1/150),(1/240)]
+const max_move_unit = [(1/120),(1/70),(1/120),(1/150),(1/150),(1/240)]
 const rotate_table = [[],[],[],[],[],[]]
 const object3D_table = []
 const rotvec_table = [y_vec_base, x_vec_base, x_vec_base, y_vec_base, x_vec_base, z_vec_base]
@@ -713,45 +713,27 @@ export default function Home(props) {
   }, [gripRef.current, j7_rotate_ref.current])
 
   React.useEffect(() => {
-    if(rotate_table[0].length > 1){
-      rotate_table[0].pop()
-    }
-    rotate_table[0].push({rot:j1_rotate,first:true})
+    rotate_table[0] = [{ rot: j1_rotate, first: true }]
   }, [j1_rotate])
 
   React.useEffect(() => {
-    if(rotate_table[1].length > 1){
-      rotate_table[1].pop()
-    }
-    rotate_table[1].push({rot:j2_rotate,first:true})
+    rotate_table[1] = [{ rot: j2_rotate, first: true }]
   }, [j2_rotate])
 
   React.useEffect(() => {
-    if(rotate_table[2].length > 1){
-      rotate_table[2].pop()
-    }
-    rotate_table[2].push({rot:j3_rotate,first:true})
+    rotate_table[2] = [{ rot: j3_rotate, first: true }]
   }, [j3_rotate])
 
   React.useEffect(() => {
-    if(rotate_table[3].length > 1){
-      rotate_table[3].pop()
-    }
-    rotate_table[3].push({rot:j4_rotate,first:true})
+    rotate_table[3] = [{ rot: j4_rotate, first: true }]
   }, [j4_rotate])
 
   React.useEffect(() => {
-    if(rotate_table[4].length > 1){
-      rotate_table[4].pop()
-    }
-    rotate_table[4].push({rot:j5_rotate,first:true})
+    rotate_table[4] = [{ rot: j5_rotate, first: true }]
   }, [j5_rotate])
 
   React.useEffect(() => {
-    if(rotate_table[5].length > 1){
-      rotate_table[5].pop()
-    }
-    rotate_table[5].push({rot:j6_rotate,first:true})
+    rotate_table[5] = [{ rot: j6_rotate, first: true }]
   }, [j6_rotate])
 
   React.useEffect(() => {
