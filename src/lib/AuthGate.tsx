@@ -17,6 +17,8 @@ export default function AuthGate({ children }: PropsWithChildren) {
   // Enabular に post したい
   //  logEnebular(pathName,'login','',
 
+  const [loaded, set_loaded] = React.useState(false);
+
 
   useEffect(() => {
     if (user === null ) {
@@ -34,8 +36,17 @@ export default function AuthGate({ children }: PropsWithChildren) {
         logEnebular(pathname, 'login', user.user.kid, user.user.id, 'Login to ' + pathname, now.toLocaleString() + ":" + userUUID)
 
       } else {
-        console.log("AuthGate: under working...");
+        console.log("AuthGate: under working...",user);
+        set_loaded(user.loading)
+        if (loaded){
+          if (user.user === null){
+            router.replace("/")
+          }
+        }
+
       }
+
+      
     }
 
   }, [user, router, pathname]);
@@ -53,6 +64,7 @@ export default function AuthGate({ children }: PropsWithChildren) {
     // リダイレクト中は何も描画しない
     return null;
   }
+
 
   // ログイン済み
   return <>{children}</>;

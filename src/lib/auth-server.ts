@@ -11,11 +11,13 @@ export async function getUserFromCookies(): Promise<AuthUser> {
   if (!token) return null;
 //  console.log("Getting user from cookies, token:", token);
 
+  const kominkan = await getKominkanUserFromCookies()
+
   try {
     const payload = await verifyToken(token)
     const userInfo = {
       id: payload.sub,
-      kid: null,
+      kid: kominkan?.kid,
       name: payload.name,
       email: payload.email,
       roles: payload.roles,
@@ -27,7 +29,7 @@ export async function getUserFromCookies(): Promise<AuthUser> {
     const payload = error.payload || {};
     const userInfo = {
       id: payload.sub,
-      kid: null,
+      kid: kominkan?.kid,
       name: payload.name,
       email: payload.email,
       roles: payload.roles,
@@ -39,8 +41,11 @@ export async function getUserFromCookies(): Promise<AuthUser> {
 export async function getKominkanUserFromCookies(): Promise<AuthUser> {
   const cookieStore = await cookies();
   const token = cookieStore.get("kominkan_token")?.value;
-  if (!token) return null;
-//  console.log("Getting user from cookies, kominken token:", token);
+  if (!token) {
+    console.log("No kominkan token")
+    return null;
+  }
+  console.log("Getting user from cookies, kominken token:", token);
 
   try {
     const payload = await verifyCognitoToken(token)

@@ -2484,10 +2484,11 @@ export default function Home(props) {
 
           </>
             : <></>}
-            {/* debug 用インジケータ */}
+            {/* debug 用インジケータ 
             <a-entity position="-0.3 1.0 -0.5" rotation="0 0 0" geometry="primitive: plane; width: 1.2; height: 0.2;" material="color: #ccddcc; opacity: 0.7;" visible={`${true}`}>
               <a-entity text={`value: ${debug_message}; color: black; align:center`} position="0 0 0.0001"></a-entity>
             </a-entity>
+            */}
 
         </a-scene>
         {/*
