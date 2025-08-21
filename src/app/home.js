@@ -289,7 +289,7 @@ export default function Home(props) {
   // Cooike, Offsetの取得
   React.useEffect(() => {
     const wk_vrModeAngle = getCookie('vrModeAngle')
-    set_vrModeAngle(wk_vrModeAngle ? parseFloat(wk_vrModeAngle) : 135)
+    set_vrModeAngle(wk_vrModeAngle ? parseFloat(wk_vrModeAngle) : 90) // change default to 90
     const wk_vrModeOffsetX = getCookie('vrModeOffsetX')
     set_vrModeOffsetX(wk_vrModeOffsetX ? parseFloat(wk_vrModeOffsetX) : 0.55)
     const wk_toolName = getCookie('toolName')
