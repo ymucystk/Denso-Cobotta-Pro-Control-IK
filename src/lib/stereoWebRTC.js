@@ -346,6 +346,9 @@ export default function StereoVideo(props) {
             const leftCanvas  = document.createElement('canvas');
 
 
+            //const leftCanvas  = document.createElement('canvas');
+
+
             const remoteVideoRealSense = document.createElement('video');
             remoteVideoRealSense.setAttribute('id', 'remotevideo-realsense');
             remoteVideoRealSense.setAttribute('autoPlay', '');
@@ -360,6 +363,12 @@ export default function StereoVideo(props) {
             rightCanvas.setAttribute('id', 'stereo-right');
             assets.appendChild(rightCanvas);
 
+            /*leftCanvas.setAttribute('id', 'stereo-left');
+            assets.appendChild(leftCanvas);
+            const rightCanvas = document.createElement('canvas');
+            rightCanvas.setAttribute('id', 'stereo-right');
+            assets.appendChild(rightCanvas);*/
+
             //objectの追加
             const leftSphere = document.createElement('a-entity');
             leftSphere.setAttribute('id', 'leftSphere');
@@ -368,6 +377,8 @@ export default function StereoVideo(props) {
             leftSphere.setAttribute('geometry', 'primitive:sphere; radius:100; segmentsWidth: 60; segmentsHeight:40; thetaLength:180'); //r=100
             //leftSphere.setAttribute('material', 'shader:flat; src:#remotevideo; side:back');
             leftSphere.setAttribute('material', 'shader:flat; src:#stereo-left; side:back');
+            leftSphere.setAttribute('material', 'shader:flat; src:#remotevideo; side:back');
+            //leftSphere.setAttribute('material', 'shader:flat; src:#stereo-left; side:back');
             leftSphere.setAttribute('stereo', 'eye:left; mode: half;');
 
             const rightSphere = document.createElement('a-entity');
@@ -377,8 +388,11 @@ export default function StereoVideo(props) {
             rightSphere.setAttribute('geometry', 'primitive:sphere; radius:100; segmentsWidth: 60; segmentsHeight:40; thetaLength:180'); //r=100
             //rightSphere.setAttribute('material', 'shader:flat; src:#remotevideo; side:back');
             rightSphere.setAttribute('material', 'shader:flat; src:#stereo-right; side:back');
+            rightSphere.setAttribute('material', 'shader:flat; src:#remotevideo; side:back');
+            //rightSphere.setAttribute('material', 'shader:flat; src:#stereo-right; side:back');
             rightSphere.setAttribute('stereo', 'eye:right; mode: half;');
             rightSphere.setAttribute('visible', true);
+            
             
             if (set_RealSense) {
                 const videoPlane = document.createElement('a-plane');
