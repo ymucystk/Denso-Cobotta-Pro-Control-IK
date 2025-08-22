@@ -357,11 +357,6 @@ export default function StereoVideo(props) {
             assets.appendChild(remoteVideoRealSense);
 
             scene.appendChild(assets);
-            leftCanvas.setAttribute('id', 'stereo-left');
-            assets.appendChild(leftCanvas);
-            const rightCanvas = document.createElement('canvas');
-            rightCanvas.setAttribute('id', 'stereo-right');
-            assets.appendChild(rightCanvas);
 
             /*leftCanvas.setAttribute('id', 'stereo-left');
             assets.appendChild(leftCanvas);
@@ -375,8 +370,6 @@ export default function StereoVideo(props) {
             leftSphere.setAttribute('scale', '-1 1 1');
             leftSphere.setAttribute('position', '0 1.7 0');
             leftSphere.setAttribute('geometry', 'primitive:sphere; radius:100; segmentsWidth: 60; segmentsHeight:40; thetaLength:180'); //r=100
-            //leftSphere.setAttribute('material', 'shader:flat; src:#remotevideo; side:back');
-            leftSphere.setAttribute('material', 'shader:flat; src:#stereo-left; side:back');
             leftSphere.setAttribute('material', 'shader:flat; src:#remotevideo; side:back');
             //leftSphere.setAttribute('material', 'shader:flat; src:#stereo-left; side:back');
             leftSphere.setAttribute('stereo', 'eye:left; mode: half;');
@@ -386,8 +379,6 @@ export default function StereoVideo(props) {
             rightSphere.setAttribute('scale', '-1 1 1');
             rightSphere.setAttribute('position', '0 1.7 0');
             rightSphere.setAttribute('geometry', 'primitive:sphere; radius:100; segmentsWidth: 60; segmentsHeight:40; thetaLength:180'); //r=100
-            //rightSphere.setAttribute('material', 'shader:flat; src:#remotevideo; side:back');
-            rightSphere.setAttribute('material', 'shader:flat; src:#stereo-right; side:back');
             rightSphere.setAttribute('material', 'shader:flat; src:#remotevideo; side:back');
             //rightSphere.setAttribute('material', 'shader:flat; src:#stereo-right; side:back');
             rightSphere.setAttribute('stereo', 'eye:right; mode: half;');
