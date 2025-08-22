@@ -954,8 +954,10 @@ export default function Home(props) {
 
     console.log("rec_joints", robot_rotate)// これはVR側の offset 無しの角度
     //console.log("j3_rotate",input_rotate[2])
-
+    console.log("go getReal")
     const { target_pos, wrist_euler } = getReaultPosRot(robot_rotate) // これで target_pos が計算される
+    console.log("end getReal", target_pos, wrist_euler)
+
     //    console.log("Input -> Target Pose",target_pos)
     set_wrist_rot_org({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) }) // 手首の相対
     set_target_org((vr) => {
@@ -1324,6 +1326,7 @@ export default function Home(props) {
   // 各ジョイント各で Forward Kinematics
   // Tool の影響をちゃんと入れてないよね！
   function getReaultPosRot(all_joint_rot) {
+    console.log("getReaultPosRot")
     const { j1_rotate, j2_rotate, j3_rotate, j4_rotate, j5_rotate, j6_rotate } = all_joint_rot
     const new_m4 = new THREE.Matrix4().multiply(
       new THREE.Matrix4().makeRotationY(toRadian(j1_rotate)).setPosition(joint_pos.j1.x, joint_pos.j1.y, joint_pos.j1.z)
@@ -1344,6 +1347,7 @@ export default function Home(props) {
 
     const target_pos = new THREE.Vector3().applyMatrix4(new_m4)
     const wrist_euler = new THREE.Euler().setFromRotationMatrix(new_m4, order)
+    console.log("Calc:",target_pos)
     return { target_pos, wrist_euler }
   }
 
