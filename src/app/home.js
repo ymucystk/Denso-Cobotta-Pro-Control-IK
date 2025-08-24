@@ -306,14 +306,14 @@ export default function Home(props) {
 
   // VR モード終了時
   React.useEffect(() => {
-    if (!(props.appmode === AppMode.viewer) && !vr_mode) {
+    if (!(props.appmode === AppMode.viewer) && !(props.appmode === AppMode.monitor) && !vr_mode) {
       requestAnimationFrame(get_real_joint_rot)
     }
   }, [vr_mode])
   let lastRotate = [0, 0, 0, 0, 0, 0, 0]
 
   const get_real_joint_rot = () => {
-    if (!(props.appmode === AppMode.viewer)) {
+    if (!(props.appmode === AppMode.viewer) && !(props.appmode === AppMode.monitor)) {
       /*
       const isDiff = lastRotate.some((v, i) => v !== outputRotateRef.current[i])
       if (isDiff) {
@@ -912,7 +912,7 @@ export default function Home(props) {
     }
     //setTimeout(()=>{joint_slerp()},0)
 
-    if (props.appmode === AppMode.viewer) {
+    if (props.appmode === AppMode.viewer ) {
       const conv_result = outRotateConv(
         { j1_rotate, j2_rotate, j3_rotate, j4_rotate, j5_rotate, j6_rotate: normalize180(j6_rotate + tool_rotate) },
         [...outputRotateRef.current]
@@ -960,7 +960,7 @@ export default function Home(props) {
       j6_rotate: round(normalize180(input_rotate[5] - j6_Correct_value))
     }
 
-    console.log("rec_joints", robot_rotate)// これはVR側の offset 無しの角度
+//    console.log("rec_joints", robot_rotate)// これはVR側の offset 無しの角度
     //console.log("j3_rotate",input_rotate[2])
     const { target_pos, wrist_euler } = getReaultPosRot(robot_rotate) // これで target_pos が計算される
     //    console.log("end getReal", target_pos, wrist_euler)
@@ -1143,7 +1143,7 @@ export default function Home(props) {
               }
               if (firstReceiveJoint || tool_load_operation || put_down_box_operation) {
                 if (input_rotateRef.current.some((e, i) => e !== joints[i])) {
-                  console.log("receive joints from:", robotIDRef.current, joints)
+//                  console.log("receive joints from:", robotIDRef.current, joints)
                   set_input_rotate([...joints])
 
                   inputRotateFlg.current = true
@@ -1152,13 +1152,17 @@ export default function Home(props) {
             }
 
             if (firstReceiveJoint) {
-              firstReceiveJoint = false
-              window.setTimeout(() => {
-                console.log("Start to send movement!")
-                set_debug_message("Receive + go!")
-                receive_state = true; //
-                publishMQTT("dev/" + robotIDRef.current, JSON.stringify({ controller: "browser", devId: idtopic })) // 自分の topic を教える
-              }, 1000);
+
+              if(props.appmode !== AppMode.monitor){
+                firstReceiveJoint = false
+                window.setTimeout(() => {
+                  console.log("Start to send movement!")
+                  set_debug_message("Receive + go!")
+                  receive_state = true; //
+                  // ロボットに指令元を伝える
+                  publishMQTT("dev/" + robotIDRef.current, JSON.stringify({ controller: "browser", devId: idtopic })) // 自分の topic を教える
+                }, 1000);
+              }
             }
           }
 
@@ -2133,12 +2137,14 @@ export default function Home(props) {
 
             // ここからMQTT Start
             xrSession = this.el.renderer.xr.getSession();
-            xrSession.requestAnimationFrame(onXRFrameMQTT);
-            xrSession.requestAnimationFrame(onXRFrameRecordMQTT);
-            xrSession.addEventListener("end", () => {
-              window.requestAnimationFrame(get_real_joint_rot)
-            })
-            xrSession.requestAnimationFrame(get_real_joint_rot);
+            if (props.appmode != AppMode.monitor){
+              xrSession.requestAnimationFrame(onXRFrameMQTT);
+              xrSession.requestAnimationFrame(onXRFrameRecordMQTT);
+              xrSession.addEventListener("end", () => {
+                window.requestAnimationFrame(get_real_joint_rot)
+              })
+              xrSession.requestAnimationFrame(get_real_joint_rot);
+            }
 
             if (props.appmode === AppMode.practice) { // practice モードのカメラ位置
               set_c_pos_x(0)
@@ -2165,7 +2171,7 @@ export default function Home(props) {
             console.log('exit-vr')
 
             //            baseObject3D.rotateY(toRadian(vrModeAngle_ref.current * -1))
-
+/*
             const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
               y_vec_base, toRadian(vrModeAngle_ref.current * -1)
             ).multiply(
@@ -2177,9 +2183,9 @@ export default function Home(props) {
                 )
               )
             )
-
-            const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua, order)
-            set_wrist_rot({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) })
+*/
+//            const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua, order)
+//            set_wrist_rot({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) })
 
             /*
             const wk_m4 = new THREE.Matrix4().multiply(
@@ -2505,7 +2511,7 @@ export default function Home(props) {
       <>
         <a-scene scene shadow="type: pcf" xr-mode-ui={`enabled: ${!(props.appmode === AppMode.viewer) ? 'true' : 'false'}; XRMode: xr`}>
           {  // ステレオカメラ使うか
-            (props.appmode === AppMode.withCam || props.appmode === AppMode.withDualCam) ?
+            (props.appmode === AppMode.withCam || props.appmode === AppMode.withDualCam || props.appmode === AppMode.monitor) ?
               <StereoVideo rendered={rendered} set_rtcStats={set_rtcStats} stereo_visible='true'
                 appmode={props.appmode}
               /> : <></>
