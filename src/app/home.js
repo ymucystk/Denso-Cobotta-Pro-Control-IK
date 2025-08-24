@@ -294,7 +294,7 @@ export default function Home(props) {
     set_vrModeOffsetX(wk_vrModeOffsetX ? parseFloat(wk_vrModeOffsetX) : 0.55)
     const wk_toolName = getCookie('toolName')
     set_toolName(wk_toolName ? wk_toolName : "vgc10-1") // changeDefault to "vgc10-1" for DEMO
-
+//    set_toolName(wk_toolName ? wk_toolName : "Gripper") // changeDefault to "vgc10-1" for DEMO
   }, [])
 
   // VR モード終了時
@@ -406,6 +406,7 @@ export default function Home(props) {
   const set_target = (new_pos) => {
     //    console.log("SetTarget",new_pos)
     //let wk_new_pos = { ...new_pos }
+    // 表示用のターゲットを設定
     let disp_target_pos = new THREE.Vector3().applyMatrix4(
       new THREE.Matrix4().multiply(
         new THREE.Matrix4().makeRotationY(toRadian(vrModeAngle_ref.current))
@@ -2426,12 +2427,12 @@ export default function Home(props) {
           <Assets appmode={props.appmode} />
           {/*
           <RobotModel base_rotate={vrModeAngle_ref.current} {...robotProps} />
+          <Cursor3dp j_id="20" pos={{ x: 0, y: 0, z: 0 }} visible={true}>
+            <Cursor3dp j_id="21" pos={{ x: 0, y: 0, z: p15_16_len }} visible="true"></Cursor3dp>
+            <Cursor3dp j_id="22" pos={{ x: 0, y: -joint_pos.j5.y, z: 0 }} rot={{ x: 0, y: j1_rotate, z: 0 }} visible={true}></Cursor3dp>
+          </Cursor3dp>          
           */}
           <RobotModel base_rotate={0} {...robotProps} />
-          <Cursor3dp j_id="20" pos={{ x: 0, y: 0, z: 0 }} visible={cursor_vis}>
-            <Cursor3dp j_id="21" pos={{ x: 0, y: 0, z: p15_16_len }} visible={cursor_vis}></Cursor3dp>
-            <Cursor3dp j_id="22" pos={{ x: 0, y: -joint_pos.j5.y, z: 0 }} rot={{ x: 0, y: j1_rotate, z: 0 }} visible={cursor_vis}></Cursor3dp>
-          </Cursor3dp>
 
           {/*<!-- 全体のフィル（影は落とさない） -->*/}
           <a-entity light="type: hemisphere; color: #fff; groundColor: #efe; intensity: 0.3"></a-entity>
@@ -2589,7 +2590,7 @@ const RobotModel = (props) => {
                   </a-entity>
                   <Model_Tool {...props} />
                   {/*<a-cylinder color="crimson" height="0.1" radius="0.005" position={edit_pos(joint_pos.j7)}></a-cylinder>*/}
-                  <Cursor3dp j_id="15" visible={false} />
+                  <Cursor3dp j_id="15" visible={true} />
                 </a-entity>
               </a-entity>
               <Cursor3dp j_id="14" pos={{ x: joint_pos.j5.x, y: 0, z: 0 }} visible={cursor_vis} />
@@ -2609,15 +2610,21 @@ const Model_Tool = (props) => {
   const { j7_rotate, joint_pos: { j7: j7pos }, cursor_vis, box_vis, edit_pos } = props
   const Spacer = 0.03
   const Toolpos = [j7pos, { x: 0, y: 0, z: 0.01725 }, { x: 0, y: 0, z: 0.02845 }, { x: 0, y: 0, z: 0.02845 }, { x: 0, y: 0, z: 0.01725 }, { x: 0, y: 0, z: 0.0218 }]
-  const p16pos = [j7pos, { ...j7pos, z: j7pos.z + 0.12 + Spacer }, { ...j7pos, z: j7pos.z + 0.02 + Spacer },
-    { ...j7pos, z: j7pos.z + 0.095 + Spacer }, { ...j7pos, z: j7pos.z + 0.02 + Spacer }, { ...j7pos, z: j7pos.z + 0 + Spacer }]
+  
+  // ツール毎のTCPとの相対位置
+  const p16pos = [j7pos, 
+    { ...j7pos, z: j7pos.z + 0.12 + Spacer },
+    { ...j7pos, z: j7pos.z + 0.2 + Spacer }, // 
+    { ...j7pos, z: j7pos.z + 0.095 + Spacer },
+    { ...j7pos, z: j7pos.z + 0.02 + Spacer }, 
+    { ...j7pos, z: j7pos.z + 0 + Spacer }]
   const x = 36 / 90
   const finger_pos = ((j7_rotate * x) / 1000) + 0.0004
   const j8_r_pos = { x: finger_pos, y: 0, z: 0.11 }
   const j8_1_pos = { x: -finger_pos, y: 0, z: 0.11 }
   const wingman_spacer = { x: 0, y: 0, z: 0.17275 }
 
-  const return_table = [
+  const toolModel_table = [
     <>
       <a-entity j_id="100"></a-entity>
       <Cursor3dp j_id="16" pos={p16pos[0]} visible={cursor_vis} />
@@ -2633,9 +2640,9 @@ const Model_Tool = (props) => {
     </a-entity>,
     <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
       <a-entity gltf-model="#vgc10-1L" j_id="102" position={edit_pos(Toolpos[2])} rotation={`0 0 0`} model-opacity="0.8" shadow="cast: true">
-        {/*
-        <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${box_vis}`}></a-box>
-        */}
+        
+        <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${true}`}></a-box>
+        
         <Cursor3dp j_id="16" pos={p16pos[2]} visible={false} />
         <Cursor3dp j_id="86" pos={`${p16pos[2].x - 0.4} ${p16pos[2].y} ${p16pos[2].z}`} visible={false} />
       </a-entity>
@@ -2664,7 +2671,7 @@ const Model_Tool = (props) => {
   const { toolNameList, toolName } = props
   const findindex = toolNameList.findIndex((e) => e === toolName)
   if (findindex >= 0) {
-    return (return_table[findindex])
+    return (toolModel_table[findindex])
   }
   return null
 }

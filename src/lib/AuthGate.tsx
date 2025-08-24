@@ -38,19 +38,15 @@ export default function AuthGate({ noauth, children }: AuthGateProps) {
       if (user !== undefined && user.user != null) {
         const location = process.env.NEXT_BASE_PATH+pathname; // BASE_PATH もログに含める（Jaka か、わかるように）
         console.log("AuthGate:User:", user);
-        console.log("AuthGate:Log", location, 'login', user.user.kid, user.user.id, 'Login to ' + location, now.toLocaleString() + ":" + userUUID)
-        logEnebular(location, 'login', user.user.kid, user.user.id, 'Login to ' + location, now.toLocaleString() + " " + userUUID)
 
-        if (ALLOW_LIST.some((prefix)=> userUUID.startsWith(prefix))){
-          console.log("Allowed browser:",userUUID);
+        if (ALLOW_LIST.some((prefix)=> userUUID.startsWith(prefix)) || noauth){
+          console.log("Allowed browser:",userUUID, noauth);
+          console.log("AuthGate:Log", location, 'login', user.user.kid, user.user.id, 'Login to ' + location, now.toLocaleString() + ":" + userUUID)
+          logEnebular(location, 'login', user.user.kid, user.user.id, 'Login to ' + location, now.toLocaleString() + " " + userUUID)
         }else{
-          if (noauth){
-            console.log("No check browser for noauth practice:",userUUID)
-          }else{  
-            window.location.href = "https://"+ window.location.host+"/nonuser"
+          logEnebular(location, 'wrong_terminal', user.user.kid, user.user.id, 'Login to ' + location, now.toLocaleString() + " " + userUUID+" no registration failed!")
             // 無許可のブラウザは PIN入力に戻る（なので、使えないｗ
-            // ）
-          }
+           window.location.href = "https://"+ window.location.host+"/nonuser"          
         }
 
       } else {
