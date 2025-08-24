@@ -21,6 +21,10 @@ export async function GET(req : NextRequest) {
 //    console.log(req.url)
  //   console.log("host is",req.headers.get('host'))
     const url = new URL("https://"+req.headers.get('host'));
+
+    const MetaworkType = req.headers.get("X-Metawork-Type");
+    console.log("MetaworkType", MetaworkType)
+
   //  console.log("URL is :",url)
     const redirectError = (msg: string) =>
         NextResponse.redirect(new URL(`/error?err=${encodeURIComponent(msg)}`, url.origin));    console.log('token:', token);
@@ -56,7 +60,7 @@ export async function GET(req : NextRequest) {
     // トークンが有効な場合、AuthContextを設定すべき
     // ここでは、metawork_tokenをクッキーに保存して、/practiceへリダイレクト
 
-    const res = NextResponse.redirect(new URL("/withDualCam", url.origin));
+    const res = NextResponse.redirect(new URL("/withDualCam/?type="+MetaworkType, url.origin));
 
     res.cookies.set("worker_token", metawork_token, {
         httpOnly: true,

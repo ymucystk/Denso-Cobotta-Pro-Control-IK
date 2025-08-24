@@ -2,7 +2,8 @@
 // /components/AuthGate.tsx
 import React, { PropsWithChildren, useEffect } from "react";
 import { useAuth } from "../context/auth";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter , useSearchParams} from "next/navigation";
+import { connectMQTT, mqttclient, idtopic, subscribeMQTT, publishMQTT, codeType } from '../lib/MetaworkMQTT'
 
 import { logEnebular } from "./logEnebular";
 import { userUUID } from './cookie_id';
@@ -18,12 +19,13 @@ export default function AuthGate({ noauth, children }: AuthGateProps) {
   const user = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const metaworkType = searchParams.get("type") || ""; // ?id=123 → "123"
 
   // Enabular に post したい
   //  logEnebular(pathName,'login','',
 
-  const [loaded, set_loaded] = React.useState(false);
-
+  const [loaded, set_loaded] = React.useState(false);// ログイン時の状態遷移対応
 
   useEffect(() => {
     if (user === null ) {
@@ -36,13 +38,17 @@ export default function AuthGate({ noauth, children }: AuthGateProps) {
       //    console.log('AuthGate user:', user, userUUID);
       const now = new Date();
       if (user !== undefined && user.user != null) {
-        const location = process.env.NEXT_BASE_PATH+pathname; // BASE_PATH もログに含める（Jaka か、わかるように）
+        const location = process.env.NEXT_BASE_PATH+pathname+metaworkType; // BASE_PATH もログに含める（Jaka か、わかるように）さらにタイプも。
         console.log("AuthGate:User:", user);
 
         if (ALLOW_LIST.some((prefix)=> userUUID.startsWith(prefix)) || noauth){
           console.log("Allowed browser:",userUUID, noauth);
           console.log("AuthGate:Log", location, 'login', user.user.kid, user.user.id, 'Login to ' + location, now.toLocaleString() + ":" + userUUID)
           logEnebular(location, 'login', user.user.kid, user.user.id, 'Login to ' + location, now.toLocaleString() + " " + userUUID)
+          // MQTT にもタイプ残したいよね。。。
+          const userString = user.user.kid+"@"+location
+          const mq = connectMQTT(null, userString);
+
         }else{
           logEnebular(location, 'wrong_terminal', user.user.kid, user.user.id, 'Login to ' + location, now.toLocaleString() + " " + userUUID+" no registration failed!")
             // 無許可のブラウザは PIN入力に戻る（なので、使えないｗ

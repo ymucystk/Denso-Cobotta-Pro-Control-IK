@@ -26,6 +26,7 @@ const joint_pos = {
   j4: { x: -0.03, y: 0.39, z: 0 },
   j5: { x: 0, y: 0, z: 0 },
   j6: { x: 0.15, y: 0, z: 0 },
+//  j7: { x: 0, y: 0, z: 0.18 },
   j7: { x: 0, y: 0, z: 0.18 },
 }
 const j1_limit = 270 - 10
@@ -274,7 +275,7 @@ export default function Home(props) {
 
   const [target, set_target_org, target_ref] = useRefState(set_update, real_target)
   const [disp_target, set_disp_target, disp_target_ref] = useRefState(set_update, { x: 0, y: 0, z: 0 })
-  const [p15_16_len, set_p15_16_len] = useRefState(set_update, joint_pos.j7.z + 0.14) // これが重要（エンドエフェクタ (TCP)の位置
+  const [p15_16_len, set_p15_16_len] = useRefState(set_update, joint_pos.j7.z +0.23) // これが重要（エンドエフェクタ (TCP)の位置
   const [p14_maxlen, set_p14_maxlen] = useRefState(set_update, 0)
 
   const [do_target_update, set_do_target_update] = useRefState(set_update, 0)
@@ -1019,11 +1020,19 @@ export default function Home(props) {
         return;
       }
       //サブスクライブするトピックの登録
-      console.log("Start connectMQTT!!")
-      window.mqttClient = connectMQTT(requestRobot);
-      subscribeMQTT([
-        MQTT_DEVICE_TOPIC
-      ]);
+//      console.log("Start connectMQTT!!")
+      if (mqttclient != null){
+        window.mqttClient = mqttclient;
+        subscribeMQTT([
+          MQTT_DEVICE_TOPIC
+        ]);
+        requestRobot(mqttclient);
+      }else{
+        window.mqttClient = connectMQTT(requestRobot);
+        subscribeMQTT([
+          MQTT_DEVICE_TOPIC
+        ]);
+      }
       //      console.log("Subscribe:",MQTT_DEVICE_TOPIC);
       //        MQTT_CTRL_TOPIC  // MQTT Version5 なので、 noLocal が効くはず
 
