@@ -576,7 +576,7 @@ if (!('stereo' in AFRAME.components)) {
                 object3D.geometry = geometry;
                 this.videoEl = document.getElementById('remotevideo');
                 this.el.setAttribute('material', { src: this.videoEl });
-                                this.videoEl.play();
+                //                this.videoEl.play();
             } else {
                 this.video_click_event_added = true;
             }
