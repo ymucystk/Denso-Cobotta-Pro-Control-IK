@@ -14,6 +14,7 @@ const MQTT_REQUEST_TOPIC = "mgr/request";
 const MQTT_DEVICE_TOPIC = "dev/" + idtopic;
 const MQTT_CTRL_TOPIC = "control/" + idtopic; // 自分のIDに制御を送信
 const MQTT_ROBOT_STATE_TOPIC = "robot/";
+const MQTT_AIST_LOGGER_TOPIC = "AIST/logger/Cobotta";
 let publish = true //VRモードに移行するまではMQTTをpublishしない（かつ、ロボット情報を取得するまで）
 let receive_state = false // ロボットの状態を受信してるかのフラグ
 
@@ -129,7 +130,6 @@ let fallingSpeed = 0 // 落下中の荷物の速度
 let carryLuggage = false
 let boxpos_x = -0.2; // luggage-id 荷物の初期位置
 
-
 // 再レンダリングしなくて値を更新する（かつ set_update で再レンダリングさせられる）
 function useRefState(updateFunc = undefined, initialValue = undefined) {
   const ref = React.useRef(initialValue);
@@ -150,6 +150,12 @@ export default function Home(props) {
   const [update, set_update] = React.useState(0)
   const [rendered, set_rendered] = useRefState(set_update, false)
   const [target_error, set_target_error] = useRefState(set_update, false)
+  
+  const RightRef = React.useRef(null);
+  const CameraRef = React.useRef(null);
+  const aButtonRef = React.useRef(false);
+  const bButtonRef = React.useRef(false);
+  const axisRef    = React.useRef({x:0, y:0});
 
   //  const [controller_reframe, set_controller_reframe]  = React.useState(new THREE.Euler(0,0,0,order))
   const [controller_reframe, set_controller_reframe] = React.useState(new THREE.Quaternion())
@@ -1988,6 +1994,7 @@ export default function Home(props) {
 
 
           this.el.addEventListener('bbuttondown', (evt) => {
+            bButtonRef.current = true;
             console.log("bbuttondown")
             if (robotOperation) {
               robotOperation = false
@@ -2000,6 +2007,18 @@ export default function Home(props) {
               }, 1000)
             }
             set_update((v) => v = v + 1)
+          });
+          this.el.addEventListener('bbuttonup', () => {
+            bButtonRef.current = false;
+            set_update(v => v + 1);
+          });
+          this.el.addEventListener('abuttondown', () => {
+            aButtonRef.current = true;
+            set_update(v => v + 1);
+          });
+          this.el.addEventListener('abuttonup', () => {
+            aButtonRef.current = false;
+            set_update(v => v + 1);
           });
         },
         tick: function (time) {
@@ -2106,6 +2125,7 @@ export default function Home(props) {
             // ここからMQTT Start
             xrSession = this.el.renderer.xr.getSession();
             xrSession.requestAnimationFrame(onXRFrameMQTT);
+            xrSession.requestAnimationFrame(onXRFrameRecordMQTT);
             xrSession.addEventListener("end", () => {
               window.requestAnimationFrame(get_real_joint_rot)
             })
@@ -2246,6 +2266,70 @@ export default function Home(props) {
 
   }
 
+  const onXRFrameRecordMQTT = (time, frame) => {
+    // for next frame
+    if (props.appmode === AppMode.viewer) {
+      frame.session.requestAnimationFrame(onXRFrameRecordMQTT);
+    } else if (vrModeRef.current) {
+      frame.session.requestAnimationFrame(onXRFrameRecordMQTT);
+    }
+
+    if ((mqttclient !== null) && publish && receive_state && robotOperation) {// 状態を受信していないと、送信しない
+      const addKey = {}
+      if (tool_change_value !== undefined) {
+        addKey.tool_change = tool_change_value
+      }
+      if (put_down_box_value !== undefined) {
+        addKey.put_down_box = put_down_box_value
+      }
+
+      const rc = RightRef?.current || null;
+      const ctrlPos = rc?.object3D?.position || null;
+      const ctrlQua = rc?.object3D?.quaternion || null;
+
+      //コントローラーのインプット
+      const ctrlInputs = {
+        grip: gripRef.current,
+        gripvalue: j7_rotate_ref.current,
+        trigger: trigger_on,
+        a: aButtonRef.current,
+        b: bButtonRef.current,
+        axis: axisRef.current,
+      };
+
+      const cam = CameraRef?.current || null;
+      const hmdPos = cam?.object3D?.position || null;
+      const hmdQua = cam?.object3D?.quaternion || null;
+
+      //コントローラーの値
+      const controllerBlock = (ctrlPos && ctrlQua) ? {
+        pos: { x: ctrlPos.x, y: ctrlPos.y, z: ctrlPos.z },
+        qua: { x: ctrlQua.x, y: ctrlQua.y, z: ctrlQua.z, w: ctrlQua.w },
+        inputs: ctrlInputs,
+      } : undefined;
+
+      //ヘッドセットの値
+      const headsetBlock = (hmdPos && hmdQua) ? {
+        pos: { x: hmdPos.x, y: hmdPos.y, z: hmdPos.z },
+        qua: { x: hmdQua.x, y: hmdQua.y, z: hmdQua.z, w: hmdQua.w }
+      } : undefined;
+
+      // MQTT 送信
+      const ctl_json = JSON.stringify({
+        time: Date.now(),
+        joints: outputRotateRef.current,
+        grip:  gripRef.current,
+        controller: controllerBlock,
+        headset: headsetBlock,
+        ...addKey
+      });
+
+      // 送信前ログ
+      //console.log("[MQTT SEND Record]", ctl_obj);
+
+      publishMQTT(MQTT_AIST_LOGGER_TOPIC, ctl_json);
+    }
+  };
 
   const edit_pos = (posxyz) => `${posxyz.x} ${posxyz.y} ${posxyz.z}`
   const edit_pos_offset = (posxyz) => `${posxyz.x + vrModeOffsetX_ref.current} ${posxyz.y} ${posxyz.z}`
@@ -2418,10 +2502,17 @@ export default function Home(props) {
               /> : <></>
           }
 
+          <a-entity
+            oculus-touch-controls="hand: right" vr-controller-right ref={RightRef} visible="false"
+            event-set__abuttondown="_event: abuttondown; _target: #root; _emit: abutton-down"
+            event-set__abuttonup="_event: abuttonup; _target: #root; _emit: abutton-up"
+            event-set__bbuttondown="_event: bbuttondown; _target: #root; _emit: bbutton-down"
+            event-set__bbuttonup="_event: bbuttonup; _target: #root; _emit: bbutton-up"
+            />
+          {/*
           <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${false}`}>
             <Cursor3dp j_id="99" pos={{ x: 0, y: 0, z: 0 }} visible={false}>   </Cursor3dp>
           </a-entity>
-          {/*
           <Cursor3dp j_id="98" pos={{ x: -0.15, y: 1, z: 0.2 }} rot={conv_rot(controller_reframe)} visible={true}>   </Cursor3dp>
           <Cursor3dp j_id="98" pos={{ x: -0.15, y: 0.8, z: 0.2 }} rot={conv_rot(controller_reframe1)} visible={true}>   </Cursor3dp>
 
@@ -2464,7 +2555,7 @@ export default function Home(props) {
           */}
           <a-entity id="rig" position={`${c_pos_x} ${c_pos_y} ${c_pos_z}`} rotation={`${c_deg_x} ${c_deg_y} ${c_deg_z}`}>
             {/* for stereo camera */}
-            <a-camera id="camera" stereocam="eye:left" position="0 0 0">
+            <a-camera id="camera" stereocam="eye:left" position="0 0 0" ref={CameraRef}>
               <a-entity id="UIBack">
 
               </a-entity>
