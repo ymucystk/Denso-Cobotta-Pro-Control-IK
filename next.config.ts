@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
 //  assetPrefix: "/cobotta",
 //  basePath: "/cobotta",
+  env: {
+    NEXT_BASE_PATH: "",
+  }
 };
 
 export default nextConfig;
