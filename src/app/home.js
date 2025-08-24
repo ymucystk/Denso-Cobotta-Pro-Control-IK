@@ -268,7 +268,7 @@ export default function Home(props) {
 
   const [target, set_target_org, target_ref] = useRefState(set_update, real_target)
   const [disp_target, set_disp_target, disp_target_ref] = useRefState(set_update, { x: 0, y: 0, z: 0 })
-  const [p15_16_len, set_p15_16_len] = useRefState(set_update, joint_pos.j7.z + 0.14 ) // これが重要（エンドエフェクタ (TCP)の位置
+  const [p15_16_len, set_p15_16_len] = useRefState(set_update, joint_pos.j7.z + 0.14) // これが重要（エンドエフェクタ (TCP)の位置
   const [p14_maxlen, set_p14_maxlen] = useRefState(set_update, 0)
 
   const [do_target_update, set_do_target_update] = useRefState(set_update, 0)
@@ -276,7 +276,7 @@ export default function Home(props) {
 
   const [debug_message, set_debug_message] = React.useState("")
   const add_debug_message = (message) => {
-    set_debug_message((prev) => (prev + " " + message ))
+    set_debug_message((prev) => (prev + " " + message))
   }
 
   function getCookie(name) {
@@ -294,7 +294,7 @@ export default function Home(props) {
     set_vrModeOffsetX(wk_vrModeOffsetX ? parseFloat(wk_vrModeOffsetX) : 0.55)
     const wk_toolName = getCookie('toolName')
     set_toolName(wk_toolName ? wk_toolName : "vgc10-1") // changeDefault to "vgc10-1" for DEMO
-//    set_toolName(wk_toolName ? wk_toolName : "Gripper") // changeDefault to "vgc10-1" for DEMO
+    //    set_toolName(wk_toolName ? wk_toolName : "Gripper") // changeDefault to "vgc10-1" for DEMO
   }, [])
 
   // VR モード終了時
@@ -348,12 +348,12 @@ export default function Home(props) {
             const error_info = conv_result.error_info
             for (let i = 0; i < error_info.length; i++) {
               if (error_info[i].check_value >= 180) {
-                console.log(`j${error_info[i].joint}_rotate`, error_info[i].rotate, normalize180(error_info[i].rotate))
+                console.log(`Out of 180: j${error_info[i].joint}_rotate`, error_info[i].rotate, normalize180(error_info[i].rotate))
                 conv_result[`j${error_info[i].joint}_rotate`] = normalize180(error_info[i].rotate)
               } else {
                 const check_rot = normalize180(error_info[i].rotate)
                 if (Math.abs(check_rot) < error_info[i].check_value) {
-                  console.log(`j${error_info[i].joint}_rotate`, error_info[i].rotate, check_rot)
+                  console.log(`Out of check: j${error_info[i].joint}_rotate`, error_info[i].rotate, check_rot)
                   conv_result[`j${error_info[i].joint}_rotate`] = check_rot
                 }
               }
@@ -646,7 +646,7 @@ export default function Home(props) {
       }
 
       // ここいる？
-      
+
       if (inputRotateFlg.current) {// 入力１回に１どだけ
         inputRotateFlg.current = false
         console.log("before robot rotate ", outputRotateRef.current)
@@ -654,7 +654,7 @@ export default function Home(props) {
         set_outputRotate([...input_rotateRef.current])
         set_checkRotate([...input_rotateRef.current])
       }
-      
+
     }
   }
   //}, [now])
@@ -884,8 +884,8 @@ export default function Home(props) {
         }
       }
     }
-    const ret = 
-     {
+    const ret =
+    {
       j1_rotate: result_rot[0],
       j2_rotate: result_rot[1],
       j3_rotate: result_rot[2],
@@ -955,9 +955,8 @@ export default function Home(props) {
 
     console.log("rec_joints", robot_rotate)// これはVR側の offset 無しの角度
     //console.log("j3_rotate",input_rotate[2])
-    console.log("go getReal")
     const { target_pos, wrist_euler } = getReaultPosRot(robot_rotate) // これで target_pos が計算される
-    console.log("end getReal", target_pos, wrist_euler)
+    //    console.log("end getReal", target_pos, wrist_euler)
 
     //    console.log("Input -> Target Pose",target_pos)
     set_wrist_rot_org({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) }) // 手首の相対
@@ -985,7 +984,7 @@ export default function Home(props) {
 
   React.useEffect(() => {
     if (rendered) {
-      console.log("Do target update", target)
+      //      console.log("Do target update", target)
       target_update()
       if (p51_object) p51_object.quaternion.copy(get_j5_quaternion())
     }
@@ -1288,13 +1287,15 @@ export default function Home(props) {
     if (rendered) {
       set_do_target_update((prev) => prev + 1) // increment the counter to trigger target_update
 
+      set_test_pos({ ...target })
 
       // target が変更されたら、 disp_target も変更
       const disp_target_pos = new THREE.Vector3().applyMatrix4(
         new THREE.Matrix4().multiply(
           new THREE.Matrix4().makeRotationY(toRadian(vrModeAngle_ref.current))
         ).multiply(
-          new THREE.Matrix4().setPosition(target_ref.current.x, target_ref.current.y, target_ref.current.z)
+          //          new THREE.Matrix4().setPosition(target_ref.current.x, target_ref.current.y, target_ref.current.z)
+          new THREE.Matrix4().setPosition(target.x, target.y, target.z)
         )
       );
       // ターゲットを変えちゃいけない（仮想ターゲットをだすべき！）
@@ -1327,7 +1328,7 @@ export default function Home(props) {
   // 各ジョイント各で Forward Kinematics
   // Tool の影響をちゃんと入れてないよね！
   function getReaultPosRot(all_joint_rot) {
-    console.log("getReaultPosRot")
+    //console.log("getReaultPosRot")
     const { j1_rotate, j2_rotate, j3_rotate, j4_rotate, j5_rotate, j6_rotate } = all_joint_rot
     const new_m4 = new THREE.Matrix4().multiply(
       new THREE.Matrix4().makeRotationY(toRadian(j1_rotate)).setPosition(joint_pos.j1.x, joint_pos.j1.y, joint_pos.j1.z)
@@ -1342,13 +1343,13 @@ export default function Home(props) {
     ).multiply(
       new THREE.Matrix4().makeRotationZ(toRadian(j6_rotate)).setPosition(joint_pos.j6.x, joint_pos.j6.y, joint_pos.j6.z)
     ).multiply(
-      new THREE.Matrix4().setPosition(joint_pos.j7.x, joint_pos.j7.y, joint_pos.j7.z + p15_16_len)
+      new THREE.Matrix4().setPosition(joint_pos.j7.x, joint_pos.j7.y, p15_16_len)
     )
 
 
     const target_pos = new THREE.Vector3().applyMatrix4(new_m4)
     const wrist_euler = new THREE.Euler().setFromRotationMatrix(new_m4, order)
-    console.log("Calc:",target_pos)
+    //    console.log("Calc:",target_pos)
     return { target_pos, wrist_euler }
   }
 
@@ -1368,7 +1369,6 @@ export default function Home(props) {
     j6_error = false
 
     for (let i = 0; i < 10; i = i + 1) {
-      //      set_test_pos({ ...shift_target })
       result_rotate = get_all_rotate(shift_target, wrist_direction, wrist_angle)
       if (result_rotate.dsp_message) {
         dsp_message = result_rotate.dsp_message
@@ -1664,11 +1664,14 @@ export default function Home(props) {
     return { k: kakudo, t: takasa }
   }
 
+  // ここで大きさ変更を進めている！
   React.useEffect(() => {
     if (rendered) {
       const p15_pos = new THREE.Vector3().applyMatrix4(p15_object.matrix)
       const p16_pos = new THREE.Vector3().applyMatrix4(p16_object.matrix)
-      set_p15_16_len(distance(p15_pos, p16_pos))
+      const dist = distance(p15_pos, p16_pos)
+      console.log("p15_16 distance", dist)
+      set_p15_16_len(dist)
     }
   }, [p16_object.matrix.elements[14]])
 
@@ -1891,94 +1894,99 @@ export default function Home(props) {
             //gripRef.current = false;
           });
 
-          this.el.addEventListener('thumbstickdown', (evt) => {
-            if (tool_load_operation || put_down_box_operation) return
-            if (tool_menu_on) {
-              if (tool_menu_idx < tool_menu_list.length) {
-                if ((tool_menu_idx + 1) !== tool_current_value) {
-                  tool_change_value = (tool_menu_idx + 1)
-                  tool_current_value = (tool_menu_idx + 1)
-                  //set_toolName(tool_menu_list[tool_menu_idx])
-                  tool_load_operation = true
+          // デモでは thumbstickを無効に
+          if (false) {
+            this.el.addEventListener('thumbstickdown', (evt) => {
+              if (tool_load_operation || put_down_box_operation) return
+              if (tool_menu_on) {
+                if (tool_menu_idx < tool_menu_list.length) {
+                  if ((tool_menu_idx + 1) !== tool_current_value) {
+                    tool_change_value = (tool_menu_idx + 1)
+                    tool_current_value = (tool_menu_idx + 1)
+                    //set_toolName(tool_menu_list[tool_menu_idx])
+                    tool_load_operation = true
 
-                  tool_load_timeout_id = setTimeout(() => {
-                    tool_load_operation = false
-                    vrControllEnd()
-                    if (trigger_on) {
-                      vrControllStart()
-                    }
-                    set_update((v) => v = v + 1)
-                  }, 60000) // 60秒間は操作しない(暫定タイマー)
-                } else {
-                  //ツール変更なし
-                  vrControllEnd()
-                  if (trigger_on) {
-                    vrControllStart()
-                  }
-                }
-              } else
-                if (tool_menu_idx === add_menu_1) {
-                  console.log("putDownBox")
-                  put_down_box_value = 1
-                  put_down_box_operation = true
-                  tool_menu_idx = save_tool_menu_idx
-
-                  put_down_box_timeout_id = setTimeout(() => {
-                    put_down_box_operation = false
-                    vrControllEnd()
-                    if (trigger_on) {
-                      vrControllStart()
-                    }
-                    set_update((v) => v = v + 1)
-                  }, 60000) // 60秒間は操作しない
-                } else {
-                  console.log("cancel tool menu")
-                  tool_menu_idx = save_tool_menu_idx
-                  vrControllEnd()
-                  if (trigger_on) {
-                    vrControllStart()
-                  }
-                }
-            } else {  // tool_menu_off
-              if (trigger_on) {
-                vrControllEnd()
-              }
-              save_tool_menu_idx = tool_menu_idx
-              vrControllStart()
-            }
-            tool_menu_on = !tool_menu_on
-            set_update((v) => v = v + 1)
-          });
-          this.el.addEventListener('thumbstickup', (evt) => {
-            tool_change_value = undefined
-            put_down_box_value = undefined
-            set_update((v) => v = v + 1)
-          });
-          this.el.addEventListener('thumbstickmoved', (evt) => {
-            if (tool_menu_on) {
-              if (evt.detail.y === 0 || Math.abs(evt.detail.y) > 0.85) {
-                if (save_thumbstickmoved === 0 && evt.detail.y !== 0) {
-                  if (evt.detail.y > 0) {
-                    tool_menu_idx = tool_menu_idx + 1
-                    if (tool_menu_idx > tool_menu_max) tool_menu_idx = tool_menu_max
+                    tool_load_timeout_id = setTimeout(() => {
+                      tool_load_operation = false
+                      vrControllEnd()
+                      if (trigger_on) {
+                        vrControllStart()
+                      }
+                      set_update((v) => v = v + 1)
+                    }, 60000) // 60秒間は操作しない(暫定タイマー)
                   } else {
-                    tool_menu_idx = tool_menu_idx - 1
-                    if (tool_menu_idx < 0) tool_menu_idx = 0
+                    //ツール変更なし
+                    vrControllEnd()
+                    if (trigger_on) {
+                      vrControllStart()
+                    }
                   }
                 } else
-                  if (save_thumbstickmoved < 0 && evt.detail.y > 0) {
-                    tool_menu_idx = tool_menu_idx + 1
-                    if (tool_menu_idx > tool_menu_max) tool_menu_idx = tool_menu_max
-                  } else
-                    if (save_thumbstickmoved > 0 && evt.detail.y < 0) {
+                  if (tool_menu_idx === add_menu_1) {
+                    console.log("putDownBox")
+                    put_down_box_value = 1
+                    put_down_box_operation = true
+                    tool_menu_idx = save_tool_menu_idx
+
+                    put_down_box_timeout_id = setTimeout(() => {
+                      put_down_box_operation = false
+                      vrControllEnd()
+                      if (trigger_on) {
+                        vrControllStart()
+                      }
+                      set_update((v) => v = v + 1)
+                    }, 60000) // 60秒間は操作しない
+                  } else {
+                    console.log("cancel tool menu")
+                    tool_menu_idx = save_tool_menu_idx
+                    vrControllEnd()
+                    if (trigger_on) {
+                      vrControllStart()
+                    }
+                  }
+              } else {  // tool_menu_off
+                if (trigger_on) {
+                  vrControllEnd()
+                }
+                save_tool_menu_idx = tool_menu_idx
+                vrControllStart()
+              }
+              tool_menu_on = !tool_menu_on
+              set_update((v) => v = v + 1)
+            });
+            this.el.addEventListener('thumbstickup', (evt) => {
+              tool_change_value = undefined
+              put_down_box_value = undefined
+              set_update((v) => v = v + 1)
+            });
+            this.el.addEventListener('thumbstickmoved', (evt) => {
+              if (tool_menu_on) {
+                if (evt.detail.y === 0 || Math.abs(evt.detail.y) > 0.85) {
+                  if (save_thumbstickmoved === 0 && evt.detail.y !== 0) {
+                    if (evt.detail.y > 0) {
+                      tool_menu_idx = tool_menu_idx + 1
+                      if (tool_menu_idx > tool_menu_max) tool_menu_idx = tool_menu_max
+                    } else {
                       tool_menu_idx = tool_menu_idx - 1
                       if (tool_menu_idx < 0) tool_menu_idx = 0
                     }
-                save_thumbstickmoved = evt.detail.y
+                  } else
+                    if (save_thumbstickmoved < 0 && evt.detail.y > 0) {
+                      tool_menu_idx = tool_menu_idx + 1
+                      if (tool_menu_idx > tool_menu_max) tool_menu_idx = tool_menu_max
+                    } else
+                      if (save_thumbstickmoved > 0 && evt.detail.y < 0) {
+                        tool_menu_idx = tool_menu_idx - 1
+                        if (tool_menu_idx < 0) tool_menu_idx = 0
+                      }
+                  save_thumbstickmoved = evt.detail.y
+                }
               }
-            }
-            set_update((v) => v = v + 1)
-          });
+              set_update((v) => v = v + 1)
+            });
+          }
+
+
           this.el.addEventListener('bbuttondown', (evt) => {
             console.log("bbuttondown")
             if (robotOperation) {
@@ -2213,8 +2221,8 @@ export default function Home(props) {
         frame.session.requestAnimationFrame(onXRFrameMQTT);
       }
     }
-//    add_debug_message(".")
-//    set_debug_message(`${inputRotateFlg.current}`)
+    //    add_debug_message(".")
+    //    set_debug_message(`${inputRotateFlg.current}`)
 
     if ((mqttclient !== null) && publish && receive_state && robotOperation) {// 状態を受信していないと、送信しない
       const addKey = {}
@@ -2460,22 +2468,22 @@ export default function Home(props) {
               <a-entity id="UIBack">
 
               </a-entity>
-              {/*
+              {/**/}
               <a-entity
                 text={`value: ${rtc_message}; color: gray; backgroundColor: rgb(31, 219, 131); border: #000000; whiteSpace: pre`}
                 position="0 0.35 -1.4"
-              />*/}
+              />
             </a-camera>
           </a-entity>
           <a-sphere position={edit_pos_offset(disp_target)} scale="0.012 0.012 0.012" color={target_error ? "red" : "yellow"} visible={`${!(props.appmode === AppMode.viewer)}`}></a-sphere>
           {/* 
-            <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${box_vis}`}></a-box> 
+            <a-box position={edit_pos(test_pos)} scale="0.03 0.03 0.03" color="green" visible={`${true}`}></a-box> 
             <a-cylinder j_id="51" color="red" height="0.1" radius="0.005" position={edit_pos({x:0.3,y:0.3,z:0.3})}></a-cylinder>
-          */}
           <Line pos1={{ x: 1, y: 0.0001, z: 1 }} pos2={{ x: -1, y: 0.0001, z: -1 }} visible={cursor_vis} color="white"></Line>
           <Line pos1={{ x: 1, y: 0.0001, z: -1 }} pos2={{ x: -1, y: 0.0001, z: 1 }} visible={cursor_vis} color="white"></Line>
           <Line pos1={{ x: 1, y: 0.0001, z: 0 }} pos2={{ x: -1, y: 0.0001, z: 0 }} visible={cursor_vis} color="white"></Line>
           <Line pos1={{ x: 0, y: 0.0001, z: 1 }} pos2={{ x: 0, y: 0.0001, z: -1 }} visible={cursor_vis} color="white"></Line>
+          */}
           <Toolmenu />
           {(props.appmode === AppMode.practice) ? <>
             <a-entity luggage-id="box1" geometry="primitive: box; width: 0.07; height: 0.07; depth: 0.07;"
@@ -2489,7 +2497,7 @@ export default function Home(props) {
 
           </>
             : <></>}
-            {/* debug 用インジケータ 
+          {/* debug 用インジケータ 
             <a-entity position="-0.3 1.0 -0.5" rotation="0 0 0" geometry="primitive: plane; width: 1.2; height: 0.2;" material="color: #ccddcc; opacity: 0.7;" visible={`${true}`}>
               <a-entity text={`value: ${debug_message}; color: black; align:center`} position="0 0 0.0001"></a-entity>
             </a-entity>
@@ -2590,7 +2598,7 @@ const RobotModel = (props) => {
                   </a-entity>
                   <Model_Tool {...props} />
                   {/*<a-cylinder color="crimson" height="0.1" radius="0.005" position={edit_pos(joint_pos.j7)}></a-cylinder>*/}
-                  <Cursor3dp j_id="15" visible={true} />
+                  <Cursor3dp j_id="15" visible={false} />
                 </a-entity>
               </a-entity>
               <Cursor3dp j_id="14" pos={{ x: joint_pos.j5.x, y: 0, z: 0 }} visible={cursor_vis} />
@@ -2610,13 +2618,13 @@ const Model_Tool = (props) => {
   const { j7_rotate, joint_pos: { j7: j7pos }, cursor_vis, box_vis, edit_pos } = props
   const Spacer = 0.03
   const Toolpos = [j7pos, { x: 0, y: 0, z: 0.01725 }, { x: 0, y: 0, z: 0.02845 }, { x: 0, y: 0, z: 0.02845 }, { x: 0, y: 0, z: 0.01725 }, { x: 0, y: 0, z: 0.0218 }]
-  
+
   // ツール毎のTCPとの相対位置
-  const p16pos = [j7pos, 
+  const p16pos = [j7pos,
     { ...j7pos, z: j7pos.z + 0.12 + Spacer },
     { ...j7pos, z: j7pos.z + 0.2 + Spacer }, // 
     { ...j7pos, z: j7pos.z + 0.095 + Spacer },
-    { ...j7pos, z: j7pos.z + 0.02 + Spacer }, 
+    { ...j7pos, z: j7pos.z + 0.02 + Spacer },
     { ...j7pos, z: j7pos.z + 0 + Spacer }]
   const x = 36 / 90
   const finger_pos = ((j7_rotate * x) / 1000) + 0.0004
@@ -2640,9 +2648,9 @@ const Model_Tool = (props) => {
     </a-entity>,
     <a-entity gltf-model="#wingman" position={edit_pos(wingman_spacer)} rotation={`0 0 0`} model-opacity="0.8">
       <a-entity gltf-model="#vgc10-1L" j_id="102" position={edit_pos(Toolpos[2])} rotation={`0 0 0`} model-opacity="0.8" shadow="cast: true">
-        
-        <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${true}`}></a-box>
-        
+
+        <a-box color="yellow" scale="0.02 0.02 0.02" position={edit_pos(p16pos[2])} visible={`${box_vis}`}></a-box>
+
         <Cursor3dp j_id="16" pos={p16pos[2]} visible={false} />
         <Cursor3dp j_id="86" pos={`${p16pos[2].x - 0.4} ${p16pos[2].y} ${p16pos[2].z}`} visible={false} />
       </a-entity>

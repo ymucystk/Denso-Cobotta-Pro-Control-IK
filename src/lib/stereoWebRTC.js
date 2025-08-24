@@ -105,7 +105,7 @@ export default function StereoVideo(props) {
                 
             });
             recvonly.on('notify', (message, transportType) => {
-//                console.log("Notify Event from sora:", message, transportType);
+                console.log("Notify Event from sora:", message, transportType);
                 
             });
             recvonly.on('timeout', () => {
@@ -168,8 +168,7 @@ export default function StereoVideo(props) {
                 }
             });
             recvonly.connect().then(() => {
-                console.log('Successfully connected to Sora for main stereo');
-
+//                console.log('Successfully connected to Sora for main stereo');
                 // start cheking stats
                 setInterval(() => {
                     setStatsReport(recvonly);
@@ -210,17 +209,17 @@ export default function StereoVideo(props) {
                         remoteVideo1.muted = true; // これで自動再生OKに！
                         remoteVideo1.srcObject = mediaStream;
                         remoteVideo1.play().then(() => {
-                            console.log("play realsense")
+//                            console.log("play realsense")
                         })
 
                         console.log('MediaStream assigned to srcObject:', remoteVideo1.srcObject);
 
                         remoteVideo1.onloadeddata = () => {
-                            console.log('Video data loaded');
+//                            console.log('Video data loaded');
 
                             const scene = document.querySelector('a-scene');
                             scene.addEventListener('loaded', () => {
-                                console.log('Scene fully loaded');
+//                                console.log('Scene fully loaded');
 
                                 if (set_RealSense) {
                                     const plate = document.getElementById('videoPlate');
@@ -232,7 +231,7 @@ export default function StereoVideo(props) {
                     }
                 });
                 recvonly1.connect().then(() => {
-                    console.log('Successfully connected to Sora');
+//                    console.log('Successfully connected to Sora');
                 }).catch(err => {
                     console.error('Sora connection error:', err);
                 });
