@@ -26,7 +26,7 @@ const joint_pos = {
   j4: { x: -0.03, y: 0.39, z: 0 },
   j5: { x: 0, y: 0, z: 0 },
   j6: { x: 0.15, y: 0, z: 0 },
-//  j7: { x: 0, y: 0, z: 0.18 },
+  //  j7: { x: 0, y: 0, z: 0.18 },
   j7: { x: 0, y: 0, z: 0.18 },
 }
 const j1_limit = 270 - 10
@@ -151,12 +151,12 @@ export default function Home(props) {
   const [update, set_update] = React.useState(0)
   const [rendered, set_rendered] = useRefState(set_update, false)
   const [target_error, set_target_error] = useRefState(set_update, false)
-  
+
   const RightRef = React.useRef(null);
   const CameraRef = React.useRef(null);
   const aButtonRef = React.useRef(false);
   const bButtonRef = React.useRef(false);
-  const axisRef    = React.useRef({x:0, y:0});
+  const axisRef = React.useRef({ x: 0, y: 0 });
 
   //  const [controller_reframe, set_controller_reframe]  = React.useState(new THREE.Euler(0,0,0,order))
   const [controller_reframe, set_controller_reframe] = React.useState(new THREE.Quaternion())
@@ -275,7 +275,7 @@ export default function Home(props) {
 
   const [target, set_target_org, target_ref] = useRefState(set_update, real_target)
   const [disp_target, set_disp_target, disp_target_ref] = useRefState(set_update, { x: 0, y: 0, z: 0 })
-  const [p15_16_len, set_p15_16_len] = useRefState(set_update, joint_pos.j7.z +0.23) // これが重要（エンドエフェクタ (TCP)の位置
+  const [p15_16_len, set_p15_16_len] = useRefState(set_update, joint_pos.j7.z + 0.23) // これが重要（エンドエフェクタ (TCP)の位置
   const [p14_maxlen, set_p14_maxlen] = useRefState(set_update, 0)
 
   const [do_target_update, set_do_target_update] = useRefState(set_update, 0)
@@ -912,7 +912,7 @@ export default function Home(props) {
     }
     //setTimeout(()=>{joint_slerp()},0)
 
-    if (props.appmode === AppMode.viewer ) {
+    if (props.appmode === AppMode.viewer) {
       const conv_result = outRotateConv(
         { j1_rotate, j2_rotate, j3_rotate, j4_rotate, j5_rotate, j6_rotate: normalize180(j6_rotate + tool_rotate) },
         [...outputRotateRef.current]
@@ -960,7 +960,7 @@ export default function Home(props) {
       j6_rotate: round(normalize180(input_rotate[5] - j6_Correct_value))
     }
 
-//    console.log("rec_joints", robot_rotate)// これはVR側の offset 無しの角度
+    //    console.log("rec_joints", robot_rotate)// これはVR側の offset 無しの角度
     //console.log("j3_rotate",input_rotate[2])
     const { target_pos, wrist_euler } = getReaultPosRot(robot_rotate) // これで target_pos が計算される
     //    console.log("end getReal", target_pos, wrist_euler)
@@ -1020,14 +1020,14 @@ export default function Home(props) {
         return;
       }
       //サブスクライブするトピックの登録
-//      console.log("Start connectMQTT!!")
-      if (mqttclient != null){
+      //      console.log("Start connectMQTT!!")
+      if (mqttclient != null) {
         window.mqttClient = mqttclient;
         subscribeMQTT([
           MQTT_DEVICE_TOPIC
         ]);
         requestRobot(mqttclient);
-      }else{
+      } else {
         window.mqttClient = connectMQTT(requestRobot);
         subscribeMQTT([
           MQTT_DEVICE_TOPIC
@@ -1143,7 +1143,7 @@ export default function Home(props) {
               }
               if (firstReceiveJoint || tool_load_operation || put_down_box_operation) {
                 if (input_rotateRef.current.some((e, i) => e !== joints[i])) {
-//                  console.log("receive joints from:", robotIDRef.current, joints)
+                  //                  console.log("receive joints from:", robotIDRef.current, joints)
                   set_input_rotate([...joints])
 
                   inputRotateFlg.current = true
@@ -1153,7 +1153,7 @@ export default function Home(props) {
 
             if (firstReceiveJoint) {
 
-              if(props.appmode !== AppMode.monitor){
+              if (props.appmode !== AppMode.monitor) {
                 firstReceiveJoint = false
                 window.setTimeout(() => {
                   console.log("Start to send movement!")
@@ -1886,6 +1886,63 @@ export default function Home(props) {
         }
       });
 
+      // 練習用(Practice mode) Sub Camera
+      AFRAME.registerComponent('extra-camera', {
+        schema: { type: 'string', default: 'none' },
+        init() {
+          console.log("Initialize extra-camera",this.data);
+          if (this.data !== "practice") return;
+          const sceneEl = this.el.sceneEl;
+
+          const threeScene = sceneEl.object3D;
+          const renderer = sceneEl.renderer;
+
+          // レンダリングターゲットと仮想カメラ
+          this.rt = new THREE.WebGLRenderTarget(480, 480);
+          this.cam = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+          this.base = document.querySelector("#robotBase")
+          this.monitor = document.querySelector('#virtualMonitor');
+          this.mesh = null;
+          console.log("Camera", this.base, this.cam)
+          // tick 内で更新
+          this.tick = () => {
+            if (this.mesh === null){
+              this.mesh = this.monitor.getObject3D('mesh')
+              if(this.mesh === null)return;
+              this.mesh.material.map = this.rt.texture;
+              this.mesh.material.metalness = 0.2;
+              this.mesh.material.roughness = 0.8;
+            }
+
+
+            this.cam.position.set(disp_target_ref.current.x, disp_target_ref.current.y, disp_target_ref.current.z);// target の
+            console.log("CamTick",this.cam, this.mesh)
+            this.cam.lookAt(new THREE.Vector3(0,0,0));
+
+            /*
+            this.cam.quartanion.setFromAxisAngle(
+              y_vec_base, toRadian(vrModeAngle_ref.current)
+            ).multiply(
+              new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(
+                  toRadian(wrist_rot_ref.current.x),
+                  toRadian(wrist_rot_ref.current.y),
+                  toRadian(wrist_rot_ref.current.z), order
+                )
+              )
+            )
+              */
+             // ここが各レンダリングフレームでの問題
+            const prev = renderer.getRenderTarget();
+            renderer.setRenderTarget(this.rt);
+            renderer.render(threeScene, this.cam);// ここで レンダリング！
+            renderer.setRenderTarget(prev);
+          };
+        },
+        remove() { this.rt.dispose(); }
+      });
+
+
       AFRAME.registerComponent('vr-controller-right', {
         schema: { type: 'string', default: '' },
         init: function () {
@@ -2137,7 +2194,7 @@ export default function Home(props) {
 
             // ここからMQTT Start
             xrSession = this.el.renderer.xr.getSession();
-            if (props.appmode != AppMode.monitor){
+            if (props.appmode != AppMode.monitor) {
               xrSession.requestAnimationFrame(onXRFrameMQTT);
               xrSession.requestAnimationFrame(onXRFrameRecordMQTT);
               xrSession.addEventListener("end", () => {
@@ -2171,21 +2228,21 @@ export default function Home(props) {
             console.log('exit-vr')
 
             //            baseObject3D.rotateY(toRadian(vrModeAngle_ref.current * -1))
-/*
-            const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
-              y_vec_base, toRadian(vrModeAngle_ref.current * -1)
-            ).multiply(
-              new THREE.Quaternion().setFromEuler(
-                new THREE.Euler(
-                  toRadian(wrist_rot_ref.current.x),
-                  toRadian(wrist_rot_ref.current.y),
-                  toRadian(wrist_rot_ref.current.z), order
-                )
-              )
-            )
-*/
-//            const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua, order)
-//            set_wrist_rot({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) })
+            /*
+                        const wrist_qua = new THREE.Quaternion().setFromAxisAngle(
+                          y_vec_base, toRadian(vrModeAngle_ref.current * -1)
+                        ).multiply(
+                          new THREE.Quaternion().setFromEuler(
+                            new THREE.Euler(
+                              toRadian(wrist_rot_ref.current.x),
+                              toRadian(wrist_rot_ref.current.y),
+                              toRadian(wrist_rot_ref.current.z), order
+                            )
+                          )
+                        )
+            */
+            //            const wrist_euler = new THREE.Euler().setFromQuaternion(wrist_qua, order)
+            //            set_wrist_rot({ x: round(toAngle(wrist_euler.x)), y: round(toAngle(wrist_euler.y)), z: round(toAngle(wrist_euler.z)) })
 
             /*
             const wk_m4 = new THREE.Matrix4().multiply(
@@ -2333,7 +2390,7 @@ export default function Home(props) {
       const ctl_json = JSON.stringify({
         time: Date.now(),
         joints: outputRotateRef.current,
-        grip:  gripRef.current,
+        grip: gripRef.current,
         controller: controllerBlock,
         headset: headsetBlock,
         ...addKey
@@ -2428,15 +2485,21 @@ export default function Home(props) {
         }
   }
 
+  /*            
+  <a-entity id="robotBase" position={`${offsetX} -0.01 0.05`} rotation="0 0 0" shadow="receive: true;"
+    geometry="primitive: box; width: 1.2; height: 0.020; depth: 0.8;"
+    material={(props.target_error ? "color:#ff7f50;" : "color:#7BC8A4;") + " opacity: 0.7;"}>
+  </a-entity>
+  */
+
   // practice 対応のロボットの下の部分
   const RobotBase = (props) => {
     const offsetX = vrModeOffsetX_ref.current - 0.50;
     if (props.appmode === AppMode.practice) { // 練習モードでは、四角い枠
       return (
-        <a-entity id="robotBase" position={`${offsetX} -0.01 0.05`} rotation="0 0 0" shadow="receive: true;"
-          geometry="primitive: box; width: 1.2; height: 0.020; depth: 0.8;"
-          material={(props.target_error ? "color:#ff7f50;" : "color:#7BC8A4;") + " opacity: 0.7;"}>
-        </a-entity>
+        <a-box id="robotBase" position={`${offsetX} -0.01 0.05`} rotation="0 0 0" shadow="receive: true;"
+          width="1.2" height="0.02" depth="0.8" color={props.target_error ? "#ff7f50" : "#7BC8A4"}
+          opacity="0.7"></a-box>
       )
     } else {
       return (
@@ -2509,8 +2572,10 @@ export default function Home(props) {
     }
     return (
       <>
-        <a-scene scene shadow="type: pcf" xr-mode-ui={`enabled: ${!(props.appmode === AppMode.viewer) ? 'true' : 'false'}; XRMode: xr`}>
-          {  // ステレオカメラ使うか
+        <a-scene scene shadow="type: pcf" xr-mode-ui={`enabled: ${!(props.appmode === AppMode.viewer) ? 'true' : 'false'}; XRMode: xr`} >
+         
+          {  // ステレオカメラ使うか extra-camera={props.appmode}>
+   
             (props.appmode === AppMode.withCam || props.appmode === AppMode.withDualCam || props.appmode === AppMode.monitor) ?
               <StereoVideo rendered={rendered} set_rtcStats={set_rtcStats} stereo_visible='true'
                 appmode={props.appmode}
@@ -2523,7 +2588,7 @@ export default function Home(props) {
             event-set__abuttonup="_event: abuttonup; _target: #root; _emit: abutton-up"
             event-set__bbuttondown="_event: bbuttondown; _target: #root; _emit: bbutton-down"
             event-set__bbuttonup="_event: bbuttonup; _target: #root; _emit: bbutton-up"
-            />
+          />
           {/*
           <a-entity oculus-touch-controls="hand: right" vr-controller-right visible={`${false}`}>
             <Cursor3dp j_id="99" pos={{ x: 0, y: 0, z: 0 }} visible={false}>   </Cursor3dp>
@@ -2572,13 +2637,16 @@ export default function Home(props) {
             {/* for stereo camera */}
             <a-camera id="camera" stereocam="eye:left" position="0 0 0" ref={CameraRef}>
               <a-entity id="UIBack">
-
+                 {/*(props.appmode === AppMode.practice) ?
+                  <a-plane id="virtualMonitor" position='-0.10 .1 -0.53' scale='0.12 0.12 1' width='1.6' height='1.2'
+                  material="shader: standard" visible="true"></a-plane>:
+                  <></>*/}                 
               </a-entity>
-              {/**/}
+              {/*
               <a-entity
                 text={`value: ${rtc_message}; color: gray; backgroundColor: rgb(31, 219, 131); border: #000000; whiteSpace: pre`}
                 position="0 0.35 -1.4"
-              />
+              />*/}
             </a-camera>
           </a-entity>
           <a-sphere position={edit_pos_offset(disp_target)} scale="0.012 0.012 0.012" color={target_error ? "red" : "yellow"} visible={`${!(props.appmode === AppMode.viewer)}`}></a-sphere>
@@ -2591,17 +2659,27 @@ export default function Home(props) {
           <Line pos1={{ x: 0, y: 0.0001, z: 1 }} pos2={{ x: 0, y: 0.0001, z: -1 }} visible={cursor_vis} color="white"></Line>
           */}
           <Toolmenu />
-          {(props.appmode === AppMode.practice) ? <>
-            <a-entity luggage-id="box1" geometry="primitive: box; width: 0.07; height: 0.07; depth: 0.07;"
-              material="color: #ff8800" shadow="cast: true;" opacity="0.9" visible={`${true}`}></a-entity>
-            <a-entity luggage-id="box2" geometry="primitive: box; width: 0.07; height: 0.07; depth: 0.07;"
-              material="color: #8888ff" shadow="cast: true;" opacity="0.9" visible={`${true}`}></a-entity>
+          {(props.appmode === AppMode.practice) ?
+            <>
+              <a-box luggage-id="box1"
+                width="0.07" height="0.07" depth="0.07"
+                color="#ff8800"
+                shadow="cast: true;"
+                opacity="0.9"
+                visible="true">
+              </a-box>
+              <a-box luggage-id="box2"
+                width="0.07" height="0.07" depth="0.07"
+                color="#8888ff"
+                shadow="cast: true;"
+                opacity="0.9"
+                visible="true">
+              </a-box>
+              {/* target の　枠 */}
+              <a-entity waku-id="box1"><Waku color="#ff8800" /></a-entity>
+              <a-entity waku-id="box2"><Waku color="#8888ff" /></a-entity>
 
-            {/* target の　枠 */}
-            <a-entity waku-id="box1"><Waku color="#ff8800" /></a-entity>
-            <a-entity waku-id="box2"><Waku color="#8888ff" /></a-entity>
-
-          </>
+            </>
             : <></>}
           {/* debug 用インジケータ 
             <a-entity position="-0.3 1.0 -0.5" rotation="0 0 0" geometry="primitive: plane; width: 1.2; height: 0.2;" material="color: #ccddcc; opacity: 0.7;" visible={`${true}`}>
