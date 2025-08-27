@@ -131,6 +131,7 @@ let fallingSpeed = 0 // 落下中の荷物の速度
 let carryLuggage = false
 let boxpos_x = -0.2; // luggage-id 荷物の初期位置
 
+
 // 再レンダリングしなくて値を更新する（かつ set_update で再レンダリングさせられる）
 function useRefState(updateFunc = undefined, initialValue = undefined) {
   const ref = React.useRef(initialValue);
@@ -146,6 +147,21 @@ function useRefState(updateFunc = undefined, initialValue = undefined) {
   }
   return [ref.current, setValue, ref];
 }
+
+function getWorldEuler(obj, order = 'XYZ'){
+  // 親まで含めた最新のワールド行列を更新
+  obj.updateMatrixWorld(true);
+  // ワールド姿勢をクォータニオンで取得
+  const qWorld = new THREE.Quaternion();
+  obj.getWorldQuaternion(qWorld);
+
+  // クォータニオン→オイラー（順序は必要に応じて指定）
+  const eWorld = new THREE.Euler(0, 0, 0, order);
+  eWorld.setFromQuaternion(qWorld, order);
+
+  return eWorld; // ラジアン
+}
+
 
 export default function Home(props) {
   const [update, set_update] = React.useState(0)
@@ -2557,17 +2573,38 @@ export default function Home(props) {
     );
   };
 
+  // 前後のずれを可視化したい
+  const FrontLine = ()=> {
+    //ガイドを表示したい
+    const we = getWorldEuler(p15_object)
+    const angleX = toAngle(we.x)-90
+    const angleY = -toAngle(we.y)
+    const angleZ = normalize180(toAngle(we.z)+180)
+    const zx = Math.cos(-we.z)*0.12
+    const zy = Math.sin(-we.z)*0.12
+    return {
+        angleStr:`${round(angleX,1)},${round(angleY,1)},${round(angleZ,1)}`,
+        zPosL: `${zx-0.25} ${zy+0.1} -0.799`,
+        zPosR: `${-zx-0.25} ${-zy+0.1} -0.799`,
+        zRot : `0 0 ${90-angleZ}`,
+        yPos: `${angleY/45-0.25} 0.24 -0.799`,
+        xPos: `-0.056 ${angleX/45+0.1} -0.799`
+       }
+    }
+
+  const {angleStr , angleX, angleY, yPos, xPos, zPosL, zPosR, zRot}= FrontLine()
 
   if (rendered) {
 
     let rtc_message = "";
-    if (props.appmode === AppMode.withCam || props.appmode === AppMode.withDualCam) {
+    if (props.appmode === AppMode.withCam || props.appmode === AppMode.withDualCam || props.appmode === AppMode.monitor) {
       if (rtcStats_ref.current.length > 0) {
         rtc_message = ["WebRTC Stats:"];
         rtcStats_ref.current.forEach((stat, idx) => {
           rtc_message.push(`${stat}`);
         })
         rtc_message = rtc_message.join('\n')
+        console.log("RTC!, rtc_message",rtc_message)
       }
     }
     return (
@@ -2578,7 +2615,7 @@ export default function Home(props) {
    
             (props.appmode === AppMode.withCam || props.appmode === AppMode.withDualCam || props.appmode === AppMode.monitor) ?
               <StereoVideo rendered={rendered} set_rtcStats={set_rtcStats} stereo_visible='true'
-                appmode={props.appmode}
+                appmode={props.appmode} 
               /> : <></>
           }
 
@@ -2627,6 +2664,8 @@ export default function Home(props) {
           </a-entity>
 
           {/* 過去のライト
+                          text={`value: '${wrist_rot_ref.x} ${wrist_rot_ref.y}'; color: gray; backgroundColor: rgb(31, 219, 131); border: #000000; whiteSpace: pre`}
+
           <a-entity light="type: directional; color: #FFF; intensity: 0.25" position="1 1 1"></a-entity>
           <a-entity light="type: directional; color: #FFF; intensity: 0.25" position="-1 1 1"></a-entity>
           <a-entity light="type: directional; color: #EEE; intensity: 0.25" position="-1 1 -1"></a-entity>
@@ -2640,13 +2679,31 @@ export default function Home(props) {
                  {/*(props.appmode === AppMode.practice) ?
                   <a-plane id="virtualMonitor" position='-0.10 .1 -0.53' scale='0.12 0.12 1' width='1.6' height='1.2'
                   material="shader: standard" visible="true"></a-plane>:
-                  <></>*/}                 
+                  <></>
+              <a-entity 
+                text={`value: ${angleStr}; color: gray; backgroundColor: rgb(31, 219, 131); border: #000000; whiteSpace: pre`}
+                position="0.1 0.28 -0.8"
+              />
+                  
+                  */}                 
               </a-entity>
+              <a-plane position="-0.25 0.24 -0.7995" rotation="0 0 90" width="0.013" height="0.003" color="blue" />
+              <a-plane position={yPos} rotation="0 0 90" width="0.015" height="0.005" color="red" />
+              <a-plane position={xPos} rotation="0 0 90" width="0.005" height="0.015" color="red" />
+              <a-plane position="-0.056  0.1 -0.7995" rotation="0 0 90" width="0.003" height="0.013" color="blue" />
+
+              <a-plane position={zPosL} rotation={zRot} width="0.005" height="0.018" color="pink" opacity="0.9" />
+              <a-plane position={zPosR} rotation={zRot} width="0.005" height="0.018" color="pink" opacity="0.9" />
+                            
               {/*
+              <a-sphere position={yPos} scale="0.012 0.012 0.012" color="red" >
+              </a-sphere>
+             
+                position="-1 3.5 -3"
               <a-entity
                 text={`value: ${rtc_message}; color: gray; backgroundColor: rgb(31, 219, 131); border: #000000; whiteSpace: pre`}
                 position="0 0.35 -1.4"
-              />*/}
+              /> */}
             </a-camera>
           </a-entity>
           <a-sphere position={edit_pos_offset(disp_target)} scale="0.012 0.012 0.012" color={target_error ? "red" : "yellow"} visible={`${!(props.appmode === AppMode.viewer)}`}></a-sphere>
