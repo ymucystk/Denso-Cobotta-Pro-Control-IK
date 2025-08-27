@@ -268,7 +268,7 @@ export default function Home(props) {
   const [c_deg_z, set_c_deg_z] = useRefState(set_update, 0)
 
 
-  const [wrist_rot, set_wrist_rot_org, wrist_rot_ref] = useRefState(set_update, { x: 90, y: 0, z: 0 })
+  const [wrist_rot, set_wrist_rot_org, wrist_rot_ref] = useRefState(set_update, { x: 90, y: 90, z: 0 })
   const [tool_rotate, set_tool_rotate, tool_rotate_ref] = useRefState(set_update, 0)
   const [wrist_degree, set_wrist_degree] = useRefState(set_update, { direction: 0, angle: 0 })
   const [dsp_message, set_dsp_message] = useRefState(set_update, "")
@@ -2654,9 +2654,9 @@ export default function Home(props) {
           <a-entity light="type: hemisphere; color: #fff; groundColor: #efe; intensity: 0.3"></a-entity>
 
           {/*<!-- 斜め右前上からの太陽光（影あり） -->*/}
-          <a-entity position="2 4 1"
+          <a-entity position="1 4 1"
             light="type: directional;
-                   intensity: 0.2;
+                   intensity: 0.3;
                    castShadow: true;
                    shadowMapWidth: 512; shadowMapHeight: 512;
                    shadowBias: -0.0002;
@@ -2676,10 +2676,12 @@ export default function Home(props) {
             {/* for stereo camera */}
             <a-camera id="camera" stereocam="eye:left" position="0 0 0" ref={CameraRef}>
               <a-entity id="UIBack">
-                 {/*(props.appmode === AppMode.practice) ?
-                  <a-plane id="virtualMonitor" position='-0.10 .1 -0.53' scale='0.12 0.12 1' width='1.6' height='1.2'
+                 {(props.appmode === AppMode.practice) ?
+                  <a-plane id="virtualMonitor" position='-0.25 .1 -0.8' scale='0.25 0.25 1' width='1.6' height='1.2'
                   material="shader: standard" visible="true"></a-plane>:
                   <></>
+                  }
+                  {/*
               <a-entity 
                 text={`value: ${angleStr}; color: gray; backgroundColor: rgb(31, 219, 131); border: #000000; whiteSpace: pre`}
                 position="0.1 0.28 -0.8"
@@ -2734,7 +2736,7 @@ export default function Home(props) {
               </a-box>
               {/* target の　枠 */}
               <a-entity waku-id="box1"><Waku color="#ff8800" /></a-entity>
-              <a-entity waku-id="box2"><Waku color="#8888ff" /></a-entity>
+              <a-entity waku-id="box2" rotation="0 45 0" ><Waku color="#8888ff" /></a-entity>
 
             </>
             : <></>}
