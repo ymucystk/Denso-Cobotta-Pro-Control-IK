@@ -1,8 +1,14 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v4.3.47",
+		"generator":"Khronos glTF Blender I/O v4.5.47",
 		"version":"2.0"
 	},
+	"extensionsUsed":[
+		"KHR_draco_mesh_compression"
+	],
+	"extensionsRequired":[
+		"KHR_draco_mesh_compression"
+	],
 	"scene":0,
 	"scenes":[
 		{
@@ -66,8 +72,18 @@
 						"POSITION":0,
 						"NORMAL":1
 					},
+					"extensions":{
+						"KHR_draco_mesh_compression":{
+							"bufferView":0,
+							"attributes":{
+								"POSITION":0,
+								"NORMAL":1
+							}
+						}
+					},
 					"indices":2,
-					"material":0
+					"material":0,
+					"mode":4
 				}
 			]
 		},
@@ -79,8 +95,18 @@
 						"POSITION":3,
 						"NORMAL":4
 					},
+					"extensions":{
+						"KHR_draco_mesh_compression":{
+							"bufferView":1,
+							"attributes":{
+								"POSITION":0,
+								"NORMAL":1
+							}
+						}
+					},
 					"indices":5,
-					"material":1
+					"material":1,
+					"mode":4
 				}
 			]
 		},
@@ -92,8 +118,18 @@
 						"POSITION":6,
 						"NORMAL":7
 					},
+					"extensions":{
+						"KHR_draco_mesh_compression":{
+							"bufferView":2,
+							"attributes":{
+								"POSITION":0,
+								"NORMAL":1
+							}
+						}
+					},
 					"indices":2,
-					"material":0
+					"material":0,
+					"mode":4
 				}
 			]
 		},
@@ -105,17 +141,26 @@
 						"POSITION":8,
 						"NORMAL":9
 					},
+					"extensions":{
+						"KHR_draco_mesh_compression":{
+							"bufferView":3,
+							"attributes":{
+								"POSITION":0,
+								"NORMAL":1
+							}
+						}
+					},
 					"indices":5,
-					"material":1
+					"material":1,
+					"mode":4
 				}
 			]
 		}
 	],
 	"accessors":[
 		{
-			"bufferView":0,
 			"componentType":5126,
-			"count":76931,
+			"count":76996,
 			"max":[
 				0.032899998128414154,
 				0.016998909413814545,
@@ -129,21 +174,18 @@
 			"type":"VEC3"
 		},
 		{
-			"bufferView":1,
 			"componentType":5126,
-			"count":76931,
+			"count":76996,
 			"type":"VEC3"
 		},
 		{
-			"bufferView":2,
 			"componentType":5125,
 			"count":82686,
 			"type":"SCALAR"
 		},
 		{
-			"bufferView":3,
 			"componentType":5126,
-			"count":55627,
+			"count":55940,
 			"max":[
 				0.03189999982714653,
 				0.015999220311641693,
@@ -157,21 +199,18 @@
 			"type":"VEC3"
 		},
 		{
-			"bufferView":4,
 			"componentType":5126,
-			"count":55627,
+			"count":55940,
 			"type":"VEC3"
 		},
 		{
-			"bufferView":5,
 			"componentType":5123,
 			"count":66084,
 			"type":"SCALAR"
 		},
 		{
-			"bufferView":6,
 			"componentType":5126,
-			"count":76931,
+			"count":76996,
 			"max":[
 				0.032899998128414154,
 				0.016998909413814545,
@@ -185,15 +224,13 @@
 			"type":"VEC3"
 		},
 		{
-			"bufferView":7,
 			"componentType":5126,
-			"count":76931,
+			"count":76996,
 			"type":"VEC3"
 		},
 		{
-			"bufferView":8,
 			"componentType":5126,
-			"count":55627,
+			"count":55940,
 			"max":[
 				0.03189999982714653,
 				0.015999220311641693,
@@ -207,77 +244,36 @@
 			"type":"VEC3"
 		},
 		{
-			"bufferView":9,
 			"componentType":5126,
-			"count":55627,
+			"count":55940,
 			"type":"VEC3"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":923172,
-			"byteOffset":0,
-			"target":34962
+			"byteLength":309826,
+			"byteOffset":0
 		},
 		{
 			"buffer":0,
-			"byteLength":923172,
-			"byteOffset":923172,
-			"target":34962
+			"byteLength":213806,
+			"byteOffset":309828
 		},
 		{
 			"buffer":0,
-			"byteLength":330744,
-			"byteOffset":1846344,
-			"target":34963
+			"byteLength":309826,
+			"byteOffset":523636
 		},
 		{
 			"buffer":0,
-			"byteLength":667524,
-			"byteOffset":2177088,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":667524,
-			"byteOffset":2844612,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":132168,
-			"byteOffset":3512136,
-			"target":34963
-		},
-		{
-			"buffer":0,
-			"byteLength":923172,
-			"byteOffset":3644304,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":923172,
-			"byteOffset":4567476,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":667524,
-			"byteOffset":5490648,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":667524,
-			"byteOffset":6158172,
-			"target":34962
+			"byteLength":213806,
+			"byteOffset":833464
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":6825696,
+			"byteLength":1047272,
 			"uri":"link8_l.bin"
 		}
 	]
