@@ -34,10 +34,10 @@ export default function StereoVideo(props) {
             const localCandidateStats = []
             for (const stat of stats.values()) {
                 if (stat.type === "codec"){
-                    statsReport.push("codec: "+ stat.mimeType + "   type: " + stat.payloadType)
+//                    statsReport.push("codec: "+ stat.mimeType + "   type: " + stat.payloadType)
                 }else if (stat.type === "inbound-rtp" ) {
-                    statsReport.push(stat.frameWidth+"x"+stat.frameHeight + "  " + stat.framesPerSecond+ " fps");
-                   
+//                    statsReport.push(stat.frameWidth+"x"+stat.frameHeight + "  " + stat.framesPerSecond+ " fps");
+//                   console.log("trasnport",stat)
                 }else if (stat.type === "transport" ) {
                     const tdiff = stat.timestamp - lastStatTime; 
                     const bdiff = stat.bytesReceived - lastStatBytes;
@@ -122,11 +122,11 @@ export default function StereoVideo(props) {
                 
             });
             recvonly.on('signaling', (event) => {
-//                console.log("Signaling Event from sora:", event);
+                console.log("Signaling Event from sora:", event);
                 
             });
             recvonly.on('timeline', (event) => {
-//                console.log("Timeline Event from sora:", event);              
+                console.log("Timeline Event from sora:", event);              
             });
             
 

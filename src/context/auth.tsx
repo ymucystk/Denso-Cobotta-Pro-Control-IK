@@ -28,7 +28,8 @@ export default function AuthProvider({
     const refresh = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await fetch("/api/auth/me", {
+            const res = await fetch("/cobotta/api/auth/me", {
+//            const res = await fetch("/api/auth/me", {
                 method: "GET",
                 credentials: "include", // ← httpOnly クッキー同送
                 cache: "no-store",

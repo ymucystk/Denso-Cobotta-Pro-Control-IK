@@ -13,6 +13,18 @@ export async function getUserFromCookies(): Promise<AuthUser> {
 
   const kominkan = await getKominkanUserFromCookies()
 
+  if (token === "__worker-token__"){ // only for _no_auth
+    const userInfo = {
+      id: "test_worker_id",
+      kid: "test_kominkan_id",
+      name: "test name",
+      email: "test@test.com",
+      roles: ["none"],
+    }
+    console.log("got:", userInfo);
+     return (userInfo);
+  }
+
   try {
     const payload = await verifyToken(token)
     const userInfo = {
@@ -45,6 +57,21 @@ export async function getKominkanUserFromCookies(): Promise<AuthUser> {
     console.log("No kominkan token")
     return null;
   }
+
+  console.log("token:", token);
+  if (token === "__kominkan-token__"){ // only for _no_auth
+    const userInfo = {
+      id: "none",
+      kid: "test_kominkan_id",
+      name: "test name",
+      email: "test@test.com",
+      roles: ["none"],
+    }
+    console.log("got kominkan:", userInfo);
+     return (userInfo);
+  }
+
+
   console.log("Getting user from cookies, kominken token:", token);
 
   try {

@@ -113,22 +113,46 @@ function ParticleBG() {
 }
 
 
+// 本番の時はこれを false にかえる
+const development_mode = true;
+
 export default function Page() {
-  return (
-    <div className="wrapper">
-      <ParticleBG />
-      <div className="card">
-        <h2 className="title">メタワーク 実証実験システム</h2>
-        <p className="message">
-          本実験に参加するためには、以下のボタンから
-          <br />
-          <strong>PINコード</strong>を入力してください。
-        </p>
-        <p className="note">不明点があれば、スタッフにお知らせください。</p>
-        <a href="https://metawork.euca.in/demo/user" className="button">
-          PINコードの入力
-        </a>
+  if (development_mode) {
+    return (
+      <div className="wrapper">
+        <ParticleBG />
+        <div className="card">
+          <h2 className="title">メタワーク 実証実験システム</h2>
+          <p className="message">
+            本実験に参加するためには、以下のボタンを押してください。
+            <br />
+          </p>
+          <p className="note">不明点があれば、スタッフにお知らせください。</p>
+          <a href="https://sora2.uclab.jp/cobotta/auth/no_auth" className="button">
+            実験を始める
+          </a>
+        </div>
       </div>
-    </div>
-  );
+    );
+
+  } else {
+
+    return (
+      <div className="wrapper">
+        <ParticleBG />
+        <div className="card">
+          <h2 className="title">メタワーク 実証実験システム</h2>
+          <p className="message">
+            本実験に参加するためには、以下のボタンから
+            <br />
+            <strong>PINコード</strong>を入力してください。
+          </p>
+          <p className="note">不明点があれば、スタッフにお知らせください。</p>
+          <a href="https://metawork.euca.in/demo/user" className="button">
+            PINコードの入力
+          </a>
+        </div>
+      </div>
+    );
+  }
 }

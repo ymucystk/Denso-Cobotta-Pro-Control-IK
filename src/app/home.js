@@ -9,6 +9,7 @@ import { connectMQTT, mqttclient, idtopic, subscribeMQTT, publishMQTT, codeType 
 
 import StereoVideo from '../lib/stereoWebRTC.js';
 
+const AIST_logging = false; // AIST MQTT ロギングを有効にするか 
 
 const MQTT_REQUEST_TOPIC = "mgr/request";
 const MQTT_DEVICE_TOPIC = "dev/" + idtopic;
@@ -108,11 +109,15 @@ let tool_menu_on = false
 let tool_load_operation = false
 let tool_load_timeout_id = 0
 let put_down_box_operation = false
+let line_cut_operation = false
+let line_cut_value = undefined
+let line_cut_timeout_id = 0
 let put_down_box_timeout_id = 0
 let tool_menu_idx = 0
 const tool_menu_list = ["Gripper", "vgc10-1", "cutter", "boxLiftUp"]
-const add_menu_1 = tool_menu_list.length
-const tool_menu_max = tool_menu_list.length + 1
+const add_menu_1 = tool_menu_list.length    // 1つめ Box Tool
+const add_menu_2 = tool_menu_list.length +1 // 2つめ
+const tool_menu_max = tool_menu_list.length + 2
 let save_tool_menu_idx = 0
 let save_thumbstickmoved = 0
 let firstReceiveJoint = true
@@ -1125,7 +1130,7 @@ export default function Home(props) {
             // 常時受信する形に変更されたので　Unsubscribeしない
 
             //mqttclient.unsubscribe(MQTT_ROBOT_STATE_TOPIC+robotIDRef.current) //
-            if (firstReceiveJoint || tool_load_operation || put_down_box_operation) {
+            if (firstReceiveJoint || tool_load_operation || put_down_box_operation || line_cut_operation) {
               if (data.tool_id !== undefined) {
                 const tool_id = convertInt(data.tool_id)
                 if (tool_id >= 1 && tool_id <= tool_menu_list.length) {
@@ -1157,7 +1162,20 @@ export default function Home(props) {
                 }
                 set_update((v) => v = v + 1)
               }
-              if (firstReceiveJoint || tool_load_operation || put_down_box_operation) {
+
+              // カット用の状態取得
+              if (line_cut_operation && data.line_cut !== undefined) {
+                console.log("receive line_cut!", data.line_cut)
+                clearTimeout(line_cut_timeout_id)
+                line_cut_operation = false
+                vrControllEnd()
+                if (trigger_on) {
+                  vrControllStart()
+                }
+                set_update((v) => v = v + 1)
+              }
+
+              if (firstReceiveJoint || tool_load_operation || put_down_box_operation || line_cut_operation) {
                 if (input_rotateRef.current.some((e, i) => e !== joints[i])) {
                   //                  console.log("receive joints from:", robotIDRef.current, joints)
                   set_input_rotate([...joints])
@@ -1987,11 +2005,11 @@ export default function Home(props) {
           });
 
           // デモでは thumbstickを無効に
-          if (false) {
+          if (true) {
             this.el.addEventListener('thumbstickdown', (evt) => {
-              if (tool_load_operation || put_down_box_operation) return
+              if (tool_load_operation || put_down_box_operation || line_cut_operation) return
               if (tool_menu_on) {
-                if (tool_menu_idx < tool_menu_list.length) {
+                if (tool_menu_idx < tool_menu_list.length) {// ここはツール変更の範囲
                   if ((tool_menu_idx + 1) !== tool_current_value) {
                     tool_change_value = (tool_menu_idx + 1)
                     tool_current_value = (tool_menu_idx + 1)
@@ -2013,7 +2031,7 @@ export default function Home(props) {
                       vrControllStart()
                     }
                   }
-                } else
+                } else {
                   if (tool_menu_idx === add_menu_1) {
                     console.log("putDownBox")
                     put_down_box_value = 1
@@ -2028,6 +2046,18 @@ export default function Home(props) {
                       }
                       set_update((v) => v = v + 1)
                     }, 60000) // 60秒間は操作しない
+                  } else if (tool_menu_idx === add_menu_2) { // ここが line cut!
+                      line_cut_value = 1
+                      line_cut_operation = true
+                      line_cut_timeout_id =setTimeout(() => {
+                        line_cut_operation = false
+                        vrControllEnd()
+                        if (trigger_on) {
+                          vrControllStart()
+                        }
+                        set_update((v) => v = v + 1)
+                    }, 10000) // 10秒間は操作しない
+
                   } else {
                     console.log("cancel tool menu")
                     tool_menu_idx = save_tool_menu_idx
@@ -2036,6 +2066,7 @@ export default function Home(props) {
                       vrControllStart()
                     }
                   }
+                }
               } else {  // tool_menu_off
                 if (trigger_on) {
                   vrControllEnd()
@@ -2049,6 +2080,7 @@ export default function Home(props) {
             this.el.addEventListener('thumbstickup', (evt) => {
               tool_change_value = undefined
               put_down_box_value = undefined
+              line_cut_value = undefined
               set_update((v) => v = v + 1)
             });
             this.el.addEventListener('thumbstickmoved', (evt) => {
@@ -2212,8 +2244,10 @@ export default function Home(props) {
             xrSession = this.el.renderer.xr.getSession();
             if (props.appmode != AppMode.monitor) {
               xrSession.requestAnimationFrame(onXRFrameMQTT);
-              xrSession.requestAnimationFrame(onXRFrameRecordMQTT);
-              xrSession.addEventListener("end", () => {
+              if(AIST_logging){
+                xrSession.requestAnimationFrame(onXRFrameRecordMQTT);
+              }
+                xrSession.addEventListener("end", () => {
                 window.requestAnimationFrame(get_real_joint_rot)
               })
               xrSession.requestAnimationFrame(get_real_joint_rot);
@@ -2339,6 +2373,9 @@ export default function Home(props) {
       }
       if (put_down_box_value !== undefined) {
         addKey.put_down_box = put_down_box_value
+      }
+      if (line_cut_value !== undefined) { // この項目を増やすと line_cut が行われる
+        addKey.line_cut = line_cut_value
       }
       // MQTT 送信
       const ctl_json = JSON.stringify({
@@ -2473,12 +2510,19 @@ export default function Home(props) {
           <a-entity
             geometry="primitive: plane; width: 0.8; height: 0.1;"
             material="color: #2196F3"
+            position={`0 ${refpos - ((tool_menu_list.length+1) * interval)} 0.01`}
+            class="menu-button"
+            text="value: LINE-CUT; align: center; color: white;">
+          </a-entity>
+          <a-entity
+            geometry="primitive: plane; width: 0.8; height: 0.1;"
+            material="color: #2196F3"
             position={`0 ${refpos - (tool_menu_max * interval)} 0.01`}
             class="menu-button"
             text="value: CANCEL; align: center; color: white;">
           </a-entity>
         </a-entity>)
-    } else
+    } else {
       if (tool_load_operation) {
         return (
           <a-entity
@@ -2487,7 +2531,7 @@ export default function Home(props) {
             position="0 0.15 0.2"
             text="value: TOOL LOADING!!; align: center; color: yellow; wrap-count: 15;">
           </a-entity>)
-      } else
+      } else {
         if (put_down_box_operation) {
           return (
             <a-entity
@@ -2497,8 +2541,21 @@ export default function Home(props) {
               text="value: PUT DOWN BOX!!; align: center; color: yellow; wrap-count: 15;">
             </a-entity>)
         } else {
-          return null
+          if (line_cut_operation) {
+            return (
+              <a-entity
+                geometry="primitive: plane; width: 0.5; height: 0.15;"
+                material="color: #000000"
+                position="0 0.15 0.2"
+                text="value: LINE CUTTING!!; align: center; color: yellow; wrap-count: 15;">
+              </a-entity>)
+          } else {
+            return null
+          }
         }
+      }
+    }
+
   }
 
   /*            
@@ -2603,7 +2660,7 @@ export default function Home(props) {
         rtcStats_ref.current.forEach((stat, idx) => {
           rtc_message.push(`${stat}`);
         })
-        rtc_message = rtc_message.join('\n')
+        rtc_message = rtc_message.join(' ')
         console.log("RTC!, rtc_message",rtc_message)
       }
     }
