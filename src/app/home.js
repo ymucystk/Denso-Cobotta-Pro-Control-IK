@@ -180,6 +180,7 @@ export default function Home(props) {
     [-j1_Correct_value,-j2_Correct_value,-j3_Correct_value,-j4_Correct_value,-j5_Correct_value,-j6_Correct_value,0]
   )
   const [checkRotate,set_checkRotate,checkRotateRef] = useRefState(outputRotate)
+  const [checkRotRatio,set_checkRotRatio,checkRotRatioRef] = useRefState([0,0,0,0,0,0])
 
   const prevRotateRef = React.useRef([0, 0, 0, 0, 0, 0, 0]) //前回の関節角度
 
@@ -1223,31 +1224,38 @@ export default function Home(props) {
     }
 
     if (dsp_message === "" && !(props.appmode === AppMode.viewer) && !inputRotateFlg.current) {
+      const ratioTbl = [0,0,0,0,0,0]
       const check_result = outRotateConv(result_rotate, [...checkRotateRef.current])
       if (check_result.j1_rotate < -j1_limit || check_result.j1_rotate > j1_limit) {
         dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
         j1_error = true
       }
+      ratioTbl[0] = check_result.j1_rotate/j1_limit
       if (check_result.j2_rotate < -j2_limit || check_result.j2_rotate > j2_limit) {
         dsp_message = `j2_rotate 指定可能範囲外！:(${check_result.j2_rotate})`
         j2_error = true
       }
+      ratioTbl[1] = check_result.j2_rotate/j2_limit
       if (check_result.j3_rotate < -j3_limit || check_result.j3_rotate > j3_limit) {
         dsp_message = `j3_rotate 指定可能範囲外！:(${check_result.j3_rotate})`
         j3_error = true
       }
+      ratioTbl[2] = check_result.j3_rotate/j3_limit
       if (check_result.j4_rotate < -j4_limit || check_result.j4_rotate > j4_limit) {
         dsp_message = `j4_rotate 指定可能範囲外！:(${check_result.j4_rotate})`
         j4_error = true
       }
+      ratioTbl[3] = check_result.j4_rotate/j4_limit
       if (check_result.j5_rotate < -j5_limit || check_result.j5_rotate > j5_limit) {
         dsp_message = `j5_rotate 指定可能範囲外！:(${check_result.j5_rotate})`
         j5_error = true
       }
+      ratioTbl[4] = check_result.j5_rotate/j5_limit
       if (check_result.j6_rotate < -j6_limit || check_result.j6_rotate > j6_limit) {
         dsp_message = `j6_rotate 指定可能範囲外！:(${check_result.j6_rotate})`
         j6_error = true
       }
+      ratioTbl[5] = check_result.j6_rotate/j6_limit
       if (dsp_message === "") {
         const check_rotate = [
           check_result.j1_rotate,
@@ -1259,6 +1267,7 @@ export default function Home(props) {
           checkRotateRef.current[6]
         ]
         set_checkRotate(check_rotate)
+        set_checkRotRatio(ratioTbl)
       }
     }
 
@@ -2058,7 +2067,8 @@ export default function Home(props) {
 
   const robotProps = {
     joint_pos, j2_rotate, j3_rotate, j4_rotate, j5_rotate, j6_rotate, j7_rotate,
-    toolNameList, toolName, cursor_vis, box_vis, edit_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error, j6_error
+    toolNameList, toolName, cursor_vis, box_vis, edit_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error, j6_error,
+    x_vec_base, y_vec_base, z_vec_base, checkRotRatio,
   }
 
   const Toolmenu = (props) => {
@@ -2321,56 +2331,29 @@ const Assets = (props) => {
 
 const RobotModel = (props) => {
   const { cursor_vis, edit_pos, joint_pos, pos_add, j1_error, j2_error, j3_error, j4_error, j5_error, j6_error, base_rotate } = props
-  //  console.log("Joint base",joint_pos.base)
+  const { x_vec_base, y_vec_base, z_vec_base, checkRotRatio } = props
   return (<>
     <a-entity j_id="0" gltf-model="#base" position={edit_pos(joint_pos.base)} model-opacity="0.8" rotation={`0 ${base_rotate} 0'}`}>
-      <a-entity geometry="primitive: circle; radius: 0.16;" material="color: #00FFFF; opacity: 0.8" position="0 0.1 0" rotation="-90 0 0" visible={`${j1_error}`}></a-entity>
-      <a-entity geometry="primitive: circle; radius: 0.16;" material="color: #00FFFF; opacity: 0.8" position="0 0.1 0" rotation="90 0 0" visible={`${j1_error}`}></a-entity>
+      <RotationGauge {...props} ratio={checkRotRatio[0]} pos={pos_add(joint_pos.j1,{x:0,y:0.1,z:0})} rotation_vec={y_vec_base} adjustAngle={90} visible={j1_error} />
       <a-entity j_id="1" gltf-model="#j1" position={edit_pos(joint_pos.j1)} model-opacity="0.8" shadow="cast: true">
-        <a-entity position="0 0.1 0" rotation="90 0 0" visible={`${j1_error}`}>
-          <a-cylinder position="0 0.08 0" rotation="0 0 0" radius="0.003" height="0.16" color="#FF0000"></a-cylinder>
-        </a-entity>
-        <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j2, { x: -0.08, y: 0, z: 0 }))} rotation="0 90 0" visible={`${j2_error}`}></a-entity>
-        <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j2, { x: -0.08, y: 0, z: 0 }))} rotation="0 -90 0" visible={`${j2_error}`}></a-entity>
+        <RotationGauge {...props} ratio={checkRotRatio[1]} pos={joint_pos.j2} rotation_vec={x_vec_base} adjustAngle={90} visible={j2_error} />
         <a-entity j_id="2" gltf-model="#j2" position={edit_pos(joint_pos.j2)} model-opacity="0.8" shadow="cast: true">
-          <a-entity position="-0.08 0 0" rotation="0 0 0" visible={`${j2_error}`}>
-            <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
-          </a-entity>
-          <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j3, { x: -0.09, y: 0, z: 0 }))} rotation="0 90 0" visible={`${j3_error}`}></a-entity>
-          <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j3, { x: -0.09, y: 0, z: 0 }))} rotation="0 -90 0" visible={`${j3_error}`}></a-entity>
+          <RotationGauge {...props} ratio={checkRotRatio[2]} pos={joint_pos.j3} rotation_vec={x_vec_base} adjustAngle={90} visible={j3_error} />
           <a-entity j_id="3" gltf-model="#j3" position={edit_pos(joint_pos.j3)} model-opacity="0.8" shadow="cast: true">
-            <a-entity position="-0.09 0 0" rotation="0 0 0" visible={`${j3_error}`}>
-              <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
-            </a-entity>
-            <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF; opacity: 0.8" position="-0.03 0.302 0" rotation="-90 0 0" visible={`${j4_error}`}></a-entity>
-            <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF; opacity: 0.8" position="-0.03 0.302 0" rotation="90 0 0" visible={`${j4_error}`}></a-entity>
+            <RotationGauge {...props} ratio={checkRotRatio[3]} pos={pos_add(joint_pos.j4,{x:0,y:-0.1,z:0})} rotation_vec={y_vec_base} adjustAngle={0} visible={j4_error} />
             <a-entity j_id="4" gltf-model="#j4" position={edit_pos(joint_pos.j4)} model-opacity="0.8" shadow="cast: true">
-              <a-entity position="0 -0.087 0" rotation="90 0 0" visible={`${j4_error}`} >
-                <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
-              </a-entity>
-              <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j5, { x: 0.077, y: 0, z: 0 }))} rotation="0 90 0" visible={`${j5_error}`}></a-entity>
-              <a-entity geometry="primitive: circle; radius: 0.14; thetaStart: -60; thetaLength: 300" material="color: #00FFFF; opacity: 0.8" position={edit_pos(pos_add(joint_pos.j5, { x: 0.077, y: 0, z: 0 }))} rotation="0 -90 0" visible={`${j5_error}`}></a-entity>
+              <RotationGauge {...props} ratio={checkRotRatio[4]} pos={pos_add(joint_pos.j5,{x:0.08,y:0,z:0})} rotation_vec={x_vec_base} adjustAngle={180} visible={j5_error} />
               <a-entity j_id="5" gltf-model="#j5" position={edit_pos(joint_pos.j5)} model-opacity="0.8" shadow="cast: true">
-                <a-entity position="0.077 0 0" rotation="90 0 0" visible={`${j5_error}`}>
-                  <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
-                </a-entity>
-                <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF; opacity: 0.8" position="0.15 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}></a-entity>
-                <a-entity geometry="primitive: circle; radius: 0.14;" material="color: #00FFFF; opacity: 0.8" position="0.15 0 0.0805" rotation="0 180 0" visible={`${j6_error}`}></a-entity>
+                <RotationGauge {...props} ratio={checkRotRatio[5]} pos={pos_add(joint_pos.j6,{x:0,y:0,z:0.15})} rotation_vec={z_vec_base} adjustAngle={0} visible={j6_error} />
                 <a-entity j_id="6" gltf-model="#j6" position={edit_pos(joint_pos.j6)} model-opacity="0.8" shadow="cast: true">
-                  <a-entity position="0 0 0.0805" rotation="0 0 0" visible={`${j6_error}`}>
-                    <a-cylinder position="0 0.07 0" rotation="0 0 0" radius="0.003" height="0.14" color="#FF0000"></a-cylinder>
-                  </a-entity>
                   <Model_Tool {...props} />
-                  {/*<a-cylinder color="crimson" height="0.1" radius="0.005" position={edit_pos(joint_pos.j7)}></a-cylinder>*/}
                   <Cursor3dp j_id="15" visible={cursor_vis} />
                 </a-entity>
               </a-entity>
               <Cursor3dp j_id="14" pos={{ x: joint_pos.j5.x, y: 0, z: 0 }} visible={cursor_vis} />
               <Cursor3dp j_id="13" visible={cursor_vis} />
             </a-entity>
-            {/*<Cursor3dp j_id="12" visible={cursor_vis}/>*/}
           </a-entity>
-          {/*<Cursor3dp j_id="11" visible={cursor_vis}/>*/}
         </a-entity>
       </a-entity>
     </a-entity>
@@ -2441,7 +2424,46 @@ const Model_Tool = (props) => {
   return null
 }
 
-
+const RotationGauge = (props)=>{
+  const z_vec = new THREE.Vector3(0, 0, 1).normalize()
+  const toAngle = rad => rad * 180 / Math.PI;
+  const {radiusInner=0.12, radiusOuter=0.18,
+    thetaStart=90, thetaLength=180, adjustAngle=0,
+    rotation_vec, ratio=0, threshold=0.9,
+    gaugeColor="#00FFFF", pointerColor="#FF0000", pointerRadius=0.005,
+    opacity=0.8, visible=false} = props
+  const pointer_len = radiusOuter - radiusInner
+  const axis = new THREE.Vector3().crossVectors(z_vec, rotation_vec).normalize()
+  const angle = z_vec.clone().angleTo(rotation_vec)
+  const quat = new THREE.Quaternion().setFromAxisAngle(axis,angle)
+  const base_rotate = new THREE.Euler().setFromQuaternion(quat)
+  const min_angle = -(180 - thetaStart)
+  const max_angle = (thetaLength + min_angle)
+  const pointer_angle = ratio<0?min_angle*-ratio:max_angle*ratio
+  const res_visible = visible || Math.abs(ratio)>=threshold
+  return(<>
+    <a-entity position={props.edit_pos(props.pos)}
+      rotation={`${toAngle(base_rotate.x)} ${toAngle(base_rotate.y)} ${toAngle(base_rotate.z)+adjustAngle}`}
+      visible={`${res_visible}`}>
+      <a-entity
+        geometry={`primitive: ring; radiusInner: ${radiusInner}; radiusOuter: ${radiusOuter};`+
+          `thetaStart: ${thetaStart}; thetaLength: ${thetaLength}`}
+        material={`color: ${gaugeColor}; opacity: ${opacity}; side: double`}
+        opacity={`${opacity}`}
+      ></a-entity>
+      <a-entity rotation={`0 0 ${pointer_angle}`}>
+        <a-cylinder
+          position={`-${radiusInner+(pointer_len/2)} 0 0`}
+          rotation="0 0 90"
+          radius={`${pointerRadius}`}
+          height={`${pointer_len}`}
+          color={`${pointerColor}`}
+          opacity={`${opacity}`}
+        ></a-cylinder>
+      </a-entity>
+    </a-entity>
+  </>)
+}
 
 const Cursor3dp = (props) => {
   const { pos = { x: 0, y: 0, z: 0 }, rot = { x: 0, y: 0, z: 0 }, len = 0.3, opa = 1, children, visible = false, ...otherprops } = props;
