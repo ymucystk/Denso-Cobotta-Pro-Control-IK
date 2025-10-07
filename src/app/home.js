@@ -280,13 +280,17 @@ export default function Home(props) {
   const [fps_message, set_fps_message] = useRefState("0 fps")
 
   const toolNameList = ["No tool", "Gripper", "vgc10-1", "vgc10-4", "cutter", "boxLiftUp"]
+  const toolDiffList = [0, 0.14, 0.23, 0.23, 0.05, 0.05] // ツール先端からJ6までの距離
   const [toolName, set_toolName_org, toolNameRef] = useRefState(toolNameList[1])
-
+  const [tool_diff, set_tool_diff] = React.useState(toolDiffList[1]) // ツール先端からJ6までの距離
   const set_toolName = (newTool) => {// ツール名称の変更はここで実施。その際に、target と J6 の距離も変更
     const wk_tool_value = tool_menu_list.indexOf(newTool)
     if (wk_tool_value >= 0) {
       tool_menu_idx = wk_tool_value
       tool_current_value = wk_tool_value + 1
+      const tool_diff_idx = toolNameList.indexOf(newTool)
+      console.log("Set Tool diff",toolDiffList[tool_diff_idx], tool_diff_idx)
+      set_tool_diff( toolDiffList[tool_diff_idx])
     } else {
       tool_menu_idx = 0
       tool_current_value = undefined
@@ -297,7 +301,7 @@ export default function Home(props) {
 
   const [target, set_target_org, target_ref] = useRefState(real_target)
   const [disp_target, set_disp_target, disp_target_ref] = useRefState({ x: 0, y: 0, z: 0 })
-  const [p15_16_len, set_p15_16_len] = useRefState(joint_pos.j7.z + 0.23) // これが重要（エンドエフェクタ (TCP)の位置
+  const [p15_16_len, set_p15_16_len] = useRefState(joint_pos.j7.z + tool_diff) // これが重要（エンドエフェクタ (TCP)の位置
   const [p14_maxlen, set_p14_maxlen] = useRefState(0)
 
   const [do_target_update, set_do_target_update] = useRefState(0)
@@ -678,8 +682,9 @@ export default function Home(props) {
 
       if (inputRotateFlg.current) {// 入力１回に１どだけ
         inputRotateFlg.current = false
-        console.log("before robot rotate ", outputRotateRef.current)
-        console.log("set robot rotate ", input_rotateRef.current)
+//        console.log("before robot rotate ", outputRotateRef.current)
+//        console.log("input rotate ", input_rotateRef.current)
+//        console.log("current rotate ", input_rotateRef.current)
         set_outputRotate([...input_rotateRef.current])
         set_checkRotate([...input_rotateRef.current])
       }
@@ -876,7 +881,7 @@ export default function Home(props) {
       const result_value = round(prevRotate[idx] + diff[idx])
       if (Math.abs(result_value) < 360) {
         let rtn_rot = rot
-        if (result_value >= 180) {
+        if (result_value >= 180) {// このあたりが怪しい。。。
           rtn_rot = (rot + 360) % 360
         } else if (result_value <= -180) {
           rtn_rot = (rot - 360) % 360
@@ -1180,6 +1185,9 @@ export default function Home(props) {
                   // ロボットに指令元を伝える
                   publishMQTT("dev/" + robotIDRef.current, JSON.stringify({ controller: "browser", devId: idtopic })) // 自分の topic を教える
                 }, 1000);
+              }else{// monitor の時、このきっかけがないので、動かなかった。。。
+                  //console.log(joints)
+                  set_debug_message("monitor start")
               }
             }
           }
@@ -1711,7 +1719,7 @@ export default function Home(props) {
       console.log("p15_16 distance", dist)
       set_p15_16_len(dist)
     }
-  }, [p16_object.matrix.elements[14]])
+  }, [tool_diff, p16_object.matrix.elements[14]])
 
   const vrControllStart = () => {
     controller_start_quat.copy(controller_object.quaternion.clone())
@@ -1755,11 +1763,11 @@ export default function Home(props) {
   React.useEffect(() => {
     if (!registered) {
       registered = true
-
       setTimeout(() => {
         set_rendered(true)
         console.log('set_rendered')
-      }, 1)
+        add_debug_message("set_rendered")// ここ追加で可視化された！
+      }, 200)
 
       const teihen = joint_pos.j5.x
       const takasa = joint_pos.j3.y + joint_pos.j4.y
@@ -2646,7 +2654,7 @@ export default function Home(props) {
           rtc_message.push(`${stat}`);
         })
         rtc_message = rtc_message.join(' ')
-        console.log("RTC!, rtc_message",rtc_message)
+ //       console.log("RTC!, rtc_message",rtc_message)
       }
     }
     return (

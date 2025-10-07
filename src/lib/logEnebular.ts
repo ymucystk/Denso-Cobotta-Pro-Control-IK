@@ -2,7 +2,7 @@
 
 // client side
 // just use local proxy
-const ENEBULAR_ENDPOINT = process.env.NEXT_PUBLIC_LOG_ENDPOINT || "endopint"
+const ENEBULAR_ENDPOINT = process.env.NEXT_PUBLIC_LOG_ENDPOINT || "endpoint"
 
 //console.log("Endpoint: ", ENEBULAR_ENDPOINT)
 
@@ -12,6 +12,10 @@ let lastTime = 0;
 export async function logEnebular(location, logType, vUID, wUID, title, desc) {
 
 	// 繰り返しのログは避けたい
+	if (ENEBULAR_ENDPOINT === "endpoint") {
+		// 開発モードではログを出さない
+		return
+	}
 
 	const newLog = JSON.stringify({
 					'location': location,

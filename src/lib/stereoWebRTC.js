@@ -106,27 +106,27 @@ export default function StereoVideo(props) {
                 
             });
             recvonly.on('notify', (message, transportType) => {
-                console.log("Notify Event from sora:", message, transportType);
+//                console.log("Notify Event from sora:", message, transportType);
                 
             });
             recvonly.on('timeout', () => {
-                console.log("Timeout Event from sora:", event);
+//                console.log("Timeout Event from sora:", event);
                 
             });
             recvonly.on('message', (message) => {
-                console.log("Message Event from sora:", message.label, message.data);
+//                console.log("Message Event from sora:", message.label, message.data);
                 
             });
             recvonly.on('datachannel', (event) => {
-                console.log("Datachannel Event from sora:", event.datachannel.label, event.datachannel.direction);
+//                console.log("Datachannel Event from sora:", event.datachannel.label, event.datachannel.direction);
                 
             });
             recvonly.on('signaling', (event) => {
-                console.log("Signaling Event from sora:", event);
+//                console.log("Signaling Event from sora:", event);
                 
             });
             recvonly.on('timeline', (event) => {
-                console.log("Timeline Event from sora:", event);              
+//                console.log("Timeline Event from sora:", event);              
             });
             
 
