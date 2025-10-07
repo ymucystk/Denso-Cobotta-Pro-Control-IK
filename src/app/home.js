@@ -116,7 +116,7 @@ let put_down_box_timeout_id = 0
 let tool_menu_idx = 0
 const tool_menu_list = ["Gripper", "vgc10-1", "cutter", "boxLiftUp"]
 const add_menu_1 = tool_menu_list.length    // 1つめ Box Tool
-const add_menu_2 = tool_menu_list.length +1 // 2つめ
+const add_menu_2 = tool_menu_list.length + 1 // 2つめ
 const tool_menu_max = tool_menu_list.length + 2
 let save_tool_menu_idx = 0
 let save_thumbstickmoved = 0
@@ -153,7 +153,7 @@ function useRefState(initialValue = undefined, updateFunc = undefined) {
   return [ref.current, setValue, ref];
 }
 
-function getWorldEuler(obj, order = 'XYZ'){
+function getWorldEuler(obj, order = 'XYZ') {
   // 親まで含めた最新のワールド行列を更新
   obj.updateMatrixWorld(true);
   // ワールド姿勢をクォータニオンで取得
@@ -289,8 +289,8 @@ export default function Home(props) {
       tool_menu_idx = wk_tool_value
       tool_current_value = wk_tool_value + 1
       const tool_diff_idx = toolNameList.indexOf(newTool)
-      console.log("Set Tool diff",toolDiffList[tool_diff_idx], tool_diff_idx)
-      set_tool_diff( toolDiffList[tool_diff_idx])
+      console.log("Set Tool diff", toolDiffList[tool_diff_idx], tool_diff_idx)
+      set_tool_diff(toolDiffList[tool_diff_idx])
     } else {
       tool_menu_idx = 0
       tool_current_value = undefined
@@ -640,7 +640,7 @@ export default function Home(props) {
           current_data.starttime = performance.now()
           current_data.start_quaternion = current_object3D.quaternion.clone()
           current_data.end_quaternion = new THREE.Quaternion().setFromAxisAngle(rotvec_table[i], toRadian(current_data.rot))
-          if (switchingVrMode) {
+          if (switchingVrMode || tool_load_operation) { // VRモード移行中 or ツールロード中はアニメーションしない
             current_data.move_time = 0
           } else {
             const move_time_1 = target_move_distance * target_move_speed
@@ -682,9 +682,9 @@ export default function Home(props) {
 
       if (inputRotateFlg.current) {// 入力１回に１どだけ
         inputRotateFlg.current = false
-//        console.log("before robot rotate ", outputRotateRef.current)
-//        console.log("input rotate ", input_rotateRef.current)
-//        console.log("current rotate ", input_rotateRef.current)
+        //        console.log("before robot rotate ", outputRotateRef.current)
+        //        console.log("input rotate ", input_rotateRef.current)
+        //        console.log("current rotate ", input_rotateRef.current)
         set_outputRotate([...input_rotateRef.current])
         set_checkRotate([...input_rotateRef.current])
       }
@@ -848,7 +848,7 @@ export default function Home(props) {
   }, [j4_rotate])
 
   React.useEffect(() => {
-    rotate_table[4] = [{ rot: j5_rotate, first: true }]   
+    rotate_table[4] = [{ rot: j5_rotate, first: true }]
   }, [j5_rotate])
 
   React.useEffect(() => {
@@ -1185,9 +1185,9 @@ export default function Home(props) {
                   // ロボットに指令元を伝える
                   publishMQTT("dev/" + robotIDRef.current, JSON.stringify({ controller: "browser", devId: idtopic })) // 自分の topic を教える
                 }, 1000);
-              }else{// monitor の時、このきっかけがないので、動かなかった。。。
-                  //console.log(joints)
-                  set_debug_message("monitor start")
+              } else {// monitor の時、このきっかけがないので、動かなかった。。。
+                //console.log(joints)
+                set_debug_message("monitor start")
               }
             }
           }
@@ -1463,29 +1463,31 @@ export default function Home(props) {
 
     if (dsp_message === "" && !(props.appmode === AppMode.viewer) && !inputRotateFlg.current) {
       const check_result = outRotateConv(result_rotate, [...checkRotateRef.current])
-      if (check_result.j1_rotate < -j1_limit || check_result.j1_rotate > j1_limit) {
-        dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
-        j1_error = true
-      }
-      if (check_result.j2_rotate < -j2_limit || check_result.j2_rotate > j2_limit) {
-        dsp_message = `j2_rotate 指定可能範囲外！:(${check_result.j2_rotate})`
-        j2_error = true
-      }
-      if (check_result.j3_rotate < -j3_limit || check_result.j3_rotate > j3_limit) {
-        dsp_message = `j3_rotate 指定可能範囲外！:(${check_result.j3_rotate})`
-        j3_error = true
-      }
-      if (check_result.j4_rotate < -j4_limit || check_result.j4_rotate > j4_limit) {
-        dsp_message = `j4_rotate 指定可能範囲外！:(${check_result.j4_rotate})`
-        j4_error = true
-      }
-      if (check_result.j5_rotate < -j5_limit || check_result.j5_rotate > j5_limit) {
-        dsp_message = `j5_rotate 指定可能範囲外！:(${check_result.j5_rotate})`
-        j5_error = true
-      }
-      if (check_result.j6_rotate < -j6_limit || check_result.j6_rotate > j6_limit) {
-        dsp_message = `j6_rotate 指定可能範囲外！:(${check_result.j6_rotate})`
-        j6_error = true
+      if (!tool_load_operation) {
+        if (check_result.j1_rotate < -j1_limit || check_result.j1_rotate > j1_limit) {
+          dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
+          j1_error = true
+        }
+        if (check_result.j2_rotate < -j2_limit || check_result.j2_rotate > j2_limit) {
+          dsp_message = `j2_rotate 指定可能範囲外！:(${check_result.j2_rotate})`
+          j2_error = true
+        }
+        if (check_result.j3_rotate < -j3_limit || check_result.j3_rotate > j3_limit) {
+          dsp_message = `j3_rotate 指定可能範囲外！:(${check_result.j3_rotate})`
+          j3_error = true
+        }
+        if (check_result.j4_rotate < -j4_limit || check_result.j4_rotate > j4_limit) {
+          dsp_message = `j4_rotate 指定可能範囲外！:(${check_result.j4_rotate})`
+          j4_error = true
+        }
+        if (check_result.j5_rotate < -j5_limit || check_result.j5_rotate > j5_limit) {
+          dsp_message = `j5_rotate 指定可能範囲外！:(${check_result.j5_rotate})`
+          j5_error = true
+        }
+        if (check_result.j6_rotate < -j6_limit || check_result.j6_rotate > j6_limit) {
+          dsp_message = `j6_rotate 指定可能範囲外！:(${check_result.j6_rotate})`
+          j6_error = true
+        }
       }
       if (dsp_message === "") {
         const check_rotate = [
@@ -1917,7 +1919,7 @@ export default function Home(props) {
       AFRAME.registerComponent('extra-camera', {
         schema: { type: 'string', default: 'none' },
         init() {
-          console.log("Initialize extra-camera",this.data);
+          console.log("Initialize extra-camera", this.data);
           if (this.data !== "practice") return;
           const sceneEl = this.el.sceneEl;
 
@@ -1933,9 +1935,9 @@ export default function Home(props) {
           console.log("Camera", this.base, this.cam)
           // tick 内で更新
           this.tick = () => {
-            if (this.mesh === null){
+            if (this.mesh === null) {
               this.mesh = this.monitor.getObject3D('mesh')
-              if(this.mesh === null)return;
+              if (this.mesh === null) return;
               this.mesh.material.map = this.rt.texture;
               this.mesh.material.metalness = 0.2;
               this.mesh.material.roughness = 0.8;
@@ -1943,8 +1945,8 @@ export default function Home(props) {
 
 
             this.cam.position.set(disp_target_ref.current.x, disp_target_ref.current.y, disp_target_ref.current.z);// target の
-            console.log("CamTick",this.cam, this.mesh)
-            this.cam.lookAt(new THREE.Vector3(0,0,0));
+            console.log("CamTick", this.cam, this.mesh)
+            this.cam.lookAt(new THREE.Vector3(0, 0, 0));
 
             /*
             this.cam.quartanion.setFromAxisAngle(
@@ -1959,7 +1961,7 @@ export default function Home(props) {
               )
             )
               */
-             // ここが各レンダリングフレームでの問題
+            // ここが各レンダリングフレームでの問題
             const prev = renderer.getRenderTarget();
             renderer.setRenderTarget(this.rt);
             renderer.render(threeScene, this.cam);// ここで レンダリング！
@@ -2040,15 +2042,15 @@ export default function Home(props) {
                       set_update((v) => v = v + 1)
                     }, 60000) // 60秒間は操作しない
                   } else if (tool_menu_idx === add_menu_2) { // ここが line cut!
-                      line_cut_value = 1
-                      line_cut_operation = true
-                      line_cut_timeout_id =setTimeout(() => {
-                        line_cut_operation = false
-                        vrControllEnd()
-                        if (trigger_on) {
-                          vrControllStart()
-                        }
-                        set_update((v) => v = v + 1)
+                    line_cut_value = 1
+                    line_cut_operation = true
+                    line_cut_timeout_id = setTimeout(() => {
+                      line_cut_operation = false
+                      vrControllEnd()
+                      if (trigger_on) {
+                        vrControllStart()
+                      }
+                      set_update((v) => v = v + 1)
                     }, 10000) // 10秒間は操作しない
 
                   } else {
@@ -2237,10 +2239,10 @@ export default function Home(props) {
             xrSession = this.el.renderer.xr.getSession();
             if (props.appmode != AppMode.monitor) {
               xrSession.requestAnimationFrame(onXRFrameMQTT);
-              if(AIST_logging){
+              if (AIST_logging) {
                 xrSession.requestAnimationFrame(onXRFrameRecordMQTT);
               }
-                xrSession.addEventListener("end", () => {
+              xrSession.addEventListener("end", () => {
                 window.requestAnimationFrame(get_real_joint_rot)
               })
               xrSession.requestAnimationFrame(get_real_joint_rot);
@@ -2312,7 +2314,7 @@ export default function Home(props) {
           });
         },
         tick: function (t) {
-          set_update((v)=> v=v+1)
+          set_update((v) => v = v + 1)
         }
       });
     }
@@ -2503,7 +2505,7 @@ export default function Home(props) {
           <a-entity
             geometry="primitive: plane; width: 0.8; height: 0.1;"
             material="color: #2196F3"
-            position={`0 ${refpos - ((tool_menu_list.length+1) * interval)} 0.01`}
+            position={`0 ${refpos - ((tool_menu_list.length + 1) * interval)} 0.01`}
             class="menu-button"
             text="value: LINE-CUT; align: center; color: white;">
           </a-entity>
@@ -2624,25 +2626,25 @@ export default function Home(props) {
   };
 
   // 前後のずれを可視化したい
-  const FrontLine = ()=> {
+  const FrontLine = () => {
     //ガイドを表示したい
     const we = getWorldEuler(p15_object)
-    const angleX = toAngle(we.x)-90
+    const angleX = toAngle(we.x) - 90
     const angleY = -toAngle(we.y)
-    const angleZ = normalize180(toAngle(we.z)+180)
-    const zx = Math.cos(-we.z)*0.12
-    const zy = Math.sin(-we.z)*0.12
+    const angleZ = normalize180(toAngle(we.z) + 180)
+    const zx = Math.cos(-we.z) * 0.12
+    const zy = Math.sin(-we.z) * 0.12
     return {
-        angleStr:`${round(angleX,1)},${round(angleY,1)},${round(angleZ,1)}`,
-        zPosL: `${zx-0.25} ${zy+0.1} -0.799`,
-        zPosR: `${-zx-0.25} ${-zy+0.1} -0.799`,
-        zRot : `0 0 ${90-angleZ}`,
-        yPos: `${angleY/45-0.25} 0.24 -0.799`,
-        xPos: `-0.056 ${angleX/45+0.1} -0.799`
-       }
+      angleStr: `${round(angleX, 1)},${round(angleY, 1)},${round(angleZ, 1)}`,
+      zPosL: `${zx - 0.25} ${zy + 0.1} -0.799`,
+      zPosR: `${-zx - 0.25} ${-zy + 0.1} -0.799`,
+      zRot: `0 0 ${90 - angleZ}`,
+      yPos: `${angleY / 45 - 0.25} 0.24 -0.799`,
+      xPos: `-0.056 ${angleX / 45 + 0.1} -0.799`
     }
+  }
 
-  const {angleStr , angleX, angleY, yPos, xPos, zPosL, zPosR, zRot}= FrontLine()
+  const { angleStr, angleX, angleY, yPos, xPos, zPosL, zPosR, zRot } = FrontLine()
 
   if (rendered) {
 
@@ -2654,18 +2656,18 @@ export default function Home(props) {
           rtc_message.push(`${stat}`);
         })
         rtc_message = rtc_message.join(' ')
- //       console.log("RTC!, rtc_message",rtc_message)
+        //       console.log("RTC!, rtc_message",rtc_message)
       }
     }
     return (
       <>
         <a-scene scene shadow="type: pcf" xr-mode-ui={`enabled: ${!(props.appmode === AppMode.viewer) ? 'true' : 'false'}; XRMode: xr`} >
-         
+
           {  // ステレオカメラ使うか extra-camera={props.appmode}>
-   
+
             (props.appmode === AppMode.withCam || props.appmode === AppMode.withDualCam || props.appmode === AppMode.monitor) ?
               <StereoVideo rendered={rendered} set_rtcStats={set_rtcStats} stereo_visible='true'
-                appmode={props.appmode} 
+                appmode={props.appmode}
               /> : <></>
           }
 
@@ -2726,18 +2728,18 @@ export default function Home(props) {
             {/* for stereo camera */}
             <a-camera id="camera" stereocam="eye:left" position="0 0 0" ref={CameraRef}>
               <a-entity id="UIBack">
-                 {(props.appmode === AppMode.practice) ?
+                {(props.appmode === AppMode.practice) ?
                   <a-plane id="virtualMonitor" position='-0.25 .1 -0.8' scale='0.25 0.25 1' width='1.6' height='1.2'
-                  material="shader: standard" visible="true"></a-plane>:
+                    material="shader: standard" visible="true"></a-plane> :
                   <></>
-                  }
-                  {/*
+                }
+                {/*
               <a-entity 
                 text={`value: ${angleStr}; color: gray; backgroundColor: rgb(31, 219, 131); border: #000000; whiteSpace: pre`}
                 position="0.1 0.28 -0.8"
               />
                   
-                  */}                 
+                  */}
               </a-entity>
               <a-plane position="-0.25 0.24 -0.7995" rotation="0 0 90" width="0.013" height="0.003" color="blue" />
               <a-plane position={yPos} rotation="0 0 90" width="0.015" height="0.005" color="red" />
@@ -2746,7 +2748,7 @@ export default function Home(props) {
 
               <a-plane position={zPosL} rotation={zRot} width="0.005" height="0.018" color="pink" opacity="0.9" />
               <a-plane position={zPosR} rotation={zRot} width="0.005" height="0.018" color="pink" opacity="0.9" />
-                            
+
               {/*
               <a-sphere position={yPos} scale="0.012 0.012 0.012" color="red" >
               </a-sphere>
