@@ -526,7 +526,7 @@ export default function Home(props) {
           current_data.starttime = performance.now()
           current_data.start_quaternion = current_object3D.quaternion.clone()
           current_data.end_quaternion = new THREE.Quaternion().setFromAxisAngle(rotvec_table[i], toRadian(current_data.rot))
-          if (switchingVrMode) {
+          if (switchingVrMode || tool_load_operation) { //VRモード移行中 or ツール交換中はアニメーションしない。
             current_data.move_time = 0
           } else {
             const move_time_1 = target_move_distance * target_move_speed
@@ -1226,35 +1226,37 @@ export default function Home(props) {
     if (dsp_message === "" && !(props.appmode === AppMode.viewer) && !inputRotateFlg.current) {
       const ratioTbl = [0,0,0,0,0,0]
       const check_result = outRotateConv(result_rotate, [...checkRotateRef.current])
-      if (check_result.j1_rotate < -j1_limit || check_result.j1_rotate > j1_limit) {
-        dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
-        j1_error = true
+      if(!tool_load_operation){
+        if (check_result.j1_rotate < -j1_limit || check_result.j1_rotate > j1_limit) {
+          dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
+          j1_error = true
+        }
+        if (check_result.j2_rotate < -j2_limit || check_result.j2_rotate > j2_limit) {
+          dsp_message = `j2_rotate 指定可能範囲外！:(${check_result.j2_rotate})`
+          j2_error = true
+        }
+        if (check_result.j3_rotate < -j3_limit || check_result.j3_rotate > j3_limit) {
+          dsp_message = `j3_rotate 指定可能範囲外！:(${check_result.j3_rotate})`
+          j3_error = true
+        }
+        if (check_result.j4_rotate < -j4_limit || check_result.j4_rotate > j4_limit) {
+          dsp_message = `j4_rotate 指定可能範囲外！:(${check_result.j4_rotate})`
+          j4_error = true
+        }
+        if (check_result.j5_rotate < -j5_limit || check_result.j5_rotate > j5_limit) {
+          dsp_message = `j5_rotate 指定可能範囲外！:(${check_result.j5_rotate})`
+          j5_error = true
+        }
+        if (check_result.j6_rotate < -j6_limit || check_result.j6_rotate > j6_limit) {
+          dsp_message = `j6_rotate 指定可能範囲外！:(${check_result.j6_rotate})`
+          j6_error = true
+        }
       }
       ratioTbl[0] = check_result.j1_rotate/j1_limit
-      if (check_result.j2_rotate < -j2_limit || check_result.j2_rotate > j2_limit) {
-        dsp_message = `j2_rotate 指定可能範囲外！:(${check_result.j2_rotate})`
-        j2_error = true
-      }
       ratioTbl[1] = check_result.j2_rotate/j2_limit
-      if (check_result.j3_rotate < -j3_limit || check_result.j3_rotate > j3_limit) {
-        dsp_message = `j3_rotate 指定可能範囲外！:(${check_result.j3_rotate})`
-        j3_error = true
-      }
       ratioTbl[2] = check_result.j3_rotate/j3_limit
-      if (check_result.j4_rotate < -j4_limit || check_result.j4_rotate > j4_limit) {
-        dsp_message = `j4_rotate 指定可能範囲外！:(${check_result.j4_rotate})`
-        j4_error = true
-      }
       ratioTbl[3] = check_result.j4_rotate/j4_limit
-      if (check_result.j5_rotate < -j5_limit || check_result.j5_rotate > j5_limit) {
-        dsp_message = `j5_rotate 指定可能範囲外！:(${check_result.j5_rotate})`
-        j5_error = true
-      }
       ratioTbl[4] = check_result.j5_rotate/j5_limit
-      if (check_result.j6_rotate < -j6_limit || check_result.j6_rotate > j6_limit) {
-        dsp_message = `j6_rotate 指定可能範囲外！:(${check_result.j6_rotate})`
-        j6_error = true
-      }
       ratioTbl[5] = check_result.j6_rotate/j6_limit
       if (dsp_message === "") {
         const check_rotate = [
