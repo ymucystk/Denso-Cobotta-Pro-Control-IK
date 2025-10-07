@@ -302,6 +302,7 @@ export default function Home(props) {
   const [target, set_target_org, target_ref] = useRefState(real_target)
   const [disp_target, set_disp_target, disp_target_ref] = useRefState({ x: 0, y: 0, z: 0 })
   const [p15_16_len, set_p15_16_len] = useRefState(joint_pos.j7.z + tool_diff) // これが重要（エンドエフェクタ (TCP)の位置
+  const p15_16_len_tbl = [0.18,0.33,0.41,0.305,0.23,0.21]
   const [p14_maxlen, set_p14_maxlen] = useRefState(0)
 
   const [do_target_update, set_do_target_update] = useRefState(0)
@@ -328,6 +329,8 @@ export default function Home(props) {
     const wk_toolName = getCookie('toolName')
     set_toolName(wk_toolName ? wk_toolName : "vgc10-1") // changeDefault to "vgc10-1" for DEMO
     //    set_toolName(wk_toolName ? wk_toolName : "Gripper") // changeDefault to "vgc10-1" for DEMO
+    const idx = toolNameList.findIndex( e=>e===wk_toolName)
+    set_p15_16_len(p15_16_len_tbl[idx >= 0 ? idx : 0])
   }, [])
 
   // VR モード終了時
