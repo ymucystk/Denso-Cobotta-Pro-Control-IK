@@ -231,6 +231,8 @@ export default function Home(props) {
     }
     document.cookie = `toolName=${newTool}; path=/; max-age=31536000;`
     set_toolName_org(newTool)
+    const idx = toolNameList.findIndex(e=>e===newTool)
+    set_p15_16_len(p15_16_len_tbl[idx])
   }
 
   const [target,set_target_org,target_ref] = useRefState(real_target)
@@ -254,8 +256,6 @@ export default function Home(props) {
     set_vrModeOffsetX(wk_vrModeOffsetX ? parseFloat(wk_vrModeOffsetX) : 0)
     const wk_toolName = getCookie('toolName')
     set_toolName(wk_toolName ? wk_toolName : "vgc10-1") // changeDefault to "vgc10-1" for DEMO
-    const idx = toolNameList.findIndex(e=>e===wk_toolName)
-    set_p15_16_len(p15_16_len_tbl[idx])
     /*if(!props.viewer){
       requestAnimationFrame(get_real_joint_rot)
     }*/
@@ -1019,7 +1019,7 @@ export default function Home(props) {
                 set_update((v) => v = v + 1)
               }
               if (firstReceiveJoint || tool_load_operation || put_down_box_operation) {
-                if (input_rotateRef.current.some((e, i) => e !== joints[i])) {
+                if (input_rotateRef.current.some((e, i) => e !== joints[i])) {  //受け取ったジョイント角度が前回と一つでも変わっていたら
                   console.log("receive joints", joints)
                   set_input_rotate([...joints])
                   inputRotateFlg.current = true
@@ -1484,13 +1484,13 @@ export default function Home(props) {
     return { k: kakudo, t: takasa }
   }
 
-  React.useEffect(() => {
+  /*React.useEffect(() => {
     if (rendered) {
       const p15_pos = new THREE.Vector3().applyMatrix4(p15_object.matrix)
       const p16_pos = new THREE.Vector3().applyMatrix4(p16_object.matrix)
       set_p15_16_len(distance(p15_pos, p16_pos))
     }
-  }, [p16_object.matrix.elements[14]])
+  }, [p16_object.matrix.elements[14]])*/
 
   const vrControllStart = () => {
     controller_start_quat.copy(controller_object.quaternion.clone())
