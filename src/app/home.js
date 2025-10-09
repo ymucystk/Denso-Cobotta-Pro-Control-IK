@@ -853,7 +853,7 @@ export default function Home(props) {
     //    const wk_j1_Correct_value = normalize180(j1_Correct_value - (vrModeRef.current ? vrModeAngle_ref.current : 0))
     const wk_j1_Correct_value = normalize180(j1_Correct_value - vrModeAngle_ref.current)
 
-    if(tool_load_operation){
+    if(tool_load_operation || put_down_box_operation){
       set_j1_rotate(round(normalize180(input_rotate[0] - wk_j1_Correct_value)))
       set_j2_rotate(round(normalize180(input_rotate[1] - j2_Correct_value)))
       set_j3_rotate(round(normalize180(input_rotate[2] - j3_Correct_value)))
@@ -896,6 +896,13 @@ export default function Home(props) {
       inputReflection()
     }
   }, [tool_load_operation])
+
+  React.useEffect(() => {
+    if (input_rotate[0] === undefined) return
+    if(!put_down_box_operation){
+      inputReflection()
+    }
+  }, [put_down_box_operation])
 
   const get_j5_quaternion = (rot_x = wrist_rot.x, rot_y = wrist_rot.y, rot_z = wrist_rot.z) => {
     return new THREE.Quaternion().setFromEuler(
@@ -989,7 +996,7 @@ export default function Home(props) {
                     // put_down_box 終了通知
                     viewer_put_down_box_end = true
                     viewer_put_down_box = false
-                  }, 20000)
+                  }, 40000)
                 }
               }
             }
@@ -1259,7 +1266,7 @@ export default function Home(props) {
     if (dsp_message === "" && !(props.appmode === AppMode.viewer) && !inputRotateFlg.current) {
       const ratioTbl = [0,0,0,0,0,0]
       const check_result = outRotateConv(result_rotate, [...checkRotateRef.current])
-      if(!tool_load_operation){
+      if(!(tool_load_operation || put_down_box_operation)){
         if (check_result.j1_rotate < -j1_limit || check_result.j1_rotate > j1_limit) {
           dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
           j1_error = true
