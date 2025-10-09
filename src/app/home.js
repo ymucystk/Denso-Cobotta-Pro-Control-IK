@@ -976,10 +976,8 @@ export default function Home(props) {
 
   const inputReflection = ()=>{
 
-    const wk_j1_Correct_value = normalize180(j1_Correct_value - vrModeAngle_ref.current)
-
     if(tool_load_operation || put_down_box_operation){
-      set_j1_rotate(round(normalize180(input_rotate[0] - wk_j1_Correct_value)))
+      set_j1_rotate(round(normalize180(input_rotate[0] - j1_Correct_value)))
       set_j2_rotate(round(normalize180(input_rotate[1] - j2_Correct_value)))
       set_j3_rotate(round(normalize180(input_rotate[2] - j3_Correct_value)))
       set_j4_rotate(round(normalize180(input_rotate[3] - j4_Correct_value)))
