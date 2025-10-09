@@ -297,6 +297,14 @@ export default function Home(props) {
     }
     document.cookie = `toolName=${newTool}; path=/; max-age=31536000;`
     set_toolName_org(newTool)
+
+    if (props.appmode === AppMode.viewer){
+      set_p15_16_len(0.18)
+    }else{
+      const idx = toolNameList.findIndex(e=>e===newTool)
+      set_p15_16_len(p15_16_len_tbl[idx])
+    }
+
   }
 
   const [target, set_target_org, target_ref] = useRefState(real_target)
@@ -322,15 +330,19 @@ export default function Home(props) {
 
   // Cooike, Offsetの取得
   React.useEffect(() => {
-    const wk_vrModeAngle = getCookie('vrModeAngle')
-    set_vrModeAngle(wk_vrModeAngle ? parseFloat(wk_vrModeAngle) : 90) // change default to 90
-    const wk_vrModeOffsetX = getCookie('vrModeOffsetX')
-    set_vrModeOffsetX(wk_vrModeOffsetX ? parseFloat(wk_vrModeOffsetX) : 0.55)
-    const wk_toolName = getCookie('toolName')
-    set_toolName(wk_toolName ? wk_toolName : "vgc10-1") // changeDefault to "vgc10-1" for DEMO
+    if(!(props.appmode === AppMode.viewer) ){
+      const wk_vrModeAngle = getCookie('vrModeAngle')
+      set_vrModeAngle(wk_vrModeAngle ? parseFloat(wk_vrModeAngle) : 90) // change default to 90
+      const wk_vrModeOffsetX = getCookie('vrModeOffsetX')
+      set_vrModeOffsetX(wk_vrModeOffsetX ? parseFloat(wk_vrModeOffsetX) : 0.55)
+      const wk_toolName = getCookie('toolName')
+      set_toolName(wk_toolName ? wk_toolName : "vgc10-1") // changeDefault to "vgc10-1" for DEMO
     //    set_toolName(wk_toolName ? wk_toolName : "Gripper") // changeDefault to "vgc10-1" for DEMO
-    const idx = toolNameList.findIndex( e=>e===wk_toolName)
-    set_p15_16_len(p15_16_len_tbl[idx >= 0 ? idx : 0])
+      const idx = toolNameList.findIndex( e=>e===wk_toolName)
+      set_p15_16_len(p15_16_len_tbl[idx >= 0 ? idx : 0])
+    }else{
+      set_toolName(toolName);
+    }
   }, [])
 
   // VR モード終了時
@@ -961,8 +973,22 @@ export default function Home(props) {
     }
   }, [j1_rotate, j2_rotate, j3_rotate, j4_rotate, j5_rotate, j6_rotate, j7_rotate])
 
-  React.useEffect(() => {
-    if (input_rotate[0] === undefined) return
+
+  const inputReflection = ()=>{
+
+    const wk_j1_Correct_value = normalize180(j1_Correct_value - vrModeAngle_ref.current)
+
+    if(tool_load_operation || put_down_box_operation){
+      set_j1_rotate(round(normalize180(input_rotate[0] - wk_j1_Correct_value)))
+      set_j2_rotate(round(normalize180(input_rotate[1] - j2_Correct_value)))
+      set_j3_rotate(round(normalize180(input_rotate[2] - j3_Correct_value)))
+      set_j4_rotate(round(normalize180(input_rotate[3] - j4_Correct_value)))
+      set_j5_rotate(round(normalize180(input_rotate[4] - j5_Correct_value)))
+      set_j6_rotate(round(normalize180(input_rotate[5] - j6_Correct_value)))
+      set_j7_rotate(input_rotate[6]) // 指用
+      return
+    }
+
     const robot_rotate = {
       j1_rotate: round(normalize180(input_rotate[0] - j1_Correct_value)),
       j2_rotate: round(normalize180(input_rotate[1] - j2_Correct_value)),
@@ -986,8 +1012,27 @@ export default function Home(props) {
       return vr
     }); // これだと場所だけ (手首の相対もやるべし！)
     set_j7_rotate(input_rotate[6]) // 指用
+  }
 
+  React.useEffect(() => {
+    if (input_rotate[0] === undefined) return
+    inputReflection()
   }, [input_rotate[0], input_rotate[1], input_rotate[2], input_rotate[3], input_rotate[4], input_rotate[5], input_rotate[6]])
+
+
+  React.useEffect(() => {
+    if (input_rotate[0] === undefined) return
+    if(!tool_load_operation){
+      inputReflection()
+    }
+  }, [tool_load_operation])
+
+  React.useEffect(() => {
+    if (input_rotate[0] === undefined) return
+    if(!put_down_box_operation){
+      inputReflection()
+    }
+  }, [put_down_box_operation])
 
   const get_j5_quaternion = (rot_x = wrist_rot.x, rot_y = wrist_rot.y, rot_z = wrist_rot.z) => {
     return new THREE.Quaternion().setFromEuler(
@@ -1090,7 +1135,7 @@ export default function Home(props) {
                     // put_down_box 終了通知
                     viewer_put_down_box_end = true
                     viewer_put_down_box = false
-                  }, 20000)
+                  }, 40000)
                 }
               }
             }
@@ -1352,7 +1397,7 @@ export default function Home(props) {
         return vr
       })
     }
-  }, [target.x, target.y, target.z, tool_rotate, rendered, wrist_rot.x, wrist_rot.y, wrist_rot.z, p15_16_len])
+  }, [target.x, target.y, target.z, tool_rotate, rendered, wrist_rot.x, wrist_rot.y, wrist_rot.z /*, p15_16_len*/])
 
   const target_update = () => {
     const p21_pos = get_p21_pos()
@@ -1466,7 +1511,7 @@ export default function Home(props) {
 
     if (dsp_message === "" && !(props.appmode === AppMode.viewer) && !inputRotateFlg.current) {
       const check_result = outRotateConv(result_rotate, [...checkRotateRef.current])
-      if (!tool_load_operation) {
+      if (!(tool_load_operation || put_down_box_operation)) {
         if (check_result.j1_rotate < -j1_limit || check_result.j1_rotate > j1_limit) {
           dsp_message = `j1_rotate 指定可能範囲外！:(${check_result.j1_rotate})`
           j1_error = true
