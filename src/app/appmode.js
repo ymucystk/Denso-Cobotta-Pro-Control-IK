@@ -9,4 +9,5 @@ export const AppMode = {
   viewer: 'viewer',        // ビューワ（ロボットの状態を表示するだけ）:カメラ無
   simRobot: 'simRobot',    // 仮想ロボット（実ロボットのシミュレータ）
   practice: 'practice',    // 練習モード (荷物を運ぶタイプ：VRのみ)
+  monitor: 'monitor',    // 監視モード (ロボットの状態を監視する)
 };

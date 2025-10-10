@@ -8,6 +8,9 @@ export const codeType = package_info.name; // software name
 const version = package_info.version; // version number
 
 const MQTT_BROKER_URL = "wss://sora2.uclab.jp/mqws"; // For Nagoya-U UCLab Development
+//const MQTT_BROKER_URL = "wss://sora3.uclab.jp/mqws"; // For Nagoya-U UCLab Development
+//const MQTT_BROKER_URL = process.env.NEXT_PUBLIC_MQTT_BROKER_URL; // For Nagoya-U UCLab Development
+
 
 import {userUUID} from './cookie_id';
 
@@ -16,7 +19,7 @@ export var mqttclient = null;
 export var idtopic = userUUID;
 
 // 本来であれば、デバイスIDなどを設定したい。（しかしブラウザは厳しい。Cookieでやるべき）
-export const connectMQTT = (callback) => {
+export const connectMQTT = (callback,optStr = "") => {
     if (mqttclient == null) {
         const client = new mqtt.connect(MQTT_BROKER_URL, {protocolVersion: 5}); // noLocal を指定するため Version5 で接続
         client.on("connect", () => {
@@ -43,7 +46,8 @@ export const connectMQTT = (callback) => {
                 devType: devType,
                 type: package_info.name,
                 version: version,
-                devId: userUUID
+                devId: userUUID,
+                optStr: optStr
             }
             // this is Metawork-MQTT protocol
             client.publish('mgr/register', JSON.stringify(info)) // for other devices.// maybe retransmit each 10seconds

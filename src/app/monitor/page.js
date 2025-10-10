@@ -7,6 +7,9 @@ const DynamicHome = dynamic(() => import('../home.js'), { ssr: false });
 
 export default function Home() {
   return (
-    <DynamicHome appmode={AppMode.withCam}/>
+    // 認証は不要？（アクセスは記録したいよね。。)
+    <AuthGate noauth={true}>
+      <DynamicHome appmode={AppMode.monitor}/>
+    </AuthGate>
   );
 }
